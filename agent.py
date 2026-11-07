@@ -190,15 +190,33 @@ def _step_toward(pos, goal, obstacles, visits=None):
     for group in (viable, dead):
         group.sort(key=lambda pair: (_enters_blocked(pair[1]),
                                       counts.get((pair[1][0], pair[1][1]), 0)))
-    for name, _nxt in viable + dead:
-        return name
     backup = []
     for name, delta in (("up", [0, -1]), ("down", [0, 1]), ("left", [-1, 0]), ("right", [1, 0])):
         nxt = [pos[0] + delta[0], pos[1] + delta[1]]
         if _free(nxt):
             backup.append((name, nxt))
     backup.sort(key=lambda pair: counts.get((pair[1][0], pair[1][1]), 0))
-    for name, _nxt in backup:
+    if not obstacles:
+        for name, _nxt in viable + dead:
+            return name
+        for name, _nxt in backup:
+            return name
+        return "wait"
+    # Obstacle navigation pools viable goal steps with backup detours by
+    # least-visited; dead goal steps stay last. Open-field forage keeps
+    # the proven viable-first order (T1 39711/39711 optimal); the pool
+    # fixes multi-blocker truncations while single-obstacle exhaustive
+    # stays 3906/3906 optimal and seed-74 blind truncation is preserved.
+    pool = viable + backup
+    seen = set()
+    uniq = []
+    for name, cell in pool:
+        key = (cell[0], cell[1])
+        if key not in seen:
+            seen.add(key)
+            uniq.append((name, cell))
+    uniq.sort(key=lambda pair: counts.get((pair[1][0], pair[1][1]), 0))
+    for name, _nxt in uniq + dead:
         return name
     return "wait"
 

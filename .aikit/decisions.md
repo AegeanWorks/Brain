@@ -233,3 +233,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Full-history recall returns the initial forage list forever on persistent-hidden layouts, so after the first collect the stale cell loops the agent to the 200-step cap with 1.0 reward. Planner read hub last_action and discarded it — the hub channel had no load-bearing use.
 - **Decision**: Agent.run appends each successful collect cell to hub collected_positions (deduped, deterministic); Planner.plan filters recalled items_positions against that set for both rule geometry and backend obs. Visible states bypass recall, so the filter is a no-op there. No new deps.
 - **Consequences**: 111 tests OK; aikit check 5/5; standing behavior (466/240/217) and trace (syn 0.0541 phi 0.0) byte-identical; persistent-hidden T1 200/1.0 -> 16/12/18 with 3.0; hub-blind lesion restores 200/1.0, proving hub-memory coupling.
+
+### ADR-034: Visit-pooled detours for multi-obstacle navigation
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Cycle-32 revival condition: leaf viability was proven only on single-obstacle layouts. Two-blocker probes truncate twice (200/0.0) with viable-first routing oscillating on dead goal steps and visited back-edges.
+- **Decision**: In _step_toward, open-field (no obstacles) keeps viable/dead/backup order; obstacle navigation pools viable goal steps with backup detours deduped by least-visited with dead last. No new deps; deterministic.
+- **Consequences**: 114 tests OK; aikit check 5/5; standing (466/240/217, T1-100 1581, exhaustive 3906/3906 total 27860, goldens) byte-identical; multi (5,0) 200->9, (7,5) 200->20, (3,6) 13->11 all complete; memory-blind restores 200/0.0 on all three, proving visit coupling. Two multis remain non-optimal (reserved).

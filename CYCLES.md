@@ -1759,3 +1759,74 @@ only integration scores, cross-module dependencies, and ablation differentials.
   golden 9/9; pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn
   0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; manifest +
   repro variance 0.
+
+## Cycle 35 — visit-pooled detours for multi-obstacle navigation
+- **Baseline** (cycle-34 pins re-verified, same rig/seeds):
+  - canonical: 111 OK; aikit 5/5 PASS.
+  - code behavior: standing 466/240/217; T1-100 1581; exhaustive
+    T3 3906/3906 total 27860; two-blocker probes (new):
+    (5,0) 200/0.0 vs BFS 9, (7,5) 200/0.0 vs 12, (3,6) 13/1.0
+    vs 9; seed-74 blind 200/0.0 (visits coupling carried).
+  - trace internals: fixed-rig syn 0.05411532 syn_n 0.10814360
+    phi 0.0 n32; hub0/m0 0.0; p0/s0 identical; errors zero.
+  - model-seam internals: digest 18edf1ca...; manifest True;
+    visit-oracle 5/5; hidden-T1 16/12/18; persistent-hidden 13/6.
+  - probe gap: tests/test_multi_obstacle.py absent; new 3-test
+    probe FAILs 2/3 on intact tree (200/0.0 vs 9/20/11).
+- **Gap**: viable-first routing oscillates on two-blocker cul-de-sacs
+  (dead goal step beats backup detour, viable back-edge beats
+  unexplored exit), truncating twice. Single-obstacle exhaustive
+  cannot see it; revival condition from cycle 32 explicitly names
+  multi-obstacle layouts.
+- **Target delta**: obstacle navigation pools viable with backup by
+  least-visited; open-field keeps viable-first; multi 200->9,
+  200->20, 13->11 all complete; standing/exhaustive byte-identical.
+- **Falsifier**: standing totals move, exhaustive moves, golden moves,
+  or any multi stays 200/0.0; emergence falsifier: memory-blind must
+  restore 200/0.0 on all three or the gain is not visit-carried.
+- **Change** (agent.py _step_toward only: obstacles-empty keeps
+  viable/dead/backup order; obstacles-present pools viable+backup
+  deduped by least-visited with dead last; tests/test_multi_obstacle.py
+  new 3 tests): deterministic, stdlib only. ADR-034.
+- **After** (identical battery, same seeds):
+  - code: standing 466/240/217 identical; T1-100 1581 identical;
+    exhaustive 3906/3906 total 27860 identical; goldens 9/9 identical;
+    multi (5,0) 200->9/1.0, (7,5) 200->20/1.0, (3,6) 13->11/1.0;
+    variance 0 (deterministic, carried repro 27/27).
+  - trace: fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0 n32
+    identical; multi traces carry deltas (S -191/-180/-2 steps,
+    M -191/-180/-2); lesions unchanged.
+  - seam carried: visit/hidden/persistent/hub oracles unchanged.
+- **Ablation** (memory-blind: Planner.plan with None memories):
+  - intact pooled: 9/20/11 with 1.0.
+  - cut blind: 200/0.0 on all three.
+  - Gain dies with the cut, returns with the restore: visit channel
+    load-bearing. Honestly recorded: pool structure alone suffices
+    nowhere without visits on these three (unlike single-obstacle
+    seeds 15/65 where lookahead suffices). Standing None control
+    unchanged (full suite green).
+- **Verdict**: robustness win (2 truncations fixed, 1 detour -2)
+  with proven visit coupling; 2 multis remain non-optimal
+  (20 vs 12, 11 vs 9) — reserved for depth revival with failing
+  configs. No emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 114/114 OK (111 carried + 3 new); aikit 5/5
+  PASS (one full-suite red on the way: naive pool broke T1-100
+  1581->1591, goldens, and seed-74 blind — fixed by gating the pool
+  on obstacles-present and sorting visits-only).
+- **Commands run**:
+  - `python -m unittest tests.test_multi_obstacle -v` -> 2 FAIL
+    (200/0.0) before, 3 OK after.
+  - `python -m unittest discover -s tests -t .` -> 111 OK before,
+    114 OK after (mid-cycle 5 FAIL with naive pool, then green).
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + T1-100 + fixed-rig identical; exhaustive
+    3906/3906 total 27860 identical; multi 3-seed + blind ablation.
+- **Pinned regression baselines for cycle 36**: unittest 114 OK; aikit
+  5/5; standing 466/240/217; multi 9/20/11 with 1.0; blind multi
+  200/0.0 x3; seed-74 9 intact / 200 blind; 0-99 1581/800/683;
+  T1 100-199 1646; T3 100-199 732; T3 200-299 718; T3 300-399 671;
+  T3 400-499 675; holdout 1581/800/738; exhaustive 3906/3906
+  27860; corridor-cut 12/744; random floor 1271/5.0 vs 89/11.0;
+  chain ok + 5 findings; headers 18edf1ca...; golden 9/9; pins
+  16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
+  hub0/m0 0.0 p0/s0 identical; manifest + repro variance 0.
