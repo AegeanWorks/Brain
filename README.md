@@ -214,14 +214,17 @@ replays keep their exact actions and zero fallbacks.
 
 `Planner(rule_readout=True)` adds `probe.rule` to every step where the
 rule has a goal: `goal`, the best post-move BFS `distance`, `ties` (free
-moves at that distance), `confidence` (`1/ties`), `rule_distance`, and
-`optimal` (the rule action is at the minimum). Unique moves read 1.0,
-two-way ties 0.5; `collect`/`wait` at the goal read distance 0 and 1.0.
-`rule_readout=False` removes the field for the ablation; it never
-selects an action. The policy key is `rule_readout: bfs-move-ties`.
-`python -m evals.rule_confidence` shows 89/89 readouts and 28 two-way
-ties across the nine pin seeds, with identical on/off 89-step/11.0
-traces, plus unique/tie/collect fixtures.
+moves at that distance), `confidence` (`1/ties`), `rule_distance`,
+`optimal` (the rule action is at the minimum), and `alternatives` (each
+best move with its recent-visit count). Unique moves read 1.0, two-way
+ties 0.5; `collect`/`wait` at the goal read distance 0 and 1.0 with no
+alternatives. `rule_readout=False` removes the field for the ablation;
+it never selects an action. The policy key is
+`rule_readout: bfs-move-ties`. `python -m evals.rule_confidence` shows
+89/89 readouts, 113 alternatives over 28 tie steps, only 1 tie with
+differing visit counts, and the rule choosing the least-visited
+alternative in all 28 with identical on/off 89-step/11.0 traces, plus
+unique/tie/collect fixtures.
 
 ## 🔗 Model-Manifest Binding
 

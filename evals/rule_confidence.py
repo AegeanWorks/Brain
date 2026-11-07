@@ -53,6 +53,42 @@ def _readout_stats(rules):
     }
 
 
+def _tie_stats(pairs):
+    alternatives_total = 0
+    tie_steps = 0
+    spread_steps = 0
+    chosen_least = 0
+    chosen_not_least = 0
+    not_in_alternatives = 0
+    for action, rule in pairs:
+        if not isinstance(rule, dict):
+            continue
+        alternatives = rule.get("alternatives") or []
+        alternatives_total += len(alternatives)
+        if rule.get("ties", 1) <= 1 or not alternatives:
+            continue
+        tie_steps += 1
+        visits = [item.get("visits", 0) for item in alternatives]
+        if len(set(visits)) > 1:
+            spread_steps += 1
+        chosen = next((item for item in alternatives
+                       if item.get("action") == action), None)
+        if chosen is None:
+            not_in_alternatives += 1
+        elif chosen.get("visits", 0) == min(visits):
+            chosen_least += 1
+        else:
+            chosen_not_least += 1
+    return {
+        "alternatives_total": alternatives_total,
+        "tie_steps": tie_steps,
+        "visit_spread_steps": spread_steps,
+        "chosen_least_visited": chosen_least,
+        "chosen_not_least_visited": chosen_not_least,
+        "chosen_not_in_alternatives": not_in_alternatives,
+    }
+
+
 def _run_seed(task, seed, readout, directory, suffix):
     log_path = os.path.join(directory, "%s-%d-%s.jsonl"
                             % (task, seed, suffix))
@@ -60,26 +96,33 @@ def _run_seed(task, seed, readout, directory, suffix):
     trace = Agent(planner=planner).run_task_logged(
         task, seed, max_steps=200, log_path=log_path)
     records = Telemetry(log_path).read_all()
-    rules = [record.get("args", {}).get("probe", {}).get("rule")
+    pairs = [(record.get("args", {}).get("action"),
+              record.get("args", {}).get("probe", {}).get("rule"))
              for record in records
              if record.get("type") == "action"
              and record.get("kind") == "step"]
-    return trace, rules
+    return trace, pairs
 
 
 def measure_seeds(mode, directory):
     result = {"mode": mode, "steps": 0, "reward": 0.0,
               "actions_match": True, "seeds": [],
               "readout_steps": 0, "ambiguous_steps": 0,
-              "nonoptimal_steps": 0, "ties": {}}
+              "nonoptimal_steps": 0, "ties": {},
+              "alternatives_total": 0, "tie_steps": 0,
+              "visit_spread_steps": 0, "chosen_least_visited": 0,
+              "chosen_not_least_visited": 0,
+              "chosen_not_in_alternatives": 0}
     totals = {"readout_steps": 0, "ambiguous_steps": 0,
               "nonoptimal_steps": 0, "ties": {}}
     for task, seed, _steps, _reward in PIN_SEEDS:
-        on_trace, rules = _run_seed(task, seed, True, directory,
-                                    "%s-on" % mode)
-        off_trace, off_rules = _run_seed(task, seed, False, directory,
+        on_trace, on_pairs = _run_seed(task, seed, True, directory,
+                                       "%s-on" % mode)
+        off_trace, off_pairs = _run_seed(task, seed, False, directory,
                                          "%s-off" % mode)
-        stats = _readout_stats(rules if mode != "off" else off_rules)
+        pairs = on_pairs if mode != "off" else off_pairs
+        stats = _readout_stats([rule for _action, rule in pairs])
+        tie_stats = _tie_stats(pairs)
         result["steps"] += len(on_trace)
         result["reward"] += sum(record["reward"] for record in on_trace)
         result["actions_match"] = result["actions_match"] and (
@@ -90,9 +133,18 @@ def measure_seeds(mode, directory):
             "readout_steps": stats["readout_steps"],
             "ambiguous_steps": stats["ambiguous_steps"],
             "nonoptimal_steps": stats["nonoptimal_steps"],
+            "tie_steps": tie_stats["tie_steps"],
+            "visit_spread_steps": tie_stats["visit_spread_steps"],
+            "chosen_least_visited": tie_stats["chosen_least_visited"],
+            "chosen_not_least_visited":
+                tie_stats["chosen_not_least_visited"],
         })
         for key in ("readout_steps", "ambiguous_steps", "nonoptimal_steps"):
             totals[key] += stats[key]
+        for key in ("alternatives_total", "tie_steps", "visit_spread_steps",
+                    "chosen_least_visited", "chosen_not_least_visited",
+                    "chosen_not_in_alternatives"):
+            result[key] += tie_stats[key]
         for tie, count in stats["ties"].items():
             totals["ties"][tie] = totals["ties"].get(tie, 0) + count
     result.update(totals)

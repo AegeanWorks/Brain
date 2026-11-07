@@ -51,6 +51,47 @@ class TestRuleConfidence(unittest.TestCase):
         self.assertAlmostEqual(rule["confidence"], 0.5)
         self.assertTrue(rule["optimal"])
 
+    def test_tie_alternatives_are_listed(self):
+        action, probe = _plan(Planner(), _state(0, 0, [2, 2]))
+        rule = probe["rule"]
+        alternatives = {item["action"]: item
+                        for item in rule["alternatives"]}
+        self.assertEqual(set(alternatives), {"down", "right"})
+        self.assertEqual({item["distance"]
+                          for item in alternatives.values()}, {3})
+        self.assertTrue(all(item["distance"] == rule["distance"]
+                            for item in alternatives.values()))
+        self.assertEqual(alternatives["right"]["visits"], 0)
+        self.assertIn(action, alternatives)
+
+    def test_alternatives_carry_visit_counts(self):
+        memories = ([{"x": 0, "y": 1}] * 3
+                    + [{"x": 1, "y": 0}] * 1)
+        planner = Planner()
+        action = planner.plan(_state(0, 0, [2, 2]), memories)
+        probe = planner.last_probe
+        alternatives = {item["action"]: item
+                        for item in probe["rule"]["alternatives"]}
+        self.assertEqual(alternatives["down"]["visits"], 3)
+        self.assertEqual(alternatives["right"]["visits"], 1)
+        self.assertIn(action, alternatives)
+
+    def test_unique_move_has_one_alternative(self):
+        action, probe = _plan(Planner(), _state(0, 0, [2, 0]))
+        alternatives = probe["rule"]["alternatives"]
+        self.assertEqual([item["action"] for item in alternatives],
+                         ["right"])
+        self.assertEqual(alternatives[0]["distance"], 1)
+        self.assertIn(action, [item["action"] for item in alternatives])
+
+    def test_collect_has_empty_alternatives(self):
+        _, probe = _plan(Planner(), _state(2, 2, [2, 2]))
+        self.assertEqual(probe["rule"]["alternatives"], [])
+
+    def test_alternatives_are_json_safe(self):
+        _, probe = _plan(Planner(), _state(0, 0, [2, 2]))
+        json.dumps(probe["rule"]["alternatives"])
+
     def test_collect_at_goal_has_full_confidence(self):
         action, probe = _plan(Planner(), _state(2, 2, [2, 2]))
         rule = probe["rule"]

@@ -252,13 +252,15 @@ def _bfs_distance(pos, goal, obstacles):
     return None
 
 
-def _rule_confidence(pos, goal, obstacles, action):
+def _rule_confidence(pos, goal, obstacles, action, visits=None):
     """Return BFS move-tie facts for one rule action and its goal.
 
     ``ties`` counts free moves with the minimum post-move BFS distance;
-    ``confidence`` is ``1/ties``. A collect/wait at the goal reads
-    distance 0 and confidence 1.0. Pure function; returns None when the
-    goal/geometry is unusable. The readout never selects an action.
+    ``confidence`` is ``1/ties``. ``alternatives`` lists each best move
+    with its visit count so the current tie-break can be audited. A
+    collect/wait at the goal reads distance 0, confidence 1.0 and no
+    alternatives. Pure function; returns None when the goal/geometry is
+    unusable. The readout never selects an action.
     """
     if goal is None:
         return None
@@ -272,6 +274,7 @@ def _rule_confidence(pos, goal, obstacles, action):
         return None
     if not (0 <= gx < SIZE and 0 <= gy < SIZE):
         return None
+    counts = visits if isinstance(visits, dict) else {}
     if action not in ("up", "down", "left", "right"):
         current = _bfs_distance([x, y], [gx, gy], obstacles)
         if current is None:
@@ -283,8 +286,10 @@ def _rule_confidence(pos, goal, obstacles, action):
             "confidence": 1.0 if current == 0 else 0.0,
             "rule_distance": current,
             "optimal": current == 0,
+            "alternatives": [],
         }
     distances = {}
+    cells = {}
     for name, dx, dy in (("up", 0, -1), ("down", 0, 1),
                          ("left", -1, 0), ("right", 1, 0)):
         nx, ny = x + dx, y + dy
@@ -295,6 +300,7 @@ def _rule_confidence(pos, goal, obstacles, action):
         distance = _bfs_distance([nx, ny], [gx, gy], obstacles)
         if distance is not None:
             distances[name] = distance
+            cells[name] = (nx, ny)
     if not distances:
         return None
     best = min(distances.values())
@@ -302,6 +308,11 @@ def _rule_confidence(pos, goal, obstacles, action):
     rule_distance = distances.get(action)
     if rule_distance is None:
         return None
+    alternatives = [
+        {"action": name, "distance": distances[name],
+         "visits": int(counts.get(cells[name], 0))}
+        for name in distances if distances[name] == best
+    ]
     return {
         "goal": [gx, gy],
         "distance": best,
@@ -309,6 +320,7 @@ def _rule_confidence(pos, goal, obstacles, action):
         "confidence": round(1.0 / ties, 4),
         "rule_distance": rule_distance,
         "optimal": rule_distance == best,
+        "alternatives": alternatives,
     }
 
 
@@ -767,7 +779,8 @@ class Planner:
                     rule_goal = _first_of_best_tour(pos, cells)
             elif recalled_target is not None:
                 rule_goal = list(recalled_target)
-            readout = _rule_confidence(pos, rule_goal, obstacles, rule_action)
+            readout = _rule_confidence(pos, rule_goal, obstacles,
+                                       rule_action, visits)
             if readout is not None:
                 probe["rule"] = readout
                 self.last_probe = probe
