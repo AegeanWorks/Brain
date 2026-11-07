@@ -1331,3 +1331,52 @@ only integration scores, cross-module dependencies, and ablation differentials.
   16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
   variance 0.
+
+## Cycle 28 — backfill range pins 0-199 (idea transfer)
+- **Source**: Lattice snapshot-diffing, completion pass: audit mapped
+  every asserted total and found four ledger-verified numbers with no
+  test pins. Seventh transfer overall.
+- **Gap**: T3 0-99 (683), T3 100-199 (732), T2 0-99 (800), T1 100-199
+  (1646) verified in cycles 3/5/6 and carried as prose; a drift in
+  the most-exercised ranges would pass all gates.
+- **Target delta**: one pin test, four exact totals, 400 episodes in
+  0.4s. No source change.
+- **Falsifier**: standing totals move, trace numbers move, or any
+  range total differs on the intact tree.
+- **Change** (tests/test_range_pins_0_199.py new only; ADR-027):
+  exact totals over 0-99/100-199 ranges. T1 100-199 sum differs per
+  range (1646 vs 1581) — sums are layout-driven, optimality is
+  per-seed tour+3 (pinned/audited separately). No source diff.
+- **Baseline** (cycle-27 pins re-verified): 93 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; missing totals
+  measured on intact tree (683/732/800/1646).
+- **After**:
+  - code identical: 30-seed 466/240/217; all 93 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - matrix complete: 94/94 with all ledger totals now asserted
+    (30-seed, 0-99, 100-199, 200-299, 300-399, 400-499, 500-599,
+    exhaustive T3).
+- **Ablation / sensitivity** (no source touched):
+  - memory-blind cut moves T3 0-99 683 -> 874 (+191 via seed-74
+    truncation): the new pins catch memory-coupling regressions.
+  - corridor-cut sensitivity stays carried by 200+/holdout pins
+    (738->742) — sensitivity is partitioned by range, honestly
+    recorded.
+- **Verdict**: provenance win (snapshot matrix complete); no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 94/94 OK (93 carried + 1 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_range_pins_0_199 -v` -> 1 OK.
+  - blind-cut T3-0-99 probe: 874 vs 683 (catches coupling loss).
+  - `python -m unittest discover -s tests -t .` -> 93 OK before,
+    94 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical.
+- **Pinned regression baselines for cycle 29**: unittest 94 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T1 100-199 1646;
+  T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499 675;
+  holdout 500-599 1581/800/738; exhaustive T3 3906/3906 total
+  27860; corridor-cut control 12/742; random floor best 1271/5.0
+  vs rule 89/11.0 (margins x10/+5); pins 16/8/13/6/9 + 7/14 +
+  6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro determinism variance 0.

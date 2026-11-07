@@ -184,3 +184,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Crucible random-patch controls (a win must beat the best of 3 randoms): blind ablations sever memory but keep lookahead, so nothing quantified how far the shipped planner stands above chance on the pin battery.
 - **Decision**: tests/test_random_floor.py plays the 9 pin seeds with 3 seeded uniform-random policies (9001-9003) and requires rule 89 steps / 11.0 reward to beat the best random (1271 steps / 5.0) by pre-registered margins (steps x10, reward +5). No source change; no new deps.
 - **Consequences**: 93 tests OK (27 random episodes + determinism check, ~4s); aikit check 5/5; standing behavior and trace byte-identical (no source diff); degraded (memory-blind) planner fails the steps margin (280x10 > 1271), proving the verdict discriminates planner quality, not just code presence.
+
+### ADR-027: Backfill range pins 0-199 (complete the snapshot matrix)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Lattice snapshot-diffing transfer, second half: audit found four ledger-verified totals with no test pins (T3 0-99 683, T3 100-199 732, T2 0-99 800, T1 100-199 1646), so a drift in the most-exercised ranges would pass all gates.
+- **Decision**: tests/test_range_pins_0_199.py asserts the four exact totals (400 episodes, 0.4s). No source change; no new deps.
+- **Consequences**: 94 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); memory-blind cut moves T3 0-99 683 -> 874 (+191, seed-74 truncation), proving the pins catch memory-coupling regressions while 200+ pins carry corridor-cut sensitivity.
