@@ -2753,3 +2753,34 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 57**: unittest 164 OK; aikit 5/5; manifest intact coverage 1.0 with T1 cabec7a8.../T3 5ba4e50c..., ablate coverage 0.0 with action hashes bafe50ff.../63c67660..., swap digests 6583aae7.../4a410229..., stale raise null; stalled `--ablate-noop` 36/28/33/26 with 21/21/21/21 calls, 1/1/1/1 fallbacks, 15/7/12/5 skipped; `--no-skip` calls 36/28/33/26, fallbacks 16/8/13/6; default wait 16/8/13/6; trust-off 16/8/13/6; both-off 200/0; escape 19/18; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 136dec8a...; multi pins 9/18/11/13/14; three pins 15/12/10/13/19; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 57 - BFS-distance dead-pool guard for two-blocker routes
+
+- **Baseline** (commit ef1f75d, cycle 56; same declining backend, seed and prompt code):
+  - canonical gate: 164 tests OK; aikit check 5/5; policy 136dec8aaa005c1248bd11b144fa0d3b1d627e468d5bdd083fbbbff4d17caa26.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - multi (7,5) with obstacles [6,1],[7,2]: 18 steps, 1.0 reward, action hash de1154e1..., no `dead_pool` probe; syn -0.002387766 syn_n -0.011128706 phi 0.0, 40 records; first prompt hash 22871fdb....
+  - dead-end audit: a plain dead-step exclusion reached 16 on (7,5) but regressed a sampled (3,0) config 11 -> 21 because it chose a farther live backup; discarded.
+- **Gap**: the local pool enters the dead goal step [7,1] even though the live backup [6,0] is closer to the goal (BFS 8 vs 10), adding two steps to the (7,5) pin. A live-vs-dead BFS-distance comparison can drop the dead step without choosing a farther backup.
+- **Target delta**: (7,5) 18 -> 16 with 1.0 reward; action hash changes; `probe.dead_pool` records position [7,0], excluded down [7,1], live 8 / dead 10; all other multi/three pins and blind kills unchanged; `dead_pool_filter=False` restores 18.
+- **Falsifier**: (7,5) stays 18; any other pin moves; the blind cut completes; the ablation does not restore the 18-step hash; the 300-config scan regresses; the probe is absent or wrong; standing, trust, escape, cold-start or exhaustive pins move.
+- **Change**: agent.py adds a `dead_pool_filter` flag, extends `_step_toward` with an optional probe and a BFS-distance filter for exactly two obstacles, records `probe.dead_pool` when dead goal steps are dropped, and adds `PLANNER_POLICY["dead_pool_filter"] = "2-blockers:live<=dead-bfs"`. evals/dead_pool.py adds intact/ablate modes over the five multi pins; tests/test_dead_pool.py covers the probe, ablation, blind cut, determinism, policy and validation; the (7,5) count/golden and the multi docstring are updated. README and ADR-053 record the contract. No new dependencies; no schema change.
+- **After** (same backend class, seed, prompts and probe code):
+  - (7,5): 16 steps, 1.0 reward, action hash 1c9552d3..., one `dead_pool` probe at [7,0] excluding down [7,1] with live 8 / dead 10; syn -0.060504864 syn_n -0.258798213 phi 0.0, 36 records; first prompt hash 22871fdb... unchanged.
+  - multi (5,0)/(3,6)/(5,6)/(5,7): 9/11/13/14 with 1.0, action hashes 28567d98.../399f17fe.../db4f17e3.../f307bfc3... unchanged; some emit the probe without an action change.
+  - three pins/goldens 15/12/10/13/19 and their paths byte-identical; blind (7,5) 200/0. 300-config two-blocker scan: 0 improved, 0 regressed, 0 changed outside the pinned case; standing, T1 0-99, holdout, fixed-rig, trust, escape, cold-start and exhaustive T3 3906/3906 unchanged; 170 tests OK. `policy_digest` 136dec8a... -> d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+- **Ablation** (same backend, seed and prompts):
+  - `dead_pool_filter=False`: (7,5) 18 steps, 1.0 reward, action hash de1154e1..., no probe, syn -0.002387766 phi 0.0, 40 records. Exactly the baseline; the two-step gain and the probe die with the cut.
+  - memory-blind: (7,5) 200/0 with no completion; the routing gain is not a memory-coupling claim.
+- **Verdict**: routing-efficiency win on one two-blocker dead-step probe. The property is the 2-step reduction; the trace gains `dead_pool` (excluded cell and live/dead BFS distances). No emergence claim: the guard is geometry, not episode memory, and is deliberately limited to exactly two blockers to preserve the three-blocker goldens.
+- **Gates**: unittest 170/170 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_multi_obstacle.TestMultiObstacle.test_multi_obstacle_recovery -v` -> before: FAIL (18 != 16); after: OK.
+  - `python -m unittest tests.test_dead_pool tests.test_multi_obstacle tests.test_multi_goldens -v` -> 10 OK.
+  - `python -m unittest discover -s tests -t .` -> 170 OK.
+  - `python -m evals.dead_pool` -> (7,5) 16/1.0 with one probe; `--mode ablate` -> 18/1.0 with no probe.
+  - 300-config two-blocker scan -> 0 improved, 0 regressed, 0 changed outside the pin.
+  - `python -m evals.trust` / `--ablate-noop` / `--ablate` -> 16/8/13/6, 36/28/33/26 with 21 calls, 200/0 unchanged.
+  - `python -m evals.escape` -> 19/18 intact, 200/200 ablate and blind; `python -m evals.coldstart --capture` -> 16/8/13/6.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 58**: unittest 170 OK; aikit 5/5; multi (7,5) 16/1.0 action 1c9552d3... with probe [7,0]/down [7,1]/live 8/dead 10; dead-pool ablate 18/1.0 action de1154e1...; other multi 9/11/13/14; three 15/12/10/13/19; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; manifest intact coverage 1.0, ablate 0.0; trust 16/8/13/6, ablate-noop 36/28/33/26 with 21 calls; both-off 200/0; escape 19/18; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

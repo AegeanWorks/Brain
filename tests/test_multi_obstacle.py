@@ -2,9 +2,10 @@
 
 Failing-first harness: single-obstacle exhaustive proof (3906/3906)
 does not cover two-obstacle layouts. _ForcedMultiWorld pins five
-two-blocker configs where leaf viable-first routing truncates three
-times (200/0.0) and detours twice (13 vs 11, 14 vs 12), while standing
-totals and the single-obstacle exhaustive battery stay optimal.
+two-blocker configs where local routing truncates three times without
+memory (blind 200/0.0) and detours four times vs BFS, while standing
+totals and the single-obstacle exhaustive battery stay optimal. The
+dead-pool BFS guard recovers the (7,5) dead-step probe (18 -> 16).
 """
 
 import unittest
@@ -29,7 +30,7 @@ class _ForcedMultiWorld(GridWorld):
 
 MULTI_CONFIGS = [
     ((5, 0), [(2, 0), (1, 1)], 9),
-    ((7, 5), [(6, 1), (7, 2)], 18),
+    ((7, 5), [(6, 1), (7, 2)], 16),
     ((3, 6), [(2, 2), (3, 2)], 11),
     ((5, 6), [(4, 4), (5, 5)], 13),
     ((5, 7), [(5, 6), (4, 2)], 14),

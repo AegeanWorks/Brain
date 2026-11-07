@@ -1,7 +1,7 @@
 """Multi-obstacle golden paths: exact action sequences for two-blocker traps.
 
 Companion to test_golden_traces (nine pin seeds): step counts pin
-outcomes (9/18/11/13/14) but a behavior-neutral path swap at identical
+outcomes (9/16/11/13/14) but a behavior-neutral path swap at identical
 counts would drift silently. This pins the exact paths.
 
 Regeneration rule (deliberately manual, no auto-update flag): after a
@@ -18,7 +18,7 @@ from tests.test_multi_obstacle import MULTI_CONFIGS, _multi_steps
 
 MULTI_GOLDEN = {
     ((5, 0), ((2, 0), (1, 1))): "28567d9826460bf352d5714b8be35ea3b429f499f64ce359c05ca240f8a8a1e0",
-    ((7, 5), ((6, 1), (7, 2))): "de1154e153cdf7c7944fabdcddf3dc40a805f97996a83ff6b20265fa9ff38e92",
+    ((7, 5), ((6, 1), (7, 2))): "1c9552d3a946eb8706fc5ebfd815246ec906e542bcc5b04c8e54355d1572e1ec",
     ((3, 6), ((2, 2), (3, 2))): "399f17fed3793f3961a116f7aa9ba66d650ca997d5c49de9f5eb59bac8c129fe",
     ((5, 6), ((4, 4), (5, 5))): "db4f17e35c8d1edabd904d772ff1ddebbeb3b9cc8265332dbff256537e61f20a",
     ((5, 7), ((5, 6), (4, 2))): "f307bfc3014575f672d8965d928c0129e979ecae7b6c3eda85e2b19a3b42a5bf",

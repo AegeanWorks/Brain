@@ -31,6 +31,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.manifest_binding
   ```
+- **Dead-Pool Guard Battery**:
+  ```bash
+  python -m evals.dead_pool
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -60,7 +64,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -110,6 +114,18 @@ ablation. Weights never enter the repo: the manifest carries labels and
 hashes only. `python -m evals.manifest_binding` shows intact (coverage
 1.0), probe-off (coverage 0.0) and checkpoint A/B (different hashes,
 same actions).
+
+## 🧭 Two-Blocker Dead-Pool Guard
+
+For exactly two blockers, the planner compares BFS distance to the
+target for the live and dead goal candidates before ordering the pool.
+When the best live candidate is at least as close as the best dead one,
+dead goal steps are dropped; the action record's `probe` gains
+`dead_pool` with `position/excluded/live_distance/dead_distance`.
+`dead_pool_filter=False` restores the old pool ordering for the
+ablation. Three-blocker and single-blocker paths keep their existing
+ordering, so their golden paths stay byte-identical. `python -m
+evals.dead_pool` shows the `(7,5)` recovery (18 -> 16) and the ablation.
 
 ## 🔁 Repeated-Position Cycle Escape
 

@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle56-manifest-binding",
+    "task_id": "brain-cycle57-dead-pool",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794068822.8791854,
-    "owner": "opencode:cycle56",
-    "started_by": "opencode:cycle56",
+    "updated_at": 1794069439.3030457,
+    "owner": "opencode:cycle57",
+    "started_by": "opencode:cycle57",
     "continuations": [],
-    "completed_at": 1794068826.3931677
+    "completed_at": 1794069443.2279716
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle53-telemetry-lock",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: serialize telemetry hash-chain appends with AIKit-style advisory file lock",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794065851.524348,
-      "timestamp_str": "2026-11-07 18:37:31",
-      "agent": "opencode:cycle53",
-      "impact_assessment": {
-        "why": "Telemetry._write_record reads the head digest then appends without a lock; two writers can link to the same stale head and break verify_chain.",
-        "benefits": "Concurrent writers preserve a valid chain and all records; timeout surfaces instead of silent interleaving; single-writer trace unchanged.",
-        "risks": "contract: Telemetry gains lock_timeout and a lock-file sibling; dependency: stdlib only (os/msvcrt/fcntl not needed with O_EXCL); concurrency: lock covers head read through fsync; state: lock file is transient and stale-broken.",
-        "mitigation": "Adapt AIKit file_lock (O_CREAT|O_EXCL, PID stamp, 30s stale break, bounded timeout); failing-first two-writer test; all chain and telemetry tests re-run."
-      },
-      "plan_digest": "7fefae3947ea5221fefa119a09c429ff69bffc240bbd6644a6a2db9b8bbc04d0"
-    },
-    {
-      "task_id": "brain-cycle53-telemetry-lock",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first two-writer chain test; AIKit-style append lock with stale break and bounded timeout; lock/stale/timeout tests and telemetry_lock battery",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794066304.4542074,
-      "timestamp_str": "2026-11-07 18:45:04",
-      "agent": "opencode:cycle53"
-    },
-    {
-      "task_id": "brain-cycle53-telemetry-lock",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Trace integrity verified: two-writer chain broken-link -> ok 4/4; lock-off ablation broken-link:1,2 prefix 2/4; timeout and stale-lock paths pass; 149 tests OK; aikit 5/5; standing pins unchanged; ADR-049 and cycle 53 recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794066309.893905,
-      "timestamp_str": "2026-11-07 18:45:09",
-      "agent": "opencode:cycle53"
-    },
-    {
-      "task_id": "brain-cycle53-telemetry-lock",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit telemetry lock, concurrency tests, battery, ADR-049, cycle 53",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794066314.6357605,
-      "timestamp_str": "2026-11-07 18:45:14",
-      "agent": "opencode:cycle53"
-    },
-    {
-      "task_id": "brain-cycle53-telemetry-lock",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle53-telemetry-lock' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794066324.4906948,
-      "timestamp_str": "2026-11-07 18:45:24",
-      "agent": "opencode:cycle53"
-    },
     {
       "task_id": "brain-cycle54-cycle-escape",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794068826.393169,
       "timestamp_str": "2026-11-07 19:27:06",
       "agent": "opencode:cycle56"
+    },
+    {
+      "task_id": "brain-cycle57-dead-pool",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: drop a dead goal step from the multi-obstacle pool only when a live candidate is at least as close by BFS",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068928.6854327,
+      "timestamp_str": "2026-11-07 19:28:48",
+      "agent": "opencode:cycle57",
+      "impact_assessment": {
+        "why": "Config (7,5) with obstacles [6,1],[7,2] enters the dead goal step (7,1) even though the live backup (6,0) is closer, costing 18 steps vs BFS 12. A plain dead-step exclusion improved (7,5) 18->16 but regressed a sampled (3,0) config 11->21 because the live backup was farther; the BFS-distance guard avoids that.",
+        "benefits": "(7,5) 18 -> 16 with 1.0 reward; all other multi/three pins unchanged; blind kills still truncate 200/0; trace gains a dead_pool probe with excluded/live/dead distances; dead_pool_filter=False restores 18.",
+        "risks": "contract: planner pool ordering and PLANNER_POLICY change; dependency: stdlib _bfs_step already present; concurrency: none; state: no schema change.",
+        "mitigation": "Gate on >=2 obstacles and only filter when best live BFS distance <= best dead BFS distance; 300-config scan showed 0 regressions; re-run standing, exhaustive T3, multi/three goldens, escape, trust and cold-start."
+      },
+      "plan_digest": "c3b1280c6d35d79cdae5a001e9433677ebac09ade9e57457d0c4175cdcd9e6b7"
+    },
+    {
+      "task_id": "brain-cycle57-dead-pool",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first 18 != 16; BFS-distance dead-pool guard, dead_pool probe, flag/policy key, eval battery, tests, (7,5) pin/golden, README/ADR-053",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794069381.8712718,
+      "timestamp_str": "2026-11-07 19:36:21",
+      "agent": "opencode:cycle57"
+    },
+    {
+      "task_id": "brain-cycle57-dead-pool",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: (7,5) 18 -> 16 with probe [7,0]/down [7,1]/live 8/dead 10; ablate 18 with old hash; blind 200/0; other multi and three pins/goldens unchanged; 300-config scan 0 regressions; 170 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy d097b97b",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794069439.2908487,
+      "timestamp_str": "2026-11-07 19:37:19",
+      "agent": "opencode:cycle57"
+    },
+    {
+      "task_id": "brain-cycle57-dead-pool",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit dead-pool guard, probe, eval, tests, ADR-053, cycle 57",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794069439.3030457,
+      "timestamp_str": "2026-11-07 19:37:19",
+      "agent": "opencode:cycle57"
+    },
+    {
+      "task_id": "brain-cycle57-dead-pool",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle57-dead-pool' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794069443.2279735,
+      "timestamp_str": "2026-11-07 19:37:23",
+      "agent": "opencode:cycle57"
     }
   ]
 }

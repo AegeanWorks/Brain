@@ -46,6 +46,7 @@ PLANNER_POLICY = {
     "detour_pooling": "visits",
     "pool_corridor": ">=2",
     "cycle_escape": "repeat>=2->bfs",
+    "dead_pool_filter": "2-blockers:live<=dead-bfs",
 }
 
 
@@ -211,7 +212,8 @@ def _bfs_step(pos, goal, obstacles):
     return (None, 0)
 
 
-def _step_toward(pos, goal, obstacles, visits=None):
+def _step_toward(pos, goal, obstacles, visits=None, probe=None,
+                 dead_pool_filter=True):
     dx = goal[0] - pos[0]
     dy = goal[1] - pos[1]
     ordered = []
@@ -297,6 +299,35 @@ def _step_toward(pos, goal, obstacles, visits=None):
         if key not in seen:
             seen.add(key)
             uniq.append((name, cell))
+    if dead_pool_filter and len(obstacles or []) == 2 and dead:
+        dead_cells = {(cell[0], cell[1]) for _name, cell in dead}
+        live = []
+        best_dead = None
+        for pair in uniq:
+            key = (pair[1][0], pair[1][1])
+            _action, distance = _bfs_step(pair[1], goal, obstacles)
+            if distance <= 0:
+                distance = 10 ** 6
+            if key in dead_cells:
+                if best_dead is None or distance < best_dead:
+                    best_dead = distance
+            else:
+                live.append((distance, pair))
+        if live:
+            best_live = min(item[0] for item in live)
+            if best_dead is None or best_live <= best_dead:
+                excluded = [pair for pair in uniq
+                            if (pair[1][0], pair[1][1]) in dead_cells]
+                if isinstance(probe, dict):
+                    probe["dead_pool"] = {
+                        "position": [int(pos[0]), int(pos[1])],
+                        "excluded": [[name, [int(cell[0]), int(cell[1])]]
+                                     for name, cell in excluded],
+                        "live_distance": int(best_live),
+                        "dead_distance": (None if best_dead is None
+                                          else int(best_dead)),
+                    }
+                uniq = [item[1] for item in live]
     if len(obstacles or []) >= 2:
         uniq.sort(key=lambda pair: (counts.get((pair[1][0], pair[1][1]), 0),
                                     _enters_blocked(pair[1])))
@@ -328,11 +359,13 @@ class Planner:
     restores the calls for the cost ablation. ``probe_manifest=True``
     copies the backend's ``last_manifest.sha256`` into the decision
     record; ``probe_manifest=False`` removes that readout.
+    ``dead_pool_filter=False`` restores the old pool ordering for the
+    dead-step ablation.
     """
 
     def __init__(self, backend=None, trust_window=20, noop_guard=True,
                  cycle_escape=True, skip_after_distrust=True,
-                 probe_manifest=True):
+                 probe_manifest=True, dead_pool_filter=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -355,6 +388,10 @@ class Planner:
             raise ValueError(
                 "Why: probe_manifest must be a bool. "
                 "Fix: pass probe_manifest=True or False.")
+        if not isinstance(dead_pool_filter, bool):
+            raise ValueError(
+                "Why: dead_pool_filter must be a bool. "
+                "Fix: pass dead_pool_filter=True or False.")
         self._get_hub = None
         self.backend = backend
         self.trust_window = trust_window
@@ -362,6 +399,7 @@ class Planner:
         self.cycle_escape = cycle_escape
         self.skip_after_distrust = skip_after_distrust
         self.probe_manifest = probe_manifest
+        self.dead_pool_filter = dead_pool_filter
         self._backend_distrusted = False
         self.fallbacks = 0
         self._recall_source = None
@@ -466,7 +504,9 @@ class Planner:
             obstacles.append(state["obstacle"])
 
         def _toward(goal):
-            return _step_toward(pos, goal, obstacles, visits)
+            return _step_toward(pos, goal, obstacles, visits,
+                                probe=probe,
+                                dead_pool_filter=self.dead_pool_filter)
 
         remaining = state.get("items_positions")
         if remaining is None:
