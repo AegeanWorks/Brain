@@ -24,18 +24,23 @@ Deterministic agent substrate with memory planner self-model and integration tel
 
 ```text
 brain/
+├── .gitignore
+├── COMMERCIAL.md
+├── LICENSE
+├── LICENSES/
+├── REUSE.toml
+├── README.md
+├── inventory.py
+├── demo.py
 ├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
-├── memory/store.py           <- SQLite FTS5 persistent store (WAL, fsync)
-├── planner/plan.py           <- explicit steps + recover
-├── self_model/model.py       <- budget/error/confidence counters
-├── worlds/grid.py            <- deterministic 8x8 fixed-step tasks T1-T3
-├── telemetry/log.py          <- JSONL append-only, fsync before exec
-├── telemetry/ablate.py       <- hub_zero / lesion / shuffle (pure)
-├── evals/estimators.py       <- MI, Phi_AR, SYN, GBI, k, gain, recovery, null
-├── evals/recompute.py        <- independent recompute from logs (--log)
-├── evals/tasks.yaml          <- pinned tasks, Vc, windows, seeds
-├── evals/verdict.json        <- UNKNOWN, no claim drafted
+├── memory/                   <- SQLite FTS5 persistent store (store.py)
+├── planner/                  <- explicit steps + recover (plan.py)
+├── self_model/               <- budget/error/confidence counters (model.py)
+├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
+├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
+├── evals/                    <- estimators.py, recompute.py, tasks.yaml, verdict.json
 ├── tests/                    <- unittest gate, tempdir only
+└── .aikit/
 ```
 
 ## 📜 License

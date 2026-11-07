@@ -38,7 +38,7 @@ def _dir_fsync(dir_path):
     try:
         try:
             os.fsync(fd)
-        except OSError:
+        except OSError:  # hygiene: allow best-effort dir fsync; data already flushed
             pass
     finally:
         os.close(fd)
@@ -66,7 +66,7 @@ class Telemetry:
             os.fsync(f.fileno())
         try:
             _dir_fsync(self.path.parent)
-        except OSError:
+        except OSError:  # hygiene: allow best-effort dir fsync; record already flushed
             pass
         return record
 
