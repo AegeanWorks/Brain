@@ -103,6 +103,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.calibration_bridge
   ```
+- **Calibration-Retention Battery**:
+  ```bash
+  python -m evals.calibration_retention
+  ```
 - **Claim-Verdict Battery**:
   ```bash
   python -m evals.claims
@@ -148,7 +152,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/claims/claims-store batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/claims/claims-store batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -449,6 +453,18 @@ prefixes). Actions and rewards are unchanged. A missing self-model or a
 corrupt journal raises; the verdict is already written when the journal
 append fails. `python -m evals.calibration_bridge` shows
 default/logged/two-runs/missing-self-model/corrupt-store/actions.
+
+`rotate_forecast_journal(path, keep_recent=100, archive_path=None)`
+bounds the live journal. Older records move to `.archive`, the newest N
+stay live, the pre-rotation journal is copied to `.bak`, and a
+`.rotation` sidecar records source/archive counts and last checksums.
+`load_all_forecasts` combines archive+live with disjoint ids and the
+original Brier/skill; a short, missing or already-rotated journal is a
+no-op. Id conflicts and corrupt files are refused; rotation holds the
+store's writer lock. `python -m evals.calibration_retention` shows 19
+records rotating to 10 live/9 archived with identical Brier 0.181579 /
+skill 0.255114, a 19-record backup, a second rotation to 15 archived/25
+total, and conflict/missing/lock cases.
 
 ## 🧾 Claim & Verdict Register
 
