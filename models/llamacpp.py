@@ -16,9 +16,47 @@ from models.backend import ModelBackend
 
 LEGAL = ("up", "down", "left", "right", "collect", "wait")
 
+CHARS_PER_TOKEN = 4
+RESERVE_TOKENS = 40
 
-def build_prompt(observation):
-    """Render a compact deterministic action prompt for an observation."""
+
+def estimate_tokens(text):
+    """Stable provider-agnostic estimate: roughly four characters/token.
+
+    Adapted from research-engine/engine/context.py:35.
+    """
+    return (len(str(text)) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN
+
+
+def pack(lines, budget):
+    """Fit prompt lines into a token budget, keeping the first line.
+
+    Adapted from research-engine/engine/context.py:45. The first line is
+    the anchor and is always kept; later lines are dropped from the end
+    when the budget is exhausted. Returns ``(kept, omitted, used)``.
+    """
+    if isinstance(budget, bool) or not isinstance(budget, int) or budget < 1:
+        raise ValueError(
+            "Why: budget must be a positive int. "
+            "Fix: pass max_tokens=120 or another positive int.")
+    available = max(budget - RESERVE_TOKENS, 1)
+    kept = []
+    used = 0
+    for index, line in enumerate(lines):
+        cost = estimate_tokens(line) + 1
+        if index == 0:
+            kept.append(line)
+            used += cost
+            continue
+        if used + cost > available:
+            break
+        kept.append(line)
+        used += cost
+    omitted = len(lines) - len(kept)
+    return kept, omitted, used
+
+
+def _prompt_lines(observation):
     legal = list(observation.get("legal", LEGAL))
     base = (
         "Grid task %(task)s. You are at [%(x)s, %(y)s] after %(steps)s steps. "
@@ -28,20 +66,55 @@ def build_prompt(observation):
            "y": observation.get("y"), "steps": observation.get("steps"),
            "legal": ", ".join(legal)}
     )
-    extras = []
+    essentials = []
     if observation.get("target") is not None:
-        extras.append("Target: %s." % ([int(v) for v in observation.get("target")],))
+        essentials.append("Target: %s." % ([int(v) for v in observation.get("target")],))
     if observation.get("items_positions") is not None:
-        extras.append("Items: %s." % ([[int(v) for v in c] for c in observation.get("items_positions")],))
+        essentials.append("Items: %s." % ([[int(v) for v in c] for c in observation.get("items_positions")],))
     if observation.get("obstacles") is not None:
-        extras.append("Obstacles: %s." % ([[int(v) for v in c] for c in observation.get("obstacles")],))
+        essentials.append("Obstacles: %s." % ([[int(v) for v in c] for c in observation.get("obstacles")],))
     if "cue" in observation and observation.get("cue") is not None:
-        extras.append("Cue: %s." % (observation.get("cue"),))
+        essentials.append("Cue: %s." % (observation.get("cue"),))
+    anchor = base
+    if essentials:
+        anchor += " " + " ".join(essentials)
+    lines = [anchor]
     if observation.get("visits") is not None:
-        extras.append("Visits: %s." % ([[int(v) for v in e] for e in observation.get("visits")],))
-    if extras:
-        return base + " " + " ".join(extras)
-    return base
+        lines.append("Visits: %s." % ([[int(v) for v in e] for e in observation.get("visits")],))
+    return lines
+
+
+def build_prompt(observation, max_tokens=None):
+    """Render a compact deterministic action prompt for an observation.
+
+    ``max_tokens=None`` keeps the original single-line prompt exactly.
+    With a budget, the first line (task/position/legal) is always kept
+    and trailing extras are dropped from the end; the visits line is
+    last, so it is the first to go. ``OMITTED:n`` names dropped lines.
+    """
+    lines = _prompt_lines(observation)
+    if max_tokens is None:
+        return " ".join(lines)
+    kept, omitted, _used = pack(lines, max_tokens)
+    prompt = " ".join(kept)
+    if omitted:
+        prompt += " OMITTED:%d" % omitted
+    return prompt
+
+
+def prompt_stats(observation, max_tokens=None):
+    """Return token/omission statistics for one rendered prompt."""
+    lines = _prompt_lines(observation)
+    if max_tokens is None:
+        prompt = " ".join(lines)
+        return {"tokens": estimate_tokens(prompt), "omitted": 0,
+                "used": 0, "lines": len(lines)}
+    kept, omitted, used = pack(lines, max_tokens)
+    prompt = " ".join(kept)
+    if omitted:
+        prompt += " OMITTED:%d" % omitted
+    return {"tokens": estimate_tokens(prompt), "omitted": omitted,
+            "used": used, "lines": len(lines)}
 
 
 def parse_action(text):
@@ -73,15 +146,24 @@ class LlamaCppBackend(ModelBackend):
     """
 
     def __init__(self, server_exe, model_path, port=8174, seed=0,
-                 timeout=60.0, n_predict=24):
+                 timeout=60.0, n_predict=24, prompt_budget=None):
+        if prompt_budget is not None:
+            if (isinstance(prompt_budget, bool)
+                    or not isinstance(prompt_budget, int)
+                    or prompt_budget < 1):
+                raise ValueError(
+                    "Why: prompt_budget must be a positive int or None. "
+                    "Fix: pass prompt_budget=120 or None.")
         self.server_exe = server_exe
         self.model_path = model_path
         self.port = port
         self.seed = seed
         self.timeout = timeout
         self.n_predict = n_predict
+        self.prompt_budget = prompt_budget
         self._proc = None
         self.last_manifest = None
+        self.last_prompt_stats = None
 
     def base_url(self):
         return "http://127.0.0.1:%d" % self.port
@@ -117,7 +199,8 @@ class LlamaCppBackend(ModelBackend):
         rambles without it). Records self.last_manifest with the
         generation manifest fingerprint for the call.
         """
-        prompt = build_prompt(observation)
+        prompt = build_prompt(observation, max_tokens=self.prompt_budget)
+        self.last_prompt_stats = prompt_stats(observation, self.prompt_budget)
         try:
             from .manifest import manifest_for as _manifest_for
             import os as _os

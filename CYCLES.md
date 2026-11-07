@@ -2907,7 +2907,7 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Gap**: hash chains prove internal consistency, not authorship. `assay/ledger.py:29 record_mac` signs the canonical payload with an HMAC key; without the key, an edited record cannot be re-signed.
 - **Target delta**: a keyed 8-record log carries 8 MACs and verifies with the key; the wrong key reports `bad-mac:0`; a stripped MAC reports `missing-mac:0`; a payload edit with a recomputed digest reports `bad-mac`; an unkeyed log stays 0-MAC and verifies unkeyed, while a keyed verifier reports missing MACs. No schema/policy/standing change.
 - **Falsifier**: the keyed log fails with the correct key; a wrong key or stripped MAC passes; a recomputed-digest tamper passes; an unkeyed log changes bytes or fails unkeyed verification; any standing/policy pin moves.
-- **Change**: telemetry/log.py adds an optional `hmac_key` to `Telemetry`, `_mac_of`, `mac` emission after the digest, `_digest_of` excluding `mac`, and `hmac_key` verification in `verify_chain` with `missing-mac`/`bad-mac` findings. Keys are non-empty bytes or `None`; unkeyed writes remain byte-identical. `tests/test_telemetry_mac.py` covers correct/wrong/missing/tampered keys, unkeyed parity and key validation; `evals/telemetry_mac.py` measures all six states. README and ADR-057 record the contract. No new dependencies beyond stdlib `hmac`.
+- **Change**: telemetry/log.py adds an optional `hmac_key` to `Telemetry`, `_mac_of`, `mac` emission after the digest, `_digest_of` excluding `mac`, and `hmac_key` verification in `verify_chain` with `missing-mac`/`bad-mac` findings. Keys are non-empty bytes or `None`; unkeyed writes remain byte-identical. `tests/test_telemetry_mac.py` covers correct/wrong/missing/tampered keys, unkeyed parity and key validation; `evals/telemetry_mac.py` measures all six states. README and ADR-056 record the contract. No new dependencies beyond stdlib `hmac`.
 - **After** (same log builder and test keys):
   - keyed: 8 records, 8 MACs, correct-key `ok=true`; unkeyed verifier also `ok=true` (chain-only).
   - wrong key: `ok=false`, `bad-mac:0`; missing MAC: `ok=false`, `missing-mac:0`.
@@ -2926,3 +2926,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 192 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 63**: unittest 192 OK; aikit 5/5; keyed 8/8 MACs ok; wrong key `bad-mac:0`; missing MAC `missing-mac:0`; tampered+recomputed digest `bad-mac:0`; unkeyed 0 MAC ok; unkeyed-keyed 8 missing-mac; anchor journal 2 anchors seq 11/16, truncated 13/16; single anchor 4/4; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 63 - token-budgeted model prompts (research-engine transfer)
+
+- **Baseline** (commit e73deff, cycle 62; same prompt builder and T3:15):
+  - canonical gate: 192 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - `build_prompt` had no cap; the T3:15 prompt was 63 estimated tokens with 0 omitted, and the synthetic 64-visit observation was 228 estimated tokens.
+- **Gap**: prompt size had no budget or readout. A long visits line could grow the prompt without a declared cap, and `LlamaCppBackend` could not enforce a context limit or report omissions.
+- **Target delta**: at `max_tokens=60`, the synthetic prompt is <=60 tokens with 1 omitted line, target/obstacles kept and visits dropped; T3:15 prompt max 63 -> 52 tokens with 13 omitted visits; rule actions, steps, reward and success unchanged; default `None` remains byte-identical; the generation-manifest hash changes only because the prompt changed.
+- **Falsifier**: the budgeted prompt exceeds 60; target/obstacles are dropped; visits survive; actions/steps/reward move; default prompt bytes change; any standing/policy pin moves.
+- **Change**: models/llamacpp.py adds `estimate_tokens`, `pack`, `_prompt_lines`, `build_prompt(observation, max_tokens=None)`, `prompt_stats`; the anchor line carries task/position/legal/target/items/obstacles/cue, the visits line is last, and `OMITTED:n` names dropped lines. `LlamaCppBackend` gains `prompt_budget` and `last_prompt_stats`; `generate` renders the capped prompt and the manifest binds it. Tests cover uncapped exactness, token math, pack first-line retention, 120/60 budgets, backend prompt cap and invalid values; the eval runs uncapped/budgeted T3:15 with a declining capture backend. README and ADR-057 record the contract. No new dependencies; no policy change.
+- **After** (same observation, backend, seed and prompts):
+  - synthetic 64 visits: 228 tokens uncapped -> 52 tokens at `max_tokens=60`, 1 omitted, target/obstacles present, visits absent.
+  - T3:15: 13 steps, 1.0 reward, success, actions identical to rule-only in both modes; prompt max 63 -> 52 tokens, 13 omitted visits, first manifest hash 714c1368... -> a5307733....
+  - default `max_tokens=None` returns the exact original prompt; `prompt_stats` omitted 0; 200 tests OK; policy unchanged.
+- **Ablation** (same observation and T3:15):
+  - `max_tokens=None`: the 228-token synthetic prompt and 63-token T3 prompt return with 0 omitted; actions/steps/rewards stay identical. The budget and omission readout die with the cut.
+  - The current line layout only omits visits; the anchor (including target/obstacles) is always kept. A budget below the anchor is a floor, not a hard cap.
+- **Verdict**: model-seam cost/readout improvement. Behavior is unchanged for the rule path; the measured deltas are prompt tokens (228 -> 52 synthetic; 63 -> 52 T3:15), omitted lines (0 -> 1/13), and manifest hash binding. No action or emergence claim.
+- **Gates**: unittest 200/200 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_prompt_budget.TestPromptBudget.test_budget_caps_trailing_visits -v` -> before: ImportError (`estimate_tokens`); after: OK.
+  - `python -m unittest tests.test_prompt_budget -v` -> 8 OK.
+  - `python -m evals.prompt_budget` -> uncapped 63/0, budgeted 52/13, actions match rule; synthetic 228 -> 52 with target/obstacles kept.
+  - `python -m unittest discover -s tests -t .` -> 200 OK.
+  - `python aikit.py check brain` -> 5/5 after fixing the ADR numbering gap (HMAC was ADR-056, prompt budget ADR-057).
+- **Pinned regression baselines for cycle 64**: unittest 200 OK; aikit 5/5; prompt uncapped T3 63 tokens/0 omitted, budgeted 52/13; synthetic 228 -> 52 with target/obstacles; manifest first 714c1368... -> a5307733...; keyed 8/8 MACs; wrong/missing/tampered findings; anchor journal 2 anchors seq 11/16, truncated 13/16; single anchor 4/4; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

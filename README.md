@@ -47,6 +47,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.telemetry_mac
   ```
+- **Prompt-Budget Battery**:
+  ```bash
+  python -m evals.prompt_budget
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -76,7 +80,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -188,6 +192,21 @@ keyed verifier rejects an unkeyed log, and an unkeyed verifier cannot
 check the MAC. Keys come from a secret store or environment, never from
 the repository. `python -m evals.telemetry_mac` shows correct key,
 wrong key, missing MAC, recomputed-digest tamper and unkeyed parity.
+
+## 🎚️ Prompt Token Budget
+
+`build_prompt(observation, max_tokens=None)` uses the research-engine
+`estimate_tokens`/`pack` helper: roughly four characters per token, the
+anchor line always kept, and trailing lines dropped from the end. The
+anchor carries the task, position, legal actions, target, items,
+obstacles and cue; the visits line is last, so it is dropped first and
+`OMITTED:n` names the omission. `max_tokens=None` keeps the original
+single-line prompt byte-identical. `prompt_stats` returns
+`tokens/omitted/lines`, and `LlamaCppBackend(prompt_budget=...)` applies
+the budget and records `last_prompt_stats`; the manifest binds the
+capped prompt. `python -m evals.prompt_budget` shows uncapped 63 /
+budgeted 52 tokens with 13 omitted visit lines on T3:15 while the rule
+actions, steps and reward stay identical.
 
 ## 🧾 Verdict Facts
 
