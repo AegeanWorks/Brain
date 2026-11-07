@@ -46,6 +46,7 @@ PLANNER_POLICY = {
     "backend_trust": "stall>=20->match-only",
     "backend_noop_guard": "on",
     "backend_progress_guard": "single-target-bfs",
+    "backend_progress_skip": "streak>=3->match-only",
     "backend_distrust_skip": "on",
     "model_manifest_probe": "on",
     "detour_pooling": "visits",
@@ -393,7 +394,11 @@ class Planner:
     legal free-cell movement that strictly increases the BFS distance to
     a fixed target when no items remain (T2/T3); item tours (T1) and
     no-target states are untouched. ``progress_guard=False`` restores
-    the old accept-until-stall behavior. ``cycle_escape=False`` disables
+    the old accept-until-stall behavior. After
+    ``progress_skip_after`` consecutive progress rejections the planner
+    stops calling the backend for the rest of the episode
+    (``skipped-progress``); ``progress_skip_after=None`` keeps calling
+    it for the guard-only ablation. ``cycle_escape=False`` disables
     the repeated-position BFS escape so the loop can be measured as an
     executable ablation. Once the backend is distrusted, the planner
     stops calling it: match-only means only the rule action can be
@@ -406,9 +411,9 @@ class Planner:
     """
 
     def __init__(self, backend=None, trust_window=20, noop_guard=True,
-                 progress_guard=True, cycle_escape=True,
-                 skip_after_distrust=True, probe_manifest=True,
-                 dead_pool_filter=True):
+                 progress_guard=True, progress_skip_after=3,
+                 cycle_escape=True, skip_after_distrust=True,
+                 probe_manifest=True, dead_pool_filter=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -423,6 +428,13 @@ class Planner:
             raise ValueError(
                 "Why: progress_guard must be a bool. "
                 "Fix: pass progress_guard=True or False.")
+        if progress_skip_after is not None:
+            if (isinstance(progress_skip_after, bool)
+                    or not isinstance(progress_skip_after, int)
+                    or progress_skip_after < 1):
+                raise ValueError(
+                    "Why: progress_skip_after must be a positive int or None. "
+                    "Fix: pass progress_skip_after=3 or None.")
         if not isinstance(cycle_escape, bool):
             raise ValueError(
                 "Why: cycle_escape must be a bool. "
@@ -444,11 +456,14 @@ class Planner:
         self.trust_window = trust_window
         self.noop_guard = noop_guard
         self.progress_guard = progress_guard
+        self.progress_skip_after = progress_skip_after
         self.cycle_escape = cycle_escape
         self.skip_after_distrust = skip_after_distrust
         self.probe_manifest = probe_manifest
         self.dead_pool_filter = dead_pool_filter
         self._backend_distrusted = False
+        self._progress_distrusted = False
+        self._progress_streak = 0
         self.fallbacks = 0
         self.progress_rejections = 0
         self._recall_source = None
@@ -479,6 +494,8 @@ class Planner:
     def reset_trust(self):
         """Restore full trust in the backend at the start of an episode."""
         self._backend_distrusted = False
+        self._progress_distrusted = False
+        self._progress_streak = 0
 
     def read_hub(self):
         if self._get_hub is None:
@@ -684,9 +701,34 @@ class Planner:
                     "trust_window": self.trust_window,
                     "noop_guard": self.noop_guard,
                     "progress_guard": self.progress_guard,
+                    "progress_skip_after": self.progress_skip_after,
+                    "progress_streak": self._progress_streak,
+                    "progress_distrusted": self._progress_distrusted,
                     "distrusted": True,
                     "accepted": False,
                     "reason": "skipped",
+                    "skipped": True,
+                }
+                if self.probe_manifest:
+                    decision["model_manifest_sha256"] = None
+                probe["model_decision"] = decision
+                self.last_probe = probe
+                return rule_action
+            if (self.progress_skip_after is not None
+                    and self._progress_distrusted):
+                decision = {
+                    "proposed": None,
+                    "rule": rule_action,
+                    "steps_since_reward": since,
+                    "trust_window": self.trust_window,
+                    "noop_guard": self.noop_guard,
+                    "progress_guard": self.progress_guard,
+                    "progress_skip_after": self.progress_skip_after,
+                    "progress_streak": self._progress_streak,
+                    "progress_distrusted": True,
+                    "distrusted": self._backend_distrusted,
+                    "accepted": False,
+                    "reason": "skipped-progress",
                     "skipped": True,
                 }
                 if self.probe_manifest:
@@ -718,13 +760,13 @@ class Planner:
             accepted = False
             reason = "invalid"
             progress = None
+            progress_blocked = False
             if isinstance(proposed, str) and proposed in _LEGAL_ACTIONS:
                 noop = (self.noop_guard and (
                     (proposed == "wait" and rule_action != "wait")
                     or (proposed == "collect" and rule_action != "collect")
                     or (_movement_noop(proposed)
                         and proposed != rule_action)))
-                progress_blocked = False
                 if (self.progress_guard and not remaining
                         and recalled_target is not None
                         and proposed in ("up", "down", "left", "right")):
@@ -739,6 +781,7 @@ class Planner:
                             and proposed_distance > rule_distance):
                         progress_blocked = True
                         self.progress_rejections += 1
+                        self._progress_streak += 1
                         progress = {"proposed": proposed_distance,
                                     "rule": rule_distance}
                 if noop:
@@ -756,6 +799,13 @@ class Planner:
                 elif since >= self.trust_window:
                     self._backend_distrusted = True
                     reason = "stall"
+                if not progress_blocked:
+                    self._progress_streak = 0
+                elif (self.progress_skip_after is not None
+                      and self._progress_streak >= self.progress_skip_after):
+                    self._progress_distrusted = True
+            else:
+                self._progress_streak = 0
             decision = {
                 "proposed": proposed,
                 "rule": rule_action,
@@ -763,6 +813,9 @@ class Planner:
                 "trust_window": self.trust_window,
                 "noop_guard": self.noop_guard,
                 "progress_guard": self.progress_guard,
+                "progress_skip_after": self.progress_skip_after,
+                "progress_streak": self._progress_streak,
+                "progress_distrusted": self._progress_distrusted,
                 "distrusted": self._backend_distrusted,
                 "accepted": accepted,
                 "reason": reason,

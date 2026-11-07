@@ -91,6 +91,16 @@ class WrongWayBackend(ModelBackend):
         return best[1] if best is not None else "wait"
 
 
+class AlternatingBackend(WrongWayBackend):
+    """Wrong-way on odd calls, wait on even calls, breaking any streak."""
+
+    def generate(self, observation):
+        if self.calls % 2 == 1:
+            self.calls += 1
+            return "wait"
+        return super().generate(observation)
+
+
 def _rule_actions(task, seed, max_steps=200):
     return [r["action"] for r in Agent().run_task(task, seed, max_steps=max_steps)]
 
@@ -237,7 +247,7 @@ class TestModelBackendSeam(unittest.TestCase):
                 ("T3_navigate", 65, 6, 5),
                 ("T2_delayed_match", 3, 8, 8)):
             backend = WrongWayBackend()
-            planner = RulePlanner(backend=backend)
+            planner = RulePlanner(backend=backend, progress_skip_after=None)
             trace = Agent(planner=planner).run_task(task, seed, max_steps=200)
             self.assertEqual(len(trace), steps, "%s:%d" % (task, seed))
             self.assertEqual(sum(r["reward"] for r in trace), 1.0)
@@ -280,7 +290,8 @@ class TestModelBackendSeam(unittest.TestCase):
 
     def test_progress_guard_independent_of_noop_guard(self):
         backend = WrongWayBackend()
-        planner = RulePlanner(backend=backend, noop_guard=False)
+        planner = RulePlanner(backend=backend, noop_guard=False,
+                              progress_skip_after=None)
         trace = Agent(planner=planner).run_task("T3_navigate", 15,
                                                 max_steps=200)
         self.assertEqual(len(trace), 13)
@@ -290,6 +301,75 @@ class TestModelBackendSeam(unittest.TestCase):
         self.assertEqual(planner.last_probe["model_decision"]["reason"],
                          "no-progress")
 
+    def test_progress_skip_stops_calls_after_streak(self):
+        for task, seed, steps, calls in (
+                ("T3_navigate", 15, 13, 4),
+                ("T3_navigate", 65, 6, 4),
+                ("T2_delayed_match", 3, 8, 3)):
+            backend = WrongWayBackend()
+            planner = RulePlanner(backend=backend)
+            trace = Agent(planner=planner).run_task(task, seed, max_steps=200)
+            self.assertEqual(len(trace), steps, "%s:%d" % (task, seed))
+            self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+            self.assertEqual(backend.calls, calls)
+            self.assertEqual(planner.progress_rejections, 3)
+            decision = planner.last_probe["model_decision"]
+            self.assertEqual(decision["reason"], "skipped-progress")
+            self.assertTrue(decision["skipped"])
+            self.assertTrue(decision["progress_distrusted"])
+            self.assertEqual(decision["progress_streak"], 3)
+            self.assertEqual(decision["progress_skip_after"], 3)
+            self.assertFalse(decision["distrusted"])
+
+    def test_progress_skip_none_keeps_all_calls(self):
+        for task, seed, steps, rejected in (
+                ("T3_navigate", 15, 13, 12),
+                ("T3_navigate", 65, 6, 5),
+                ("T2_delayed_match", 3, 8, 8)):
+            backend = WrongWayBackend()
+            planner = RulePlanner(backend=backend, progress_skip_after=None)
+            trace = Agent(planner=planner).run_task(task, seed, max_steps=200)
+            self.assertEqual(len(trace), steps)
+            self.assertEqual(backend.calls, steps)
+            self.assertEqual(planner.progress_rejections, rejected)
+            decision = planner.last_probe["model_decision"]
+            self.assertEqual(decision["reason"], "no-progress")
+            self.assertFalse(decision["progress_distrusted"])
+            self.assertIsNone(decision["progress_skip_after"])
+
+    def test_progress_skip_requires_consecutive_rejections(self):
+        backend = AlternatingBackend()
+        planner = RulePlanner(backend=backend)
+        trace = Agent(planner=planner).run_task("T3_navigate", 15,
+                                                max_steps=200)
+        self.assertEqual(len(trace), 13)
+        self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+        self.assertEqual(backend.calls, 13)
+        self.assertEqual(planner.progress_rejections, 6)
+        decision = planner.last_probe["model_decision"]
+        self.assertFalse(decision["progress_distrusted"])
+
+    def test_progress_skip_resets_between_episodes(self):
+        backend = WrongWayBackend()
+        planner = RulePlanner(backend=backend)
+        first = Agent(planner=planner).run_task("T3_navigate", 15,
+                                                max_steps=200)
+        second = Agent(planner=planner).run_task("T3_navigate", 15,
+                                                 max_steps=200)
+        self.assertEqual(len(first), 13)
+        self.assertEqual(len(second), 13)
+        self.assertEqual(backend.calls, 8)
+        self.assertEqual(planner.progress_rejections, 6)
+        self.assertEqual(sum(r["reward"] for r in first), 1.0)
+        self.assertEqual(sum(r["reward"] for r in second), 1.0)
+        self.assertEqual(planner.last_probe["model_decision"]["reason"],
+                         "skipped-progress")
+
+    def test_invalid_progress_skip_after_rejected(self):
+        for value in (0, -1, True, 1.5, "3"):
+            with self.assertRaises(ValueError):
+                RulePlanner(progress_skip_after=value)
+
     def test_policy_declares_backend_trust_and_noop_guard(self):
         self.assertEqual(PLANNER_POLICY.get("backend_trust"),
                          "stall>=20->match-only")
@@ -297,8 +377,11 @@ class TestModelBackendSeam(unittest.TestCase):
         self.assertEqual(PLANNER_POLICY.get("backend_distrust_skip"), "on")
         self.assertEqual(PLANNER_POLICY.get("backend_progress_guard"),
                          "single-target-bfs")
+        self.assertEqual(PLANNER_POLICY.get("backend_progress_skip"),
+                         "streak>=3->match-only")
         for key in ("backend_trust", "backend_noop_guard",
-                    "backend_distrust_skip", "backend_progress_guard"):
+                    "backend_distrust_skip", "backend_progress_guard",
+                    "backend_progress_skip"):
             legacy = dict(PLANNER_POLICY)
             legacy.pop(key, None)
             self.assertNotEqual(policy_digest(), policy_digest(legacy), key)

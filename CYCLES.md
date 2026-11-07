@@ -3222,3 +3222,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 277 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 74**: unittest 277 OK; aikit 5/5; Merkle journal 2 anchors 16–24/24–32, both proofs, truncated `truncated-batch:2:32>30`, deleted prev, tampered `root-mismatch:2`, rollback refused, missing, single-anchor history lost; policy 3c04d54a...; progress guard T3:15 13/13/12, T3:65 6/6/5, T2:3 8/8/8, T1:71 36/22/0; guard-off 33/21, 26/21, 34/21, 36/22; claims 3 supported/2 refuted/1 inconclusive; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle anchor 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 74 - skip backend calls after a consecutive progress-rejection streak (fresh gap audit)
+
+- **Baseline** (commit 71653ea, cycle 73; same wrong-way backend and seeds):
+  - canonical gate: 277 tests OK; aikit check 5/5; policy 3c04d54a...
+  - guard-on (skip None): T3:15 13 steps/13 calls/12 rejections, T3:65 6/6/5, T2:3 8/8/8, T1:71 36/22/0; guard-off 33/26/34/36 steps with 21/21/21/22 calls; the backend was still called every step after each rejection.
+- **Gap**: repeated progress rejections still spent a model call every step. After three consecutive wrong-way proposals, further calls have no evidence of usefulness.
+- **Target delta**: with `progress_skip_after=3`, T3:15/T3:65/T2:3 use 4/4/3 calls and 3 rejections, remain 13/6/8 steps with 1.0 reward, and end in `skipped-progress`; `progress_skip_after=None` keeps the guard-only 13/6/8 calls; T1 remains 36/22.
+- **Falsifier**: the skip triggers before 3 consecutive progress rejections; a non-progress outcome does not reset the streak; calls/steps/rewards move in an unintended way; T1 or guard-off changes; any standing/pin moves.
+- **Change**: agent.py adds `Planner(progress_skip_after=3)`, `_progress_distrusted`, `_progress_streak`, reset in `reset_trust`, a pre-call `skipped-progress` branch and decision fields `progress_skip_after/progress_streak/progress_distrusted`; `PLANNER_POLICY["backend_progress_skip"] = "streak>=3->match-only"`. tests/test_model_backend.py adds five tests; test_random_floor.py disables the skip in the raw control; evals/progress_guard.py adds `skip-on` alongside `guard-off`/`guard-on`. README and ADR-068 record the contract. No new dependencies.
+- **After** (same backend and seeds):
+  - skip-on: T3:15 13 steps/1.0/4 calls/3 rejections; T3:65 6/1.0/4/3; T2:3 8/1.0/3/3; T1:71 36/3.0/22/0; last reason `skipped-progress`, `progress_distrusted=true`, `distrusted=false`.
+  - guard-on skip None: 13/6/8 steps, 13/6/8 calls, 12/5/8 rejections, `no-progress`.
+  - guard-off: 33/26/34/36 steps, 21/21/21/22 calls, no progress rejections.
+  - alternating wrong-way/wait: 13 calls, 6 rejections, `progress_distrusted=false` (streak resets); two episodes: 4 calls then 4 more (8 total), skip re-armed.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, Merkle journal, keyed telemetry, prompt budget, execution budget, resume identity, workspace binding, snapshot diff/digest, calibration, claims and the 200k tail-read bound are unchanged; 282 tests OK.
+  - policy key added: `policy_digest` is now 7812e53251f1711d9eb50104eacbef8e4223e65ee574cbb8c4e8e07773b5550f (was 3c04d54a...).
+- **Ablation** (same backend and seeds):
+  - `progress_skip_after=None`: the guard still rejects every wrong-way move but calls continue (13/6/8); `progress_guard=False`: accept-until-stall (21 calls, 33/26/34). The skip property dies with the threshold cut.
+  - alternating backend never accumulates three consecutive progress rejections and is not skipped; the skip is consecutive-only, not a lifetime distrust.
+- **Verdict**: runtime cost-control extension. Rule actions, steps and rewards are unchanged; the measured delta is model calls 13/6/8 -> 4/4/3 for the guard path (21 -> 4/4/3 from guard-off), with T1 untouched. No emergence claim.
+- **Gates**: unittest 282/282 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_backend.TestModelBackendSeam.test_progress_skip_stops_calls_after_streak -v` -> before: calls 13 != 4; after: OK.
+  - `python -m unittest tests.test_model_backend -v` -> 25 OK.
+  - `python -m evals.progress_guard` -> guard-off 33/26/34/36 with 21 calls; guard-on 13/6/8 with 13/6/8 calls; skip-on 13/6/8 with 4/4/3 calls and 3 rejections; policy 7812e532....
+  - `python -m unittest discover -s tests -t .` -> 282 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 75**: unittest 282 OK; aikit 5/5; progress skip-on T3:15 13/4/3, T3:65 6/4/3, T2:3 8/3/3, T1:71 36/22/0; guard-on 13/13/12, 6/6/5, 8/8/8, 36/22/0; guard-off 33/21, 26/21, 34/21, 36/22; alternating 13 calls/6 rejections; two episodes 8 calls; policy 7812e532...; Merkle journal 2 anchors 16-24/24-32, both proofs, truncated 2:32>30, deleted prev, tampered root-mismatch:2, rollback refused, missing, single-anchor history lost; claims 3 supported/2 refuted/1 inconclusive; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle anchor 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+

@@ -160,9 +160,17 @@ target is also rejected immediately as `no-progress` when no items
 remain (T2/T3); `progress_guard=False` restores accept-until-stall, and
 T1 item tours or no-target states are untouched. Each rejection is
 counted in `progress_rejections` and the decision carries
-`progress_guard` plus `progress: {proposed, rule}`. `python -m
+`progress_guard` plus `progress: {proposed, rule}`. After
+`progress_skip_after=3` consecutive progress rejections (the streak
+resets on any non-progress outcome), the planner stops calling the
+backend for the rest of the episode with `reason=skipped-progress` and
+`progress_distrusted=True`; `progress_skip_after=None` keeps the calls
+for the guard-only ablation, and the policy key is
+`backend_progress_skip: streak>=3->match-only`. `python -m
 evals.progress_guard` shows T3:15 33 -> 13 steps, T3:65 26 -> 6, T2:3
-34 -> 8, calls 21 -> 13/6/8, and the unchanged T1 36/22 control.
+34 -> 8; calls 21 -> 13/6/8 with the guard alone and 4/4/3 with the
+skip (one equal-distance move resets the streak in T3), while T1 stays
+36/22.
 `skip_after_distrust=False` (battery `--no-skip`) restores the redundant
 calls for the cost ablation. `trust_window=None` plus `noop_guard=False`
 and `progress_guard=False` is the raw control. Each step's action record
