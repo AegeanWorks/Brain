@@ -3164,3 +3164,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 261 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 72**: unittest 261 OK; aikit 5/5; claims 3 supported/2 refuted/1 inconclusive, roundtrip; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 72 - single-target BFS progress guard for backend movement (fresh gap audit)
+
+- **Baseline** (commit 199270f, cycle 71; same wrong-way backend and seeds):
+  - canonical gate: 261 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - the no-op guard rejected wait/premature collect/blocked movement, but a legal free-cell movement away from a fixed target was accepted until the 20-step trust window expired.
+  - wrong-way baseline: T1:71 36 steps/3.0/22 calls; T2:3 34/1.0/21; T3:15 33/1.0/21; T3:65 26/1.0/21; planner fallbacks 1 after the stall, then skipped.
+- **Gap**: a backend could burn the whole trust window walking away from a fixed target with legal moves. The existing guards did not compare movement direction against the task goal.
+- **Target delta**: a strictly distance-increasing movement is rejected immediately as `no-progress`; T3:15 33 -> 13 steps and 21 -> 13 calls, T3:65 26 -> 6 and 21 -> 6, T2:3 34 -> 8 and 21 -> 8; T1 item tours remain 36/22; rule-only behavior and all standing/trace pins stay fixed.
+- **Falsifier**: the guard rejects an equal-distance or distance-decreasing move; T1 or no-target states change; a rule-only run changes; the wrong-way cost does not fall; any standing/fixed-rig pin moves.
+- **Change**: agent.py adds `_bfs_distance`, `Planner(progress_guard=True)`, the `progress_rejections` counter and `PLANNER_POLICY["backend_progress_guard"] = "single-target-bfs"`. The decision block rejects a legal movement when a fixed `target` exists, no `items_positions` remain, and the BFS distance after the proposal is strictly greater than after the rule action (a non-movement rule action uses its current distance); `reason="no-progress"` and `progress: {proposed, rule}` are recorded. Equal-distance moves are accepted; `progress_guard=False` restores accept-until-stall. tests/test_model_backend.py adds the wrong-way backend and five guard tests; test_random_floor.py disables the guard in its raw control; evals/progress_guard.py measures guard-off/on across T3:15, T3:65, T2:3 and T1:71. README and ADR-066 record the contract. No new dependencies; no schema change.
+- **After** (same wrong-way backend and seeds):
+  - guard on: T3:15 13 steps/1.0/13 calls/12 progress rejections; T3:65 6/1.0/6/5; T2:3 8/1.0/8/8; T1:71 36/3.0/22/0.
+  - guard off: T3:15 33/1.0/21; T3:65 26/1.0/21; T2:3 34/1.0/21; T1:71 36/3.0/22; one stall fallback then skipped in each fixed-target case.
+  - rule-only standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig sym 0.05411532 syn_n 0.10814360 phi 0.0 with hub0/m0 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, goldens and the 200k tail-read bound are unchanged; 266 tests OK.
+  - policy key added, so `policy_digest` is now 3c04d54a858a45abf62bde3ef9e9976302045bd50e2259db3ae38476029095c8 (was d097b97b...).
+- **Ablation** (same backend and seeds):
+  - `progress_guard=False`: the wrong-way proposals are accepted for the 20-step trust window and the fixed-target runs return to 33/26/34 steps with 21 calls; the guard-on costs are 13/6/8. The property dies with the guard cut.
+  - T1:71 has no fixed `target` and keeps items, so the guard is skipped and both modes are identical at 36/3.0/22; the raw random control now disables `progress_guard` as well, preserving its backend-alone intent.
+- **Verdict**: planner-safety and cost improvement. Rule-only behavior is unchanged; the measured delta is immediate rejection of legal wrong-way moves (T3:15 -20 steps/-8 calls, T3:65 -20/-15, T2:3 -26/-13) with equal-distance moves still accepted and T1 untouched. No emergence claim.
+- **Gates**: unittest 266/266 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_backend.TestModelBackendSeam.test_progress_guard_rejects_wrong_way_backend -v` -> before: 33 != 13 (T3:15); after: OK.
+  - `python -m unittest tests.test_model_backend -v` -> 20 OK.
+  - `python -m evals.progress_guard` -> guard-off 33/26/34/36 with 21 calls; guard-on 13/6/8/36 with 13/6/8/22 calls; policy 3c04d54a....
+  - `python -m unittest tests.test_random_floor tests.test_verdict tests.test_policy_binding -v` -> 9 OK.
+  - `python -m unittest discover -s tests -t .` -> 266 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 73**: unittest 266 OK; aikit 5/5; progress guard T3:15 13/13/12, T3:65 6/6/5, T2:3 8/8/8, T1:71 36/22/0; guard-off T3:15 33/21, T3:65 26/21, T2:3 34/21, T1:71 36/22; policy 3c04d54a...; claims 3 supported/2 refuted/1 inconclusive; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

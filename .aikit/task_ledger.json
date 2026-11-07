@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle71-claims",
+    "task_id": "brain-cycle72-progress-guard",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794078730.9978774,
-    "owner": "opencode:cycle71",
-    "started_by": "opencode:cycle71",
+    "updated_at": 1794080045.7819645,
+    "owner": "opencode:cycle72",
+    "started_by": "opencode:cycle72",
     "continuations": [],
-    "completed_at": 1794078731.4951642
+    "completed_at": 1794080047.412479
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle68-snapshot-diff",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: deterministic run snapshots and record-set diffing (lattice transfer)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794076516.9407306,
-      "timestamp_str": "2026-11-07 21:35:16",
-      "agent": "opencode:cycle68",
-      "impact_assessment": {
-        "why": "Brain cycle evidence is prose and ad-hoc; there is no portable snapshot of run outcomes or a deterministic added/removed/changed diff. lattice/diff.py:40 diff_records matches records by (type,id), ignores volatile fields and sorts output.",
-        "benefits": "Capture task/seed run records (steps, reward, success, action hash, syn/phi), export/read JSONL atomically, and diff two snapshots with sorted added/removed/changed and a summary. Same battery diffs empty; a changed/removed/added run is named.",
-        "risks": "contract: new snapshot.py and CLI; dependency: stdlib only; concurrency: atomic snapshot write; state: local JSONL only, not committed.",
-        "mitigation": "Key by (record_type,id), ignore volatile timestamps, sort every list, test roundtrip, same-battery empty diff and edit/remove/add; run the 235-test and AIKit gates."
-      },
-      "plan_digest": "a83087ead426719baa139cb2679f221b3f4f4c5a3c551d92e22f90ac9b490c82"
-    },
-    {
-      "task_id": "brain-cycle68-snapshot-diff",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first snapshot import; run records, atomic JSONL export/read, volatile-aware sorted diff, tests/eval, README/ADR-062",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794076999.913666,
-      "timestamp_str": "2026-11-07 21:43:19",
-      "agent": "opencode:cycle68"
-    },
-    {
-      "task_id": "brain-cycle68-snapshot-diff",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: T3:15/65 records 13/6 both 1.0; same/volatile diff empty; changed/added/removed named; roundtrip atomic; 241 tests OK; aikit 5/5; standing unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794076999.9177449,
-      "timestamp_str": "2026-11-07 21:43:19",
-      "agent": "opencode:cycle68"
-    },
-    {
-      "task_id": "brain-cycle68-snapshot-diff",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit snapshot diff, eval, tests, ADR-062, cycle 68",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794077016.5089025,
-      "timestamp_str": "2026-11-07 21:43:36",
-      "agent": "opencode:cycle68"
-    },
-    {
-      "task_id": "brain-cycle68-snapshot-diff",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle68-snapshot-diff' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794077017.7755144,
-      "timestamp_str": "2026-11-07 21:43:37",
-      "agent": "opencode:cycle68"
-    },
     {
       "task_id": "brain-cycle69-content-digest",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794078731.4951663,
       "timestamp_str": "2026-11-07 22:12:11",
       "agent": "opencode:cycle71"
+    },
+    {
+      "task_id": "brain-cycle72-progress-guard",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: single-target BFS backend progress guard for legal wrong-way moves",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794079510.4688344,
+      "timestamp_str": "2026-11-07 22:25:10",
+      "agent": "opencode:cycle72",
+      "impact_assessment": {
+        "why": "The no-op guard rejects wait/premature collect/blocked movement, but a legal free-cell move away from a fixed target is accepted until the 20-step trust window expires: T3:15 costs 33 steps/21 calls instead of 13/13, T3:65 26 instead of 6, T2:3 34 instead of 8.",
+        "benefits": "A backend movement that strictly increases BFS distance to the fixed target is rejected immediately with reason no-progress; T3:15 33->13, T3:65 26->6, T2:3 34->8, calls 21->13/6/8; T1 item tours and no-target states stay 36/22.",
+        "risks": "contract: Planner progress_guard keyword and PLANNER_POLICY key (policy digest changes); dependency: stdlib only; concurrency: none; state: no schema change.",
+        "mitigation": "Apply only when a fixed target exists and no items remain; compare against the rule action's BFS distance; keep progress_guard opt-out; preserve T1 and rule-only behavior; test equal-distance acceptance, invalid flags, and run the full suite plus AIKit."
+      },
+      "plan_digest": "637998a99d9de19c4e03037850ffa405656c3b11e3011e869640b53bfdceb0ef"
+    },
+    {
+      "task_id": "brain-cycle72-progress-guard",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first wrong-way 33!=13; _bfs_distance, progress_guard, progress_rejections, no-progress decision, tests, eval, README/ADR-066",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794080044.879509,
+      "timestamp_str": "2026-11-07 22:34:04",
+      "agent": "opencode:cycle72"
+    },
+    {
+      "task_id": "brain-cycle72-progress-guard",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: T3:15 33->13/21->13 calls, T3:65 26->6/21->6, T2:3 34->8/21->8, T1:71 36/22 unchanged; 266 tests OK; aikit 5/5; standing/fixed-rig unchanged; policy 3c04d54a",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794080045.39068,
+      "timestamp_str": "2026-11-07 22:34:05",
+      "agent": "opencode:cycle72"
+    },
+    {
+      "task_id": "brain-cycle72-progress-guard",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit progress guard, eval, tests, ADR-066, cycle 72",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794080045.7819645,
+      "timestamp_str": "2026-11-07 22:34:05",
+      "agent": "opencode:cycle72"
+    },
+    {
+      "task_id": "brain-cycle72-progress-guard",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle72-progress-guard' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794080047.4124813,
+      "timestamp_str": "2026-11-07 22:34:07",
+      "agent": "opencode:cycle72"
     }
   ]
 }

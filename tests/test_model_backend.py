@@ -41,6 +41,56 @@ class BlockedBackend(ModelBackend):
         return "wait"
 
 
+class WrongWayBackend(ModelBackend):
+    """Legal free-cell movement that maximises distance to the target."""
+
+    def __init__(self):
+        self.calls = 0
+
+    @staticmethod
+    def _distance(start, target, obstacles):
+        blocked = {tuple(cell) for cell in obstacles}
+        queue = [(tuple(start), 0)]
+        seen = {tuple(start)}
+        while queue:
+            cell, dist = queue.pop(0)
+            if cell == tuple(target):
+                return dist
+            for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                nxt = (cell[0] + dx, cell[1] + dy)
+                if not (0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE):
+                    continue
+                if nxt in blocked or nxt in seen:
+                    continue
+                seen.add(nxt)
+                queue.append((nxt, dist + 1))
+        return 10 ** 6
+
+    def generate(self, observation):
+        self.calls += 1
+        target = observation.get("target")
+        if target is None:
+            items = observation.get("items_positions") or []
+            target = items[0] if items else None
+        if target is None:
+            return "wait"
+        x, y = int(observation["x"]), int(observation["y"])
+        obstacles = observation.get("obstacles") or []
+        blocked = {tuple(cell) for cell in obstacles}
+        best = None
+        for action, dx, dy in (("up", 0, -1), ("down", 0, 1),
+                               ("left", -1, 0), ("right", 1, 0)):
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < SIZE and 0 <= ny < SIZE):
+                continue
+            if (nx, ny) in blocked:
+                continue
+            distance = self._distance((nx, ny), target, obstacles)
+            if best is None or distance > best[0]:
+                best = (distance, action)
+        return best[1] if best is not None else "wait"
+
+
 def _rule_actions(task, seed, max_steps=200):
     return [r["action"] for r in Agent().run_task(task, seed, max_steps=max_steps)]
 
@@ -181,20 +231,81 @@ class TestModelBackendSeam(unittest.TestCase):
         self.assertTrue(decision["accepted"])
         self.assertEqual(decision["reason"], "accepted")
 
+    def test_progress_guard_rejects_wrong_way_backend(self):
+        for task, seed, steps, rejected in (
+                ("T3_navigate", 15, 13, 12),
+                ("T3_navigate", 65, 6, 5),
+                ("T2_delayed_match", 3, 8, 8)):
+            backend = WrongWayBackend()
+            planner = RulePlanner(backend=backend)
+            trace = Agent(planner=planner).run_task(task, seed, max_steps=200)
+            self.assertEqual(len(trace), steps, "%s:%d" % (task, seed))
+            self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+            self.assertTrue(trace[-1]["done"])
+            self.assertEqual(backend.calls, steps)
+            self.assertEqual(planner.progress_rejections, rejected)
+            self.assertGreaterEqual(planner.fallbacks, steps - 1)
+            self.assertLessEqual(planner.fallbacks, steps)
+            decision = planner.last_probe["model_decision"]
+            self.assertFalse(decision["accepted"])
+            self.assertEqual(decision["reason"], "no-progress")
+            self.assertFalse(decision["distrusted"])
+            self.assertTrue(decision["progress_guard"])
+
+    def test_progress_guard_off_restores_wrong_way_cost(self):
+        for task, seed, steps, calls in (("T3_navigate", 15, 33, 21),
+                                         ("T3_navigate", 65, 26, 21),
+                                         ("T2_delayed_match", 3, 34, 21)):
+            backend = WrongWayBackend()
+            planner = RulePlanner(backend=backend, progress_guard=False)
+            trace = Agent(planner=planner).run_task(task, seed, max_steps=200)
+            self.assertEqual(len(trace), steps, "%s:%d" % (task, seed))
+            self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+            self.assertEqual(backend.calls, calls)
+            self.assertEqual(planner.fallbacks, 1)
+            self.assertEqual(planner.progress_rejections, 0)
+            self.assertTrue(planner.last_probe["model_decision"]["distrusted"])
+
+    def test_progress_guard_leaves_item_tours_untouched(self):
+        backend = WrongWayBackend()
+        planner = RulePlanner(backend=backend)
+        trace = Agent(planner=planner).run_task("T1_forage", 71,
+                                                max_steps=200)
+        self.assertEqual(len(trace), 36)
+        self.assertEqual(sum(r["reward"] for r in trace), 3.0)
+        self.assertEqual(backend.calls, 22)
+        self.assertEqual(planner.fallbacks, 1)
+        self.assertEqual(planner.progress_rejections, 0)
+        self.assertTrue(planner.last_probe["model_decision"]["distrusted"])
+
+    def test_progress_guard_independent_of_noop_guard(self):
+        backend = WrongWayBackend()
+        planner = RulePlanner(backend=backend, noop_guard=False)
+        trace = Agent(planner=planner).run_task("T3_navigate", 15,
+                                                max_steps=200)
+        self.assertEqual(len(trace), 13)
+        self.assertEqual(backend.calls, 13)
+        self.assertEqual(planner.fallbacks, 12)
+        self.assertEqual(planner.progress_rejections, 12)
+        self.assertEqual(planner.last_probe["model_decision"]["reason"],
+                         "no-progress")
+
     def test_policy_declares_backend_trust_and_noop_guard(self):
         self.assertEqual(PLANNER_POLICY.get("backend_trust"),
                          "stall>=20->match-only")
         self.assertEqual(PLANNER_POLICY.get("backend_noop_guard"), "on")
         self.assertEqual(PLANNER_POLICY.get("backend_distrust_skip"), "on")
-        legacy_trust = dict(PLANNER_POLICY)
-        legacy_trust.pop("backend_trust", None)
-        self.assertNotEqual(policy_digest(), policy_digest(legacy_trust))
-        legacy_noop = dict(PLANNER_POLICY)
-        legacy_noop.pop("backend_noop_guard", None)
-        self.assertNotEqual(policy_digest(), policy_digest(legacy_noop))
-        legacy_skip = dict(PLANNER_POLICY)
-        legacy_skip.pop("backend_distrust_skip", None)
-        self.assertNotEqual(policy_digest(), policy_digest(legacy_skip))
+        self.assertEqual(PLANNER_POLICY.get("backend_progress_guard"),
+                         "single-target-bfs")
+        for key in ("backend_trust", "backend_noop_guard",
+                    "backend_distrust_skip", "backend_progress_guard"):
+            legacy = dict(PLANNER_POLICY)
+            legacy.pop(key, None)
+            self.assertNotEqual(policy_digest(), policy_digest(legacy), key)
+
+    def test_invalid_progress_guard_rejected(self):
+        with self.assertRaises(ValueError):
+            RulePlanner(progress_guard="yes")
 
     def test_invalid_trust_window_rejected(self):
         with self.assertRaises(ValueError):

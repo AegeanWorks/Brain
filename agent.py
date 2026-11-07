@@ -45,6 +45,7 @@ PLANNER_POLICY = {
     "recovery_recall": "persistent-layout",
     "backend_trust": "stall>=20->match-only",
     "backend_noop_guard": "on",
+    "backend_progress_guard": "single-target-bfs",
     "backend_distrust_skip": "on",
     "model_manifest_probe": "on",
     "detour_pooling": "visits",
@@ -216,6 +217,39 @@ def _bfs_step(pos, goal, obstacles):
     return (None, 0)
 
 
+def _bfs_distance(pos, goal, obstacles):
+    """Shortest free-cell BFS distance, or None when unreachable.
+
+    Pure geometry helper for the backend progress guard: a movement that
+    strictly increases this distance cannot advance a fixed target.
+    """
+    try:
+        start = (int(pos[0]), int(pos[1]))
+        target = (int(goal[0]), int(goal[1]))
+        blocked = {(int(o[0]), int(o[1])) for o in (obstacles or [])}
+    except (TypeError, ValueError, IndexError):
+        return None
+    if start == target:
+        return 0
+    order = (("up", 0, -1), ("down", 0, 1),
+             ("left", -1, 0), ("right", 1, 0))
+    queue = deque([(start, 0)])
+    seen = {start}
+    while queue:
+        cell, distance = queue.popleft()
+        for _name, dx, dy in order:
+            nxt = (cell[0] + dx, cell[1] + dy)
+            if not (0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE):
+                continue
+            if nxt in blocked or nxt in seen:
+                continue
+            if nxt == target:
+                return distance + 1
+            seen.add(nxt)
+            queue.append((nxt, distance + 1))
+    return None
+
+
 def _step_toward(pos, goal, obstacles, visits=None, probe=None,
                  dead_pool_filter=True):
     dx = goal[0] - pos[0]
@@ -355,7 +389,11 @@ class Planner:
     immediately whenever the rule action is productive. With backend
     None the rule path is exact. ``trust_window=None`` disables the
     stall gate and ``noop_guard=False`` disables the no-op guard so raw
-    backend controls can be measured. ``cycle_escape=False`` disables
+    backend controls can be measured. ``progress_guard=True`` rejects a
+    legal free-cell movement that strictly increases the BFS distance to
+    a fixed target when no items remain (T2/T3); item tours (T1) and
+    no-target states are untouched. ``progress_guard=False`` restores
+    the old accept-until-stall behavior. ``cycle_escape=False`` disables
     the repeated-position BFS escape so the loop can be measured as an
     executable ablation. Once the backend is distrusted, the planner
     stops calling it: match-only means only the rule action can be
@@ -368,8 +406,9 @@ class Planner:
     """
 
     def __init__(self, backend=None, trust_window=20, noop_guard=True,
-                 cycle_escape=True, skip_after_distrust=True,
-                 probe_manifest=True, dead_pool_filter=True):
+                 progress_guard=True, cycle_escape=True,
+                 skip_after_distrust=True, probe_manifest=True,
+                 dead_pool_filter=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -380,6 +419,10 @@ class Planner:
         if not isinstance(noop_guard, bool):
             raise ValueError(
                 "Why: noop_guard must be a bool. Fix: pass noop_guard=True or False.")
+        if not isinstance(progress_guard, bool):
+            raise ValueError(
+                "Why: progress_guard must be a bool. "
+                "Fix: pass progress_guard=True or False.")
         if not isinstance(cycle_escape, bool):
             raise ValueError(
                 "Why: cycle_escape must be a bool. "
@@ -400,12 +443,14 @@ class Planner:
         self.backend = backend
         self.trust_window = trust_window
         self.noop_guard = noop_guard
+        self.progress_guard = progress_guard
         self.cycle_escape = cycle_escape
         self.skip_after_distrust = skip_after_distrust
         self.probe_manifest = probe_manifest
         self.dead_pool_filter = dead_pool_filter
         self._backend_distrusted = False
         self.fallbacks = 0
+        self.progress_rejections = 0
         self._recall_source = None
         self._persistent_loaded = False
         self._persistent_cache = None
@@ -604,6 +649,25 @@ class Planner:
                 return True
             return (nx, ny) in occupied
 
+        def _distance_after(action):
+            """BFS distance after one free movement; None otherwise."""
+            if action not in ("up", "down", "left", "right"):
+                return None
+            nx, ny = pos
+            if action == "up":
+                ny -= 1
+            elif action == "down":
+                ny += 1
+            elif action == "left":
+                nx -= 1
+            else:
+                nx += 1
+            if not (0 <= nx < SIZE and 0 <= ny < SIZE):
+                return None
+            if (nx, ny) in occupied:
+                return None
+            return _bfs_distance([nx, ny], recalled_target, obstacles)
+
         rule_action = _rule_action()
         if self.backend is not None:
             since = 0
@@ -619,6 +683,7 @@ class Planner:
                     "steps_since_reward": since,
                     "trust_window": self.trust_window,
                     "noop_guard": self.noop_guard,
+                    "progress_guard": self.progress_guard,
                     "distrusted": True,
                     "accepted": False,
                     "reason": "skipped",
@@ -652,14 +717,34 @@ class Planner:
                 manifest_sha = None
             accepted = False
             reason = "invalid"
+            progress = None
             if isinstance(proposed, str) and proposed in _LEGAL_ACTIONS:
                 noop = (self.noop_guard and (
                     (proposed == "wait" and rule_action != "wait")
                     or (proposed == "collect" and rule_action != "collect")
                     or (_movement_noop(proposed)
                         and proposed != rule_action)))
+                progress_blocked = False
+                if (self.progress_guard and not remaining
+                        and recalled_target is not None
+                        and proposed in ("up", "down", "left", "right")):
+                    proposed_distance = _distance_after(proposed)
+                    rule_distance = _distance_after(rule_action)
+                    if rule_distance is None and rule_action in ("collect",
+                                                                 "wait"):
+                        rule_distance = _bfs_distance(
+                            pos, recalled_target, obstacles)
+                    if (proposed_distance is not None
+                            and rule_distance is not None
+                            and proposed_distance > rule_distance):
+                        progress_blocked = True
+                        self.progress_rejections += 1
+                        progress = {"proposed": proposed_distance,
+                                    "rule": rule_distance}
                 if noop:
                     reason = "no-op"
+                elif progress_blocked:
+                    reason = "no-progress"
                 elif self.trust_window is None or proposed == rule_action:
                     accepted = True
                     reason = "accepted"
@@ -677,11 +762,14 @@ class Planner:
                 "steps_since_reward": since,
                 "trust_window": self.trust_window,
                 "noop_guard": self.noop_guard,
+                "progress_guard": self.progress_guard,
                 "distrusted": self._backend_distrusted,
                 "accepted": accepted,
                 "reason": reason,
                 "skipped": False,
             }
+            if progress is not None:
+                decision["progress"] = progress
             if self.probe_manifest:
                 decision["model_manifest_sha256"] = manifest_sha
             probe["model_decision"] = decision

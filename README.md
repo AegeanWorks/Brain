@@ -19,6 +19,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.trust
   ```
+- **Progress-Guard Battery**:
+  ```bash
+  python -m evals.progress_guard
+  ```
 - **Telemetry Lock Battery**:
   ```bash
   python -m evals.telemetry_lock
@@ -118,7 +122,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -146,10 +150,19 @@ also call-free: the planner stops calling the backend because only the
 rule action can be accepted. Independently, a no-op proposal (`wait`,
 `collect` before a collectable, or a direction blocked by the
 boundary/obstacle) is rejected immediately whenever the rule has a
-productive action; `noop_guard=False` removes that guard.
+productive action; `noop_guard=False` removes that guard. A legal
+free-cell movement that strictly increases the BFS distance to a fixed
+target is also rejected immediately as `no-progress` when no items
+remain (T2/T3); `progress_guard=False` restores accept-until-stall, and
+T1 item tours or no-target states are untouched. Each rejection is
+counted in `progress_rejections` and the decision carries
+`progress_guard` plus `progress: {proposed, rule}`. `python -m
+evals.progress_guard` shows T3:15 33 -> 13 steps, T3:65 26 -> 6, T2:3
+34 -> 8, calls 21 -> 13/6/8, and the unchanged T1 36/22 control.
 `skip_after_distrust=False` (battery `--no-skip`) restores the redundant
 calls for the cost ablation. `trust_window=None` plus `noop_guard=False`
-is the raw control. Each step's action record carries
+and `progress_guard=False` is the raw control. Each step's action record
+carries
 `proposed/rule/steps_since_reward/distrusted/accepted/reason/skipped`;
 `reason` is `stall` only on the triggering step, then `distrusted` (call
 kept) or `skipped` (call omitted). Rule-only runs and good-backend

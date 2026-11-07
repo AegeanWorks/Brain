@@ -45,10 +45,11 @@ class RandomBackend(ModelBackend):
 
 
 def _run(task, seed, backend):
-    # Raw floor: disable both model guards so this control measures the
+    # Raw floor: disable every model guard so this control measures the
     # backend alone, not the planner's safety fallbacks.
     return Agent(planner=Planner(backend=backend, trust_window=None,
-                                 noop_guard=False)).run_task(task, seed)
+                                 noop_guard=False,
+                                 progress_guard=False)).run_task(task, seed)
 
 
 class TestRandomFloor(unittest.TestCase):
