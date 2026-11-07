@@ -15,6 +15,7 @@ agent (bind_hub) so all modules can read the same hub mapping.
 """
 
 import copy
+import itertools
 
 SIZE = 8
 
@@ -50,15 +51,24 @@ class Memory:
         return len(self._items)
 
 
-def _nearest(pos, cells):
+def _first_of_best_tour(pos, cells):
+    """First cell of the shortest Manhattan tour from pos through cells.
+
+    Exhaustive over permutations in deterministic order (cells sorted,
+    first strictly-shortest tour wins ties). Forage tasks present 3 items.
+    """
+    uniq = sorted({(c[0], c[1]) for c in cells})
     best = None
-    best_d = None
-    for c in cells:
-        d = abs(c[0] - pos[0]) + abs(c[1] - pos[1])
-        if best_d is None or d < best_d:
-            best_d = d
-            best = c
-    return best
+    best_len = None
+    for perm in itertools.permutations(uniq):
+        total = abs(perm[0][0] - pos[0]) + abs(perm[0][1] - pos[1])
+        for a, b in zip(perm, perm[1:]):
+            total += abs(a[0] - b[0]) + abs(a[1] - b[1])
+        if best_len is None or total < best_len:
+            best_len = total
+            best = perm
+    first = best[0]
+    return [first[0], first[1]]
 
 
 def _step_toward(pos, goal, obstacles, visits=None):
@@ -171,7 +181,7 @@ class Planner:
         if remaining:
             if pos in [list(c) for c in remaining]:
                 return "collect"
-            goal = _nearest(pos, [list(c) for c in remaining])
+            goal = _first_of_best_tour(pos, [list(c) for c in remaining])
             return _toward(goal)
 
         target = state.get("target")

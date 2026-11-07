@@ -148,3 +148,46 @@ only integration scores, cross-module dependencies, and ablation differentials.
   T3 seed 65 = 6; T3 seed 74 = 9 intact / 200 blind zero-reward;
   T3 seeds 0-99 zero detours (total 683); wiring SM errors T1=125 T2=70
   T3=60; phi 0.0 x3; syn 0.1167/0.1000/0.1229.
+
+## Cycle 4 — optimal-tour first pick for forage ordering
+
+- **Baseline**: 47 tests OK; aikit 5/5; T1 100-seed total 1587 with
+  seeds 71/74/78 at 18/14/20 vs 16/12/18 optimal (+2 each).
+- **Gap**: nearest-greedy item choice is not the optimal-tour first pick
+  on clustered 3-item layouts. Cycle 2's dead-end verdict covered only
+  seeds 0-29; the 100-seed audit (new measurement this cycle) found the
+  3 greedy traps. Transfer headroom verified absent (repeat runs
+  deterministic-identical, gain 0.0); T2 structurally optimal (8 steps,
+  all seeds); routing headroom elsewhere exhausted.
+- **Target delta**: seeds 71->16, 74->12, 78->18; 100-seed total
+  1587->1581; all other 97 seeds byte-identical.
+- **Falsifier**: any of the 3 stays, or any other seed changes steps.
+- **Change** (agent.py only: _first_of_best_tour replaces _nearest;
+  tests/test_tour_order.py new): shortest-Manhattan-tour first cell over
+  remaining items; exhaustive permutations in deterministic order (cells
+  sorted, first strictly-shortest wins). stdlib itertools only.
+- **After** (identical battery, same seeds):
+  - T1 seeds 71/74/78: 18/14/20 -> 16/12/18 (all optimal, match BFS tour).
+  - T1 100-seed total: 1587 -> 1581 exactly (-6 = the 3 fixed seeds;
+    proves no other seed changed).
+  - 30-seed totals guard (existing test): T1=466, T2=240, T3=217 unchanged.
+- **Ablation**: ordering is not a memory-integration point, so no
+  sever-the-coupling ablation applies; the cut evidence is the
+  pre-change baseline on identical rig/seeds (18/14/20 with _nearest,
+  restored by revert). Gain dies with the revert by construction
+  (verified: the failing-first pins failed on the pre-change tree).
+- **Verdict**: efficiency win (-6 steps/100 seeds, all optimal now);
+  no emergence claim. Verdict UNKNOWN.
+- **Gates**: unittest 49/49 OK; aikit check 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_tour_order -v` -> 2 FAIL (18 vs 16,
+    1587 vs 1581) before; 2 OK after.
+  - `python -m unittest discover -s tests -t .` -> 49 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - probes: T1 0-99 optimality baseline, T1 0-99 total, transfer
+    repeat-runs (gain 0.0 on 4 samples), T3 100-seed scan (carried).
+- **Pinned regression baselines for cycle 5**: unittest 49 OK; aikit 5/5;
+  step totals T1=466 T2=240 T3=217 (30 seeds); T1 100-seed total 1581;
+  T1 seeds 71/74/78 = 16/12/18; T3 seed 15 = 13; T3 seed 65 = 6;
+  T3 seed 74 = 9 intact / 200 blind zero-reward; wiring SM errors
+  T1=125 T2=70 T3=60; phi 0.0 x3; syn 0.1167/0.1000/0.1229.
