@@ -79,6 +79,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.calibration
   ```
+- **Claim-Veridct Battery**:
+  ```bash
+  python -m evals.claims
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -107,13 +111,14 @@ brain/
 ├── workspace.py              <- deterministic source-tree hash for run evidence
 ├── snapshot.py               <- portable run snapshots + deterministic diff
 ├── calibration.py            <- Brier/log-loss/reliability scoring for forecasts
+├── claims.py                 <- immutable claim/kill-test/verdict ledger
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -326,6 +331,17 @@ persistent self-model already records, without changing actions.
 `python -m evals.calibration` shows perfect (Brier 0, skill 1),
 calibrated (0.166), inverted (1.0, skill −3), small/ignored warnings
 and the real 13-step/1.0 T3:15 readout.
+
+## 🧾 Claim & Verdict Register
+
+`ClaimLedger.add(text, kill_test, confidence)` creates a proposed claim.
+`record(id, status, evidence, at=...)` appends a `supports`, `refutes`
+or `inconclusive` verdict and returns a new immutable claim; the previous
+record is never mutated. Statuses are `proposed/supported/refuted/
+inconclusive`, `summary()` counts claims/verdicts, and `to_dict`/
+`from_dict` roundtrip as JSON. Declared confidence does not decide the
+verdict. `python -m evals.claims` judges six T3 claims: 3 supported, 2
+refuted, 1 inconclusive, with the 13/6-step/1.0 runs unchanged.
 
 ## 🧾 Verdict Facts
 

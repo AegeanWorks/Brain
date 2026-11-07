@@ -3138,3 +3138,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 254 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 71**: unittest 254 OK; aikit 5/5; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, small/ignored, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 71 - immutable claim, kill-test and verdict ledger (research-engine transfer)
+
+- **Baseline** (commit 0f046d4, cycle 70; same T3:15/65):
+  - canonical gate: 254 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - Brain had calibration and snapshot evidence but no structured claim with a kill test, verdict status or verdict history.
+- **Gap**: evidence statements were prose. A claim could not carry a kill test or an append-only supports/refutes/inconclusive verdict record, and a declared confidence could not be separated from the evidence-based status.
+- **Target delta**: six T3 claims with kill tests; three supported, two refuted, one inconclusive; verdict history preserved; confidence independent of status; JSON roundtrip exact; T3:15/65 remain 13/6 steps with 1.0.
+- **Falsifier**: a wrong claim is supported; a correct claim is refuted; confidence decides status; history is lost or mutable; roundtrip differs; behavior/pins move.
+- **Change**: claims.py adds frozen `Verdict` and `Claim` dataclasses plus `ClaimLedger` (`add`, `record`, `get`, `claims`, `summary`, `to_dict`, `from_dict`) and `record_verdict`. Text/kill test/confidence/status/evidence are validated; `record` appends a verdict and returns a new claim without mutating the old one; ids are `C1`, `C2`, … with duplicates refused. tests/test_claims.py covers defaults, transitions, immutability, summary, invalid inputs, roundtrip and frozen records; evals/claims.py judges six T3 claims. README and ADR-065 record the contract. No new dependencies; no action or policy change.
+- **After** (same T3 runs):
+  - C1 T3:15 13 steps supported; C2 T3:65 13 steps refuted (actual 6); C3 T3:15 reward 1.0 supported; C4 T3:65 reward 0.0 refuted (actual 1.0); C5 T3:65 6 steps supported; C6 energy inconclusive.
+  - summary: 6 claims, 3 supported/2 refuted/1 inconclusive/0 proposed, 6 verdicts; `to_dict`/`from_dict` roundtrip true; declared confidence 0.5-0.95 does not decide status.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, keyed telemetry, prompt budget, Merkle, execution budget, resume identity, workspace binding, snapshot diff/digest, calibration and the 200k tail-read bound are unchanged; 261 tests OK; policy unchanged.
+- **Ablation** (same claims):
+  - without a verdict, a claim stays proposed; with supports/refutes/inconclusive it becomes supported/refuted/inconclusive. The status and history die with the verdict cut.
+  - confidence alone does not flip a claim; the evidence-based verdict does.
+- **Verdict**: evidence-structure extension. Behavior is unchanged; the measured deltas are claim statuses, verdict history and the 3/2/1 summary. No action or emergence claim.
+- **Gates**: unittest 261/261 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_claims.TestClaims.test_add_claim_defaults_and_ids -v` -> before: ModuleNotFoundError (`claims`); after: OK.
+  - `python -m unittest tests.test_claims -v` -> 7 OK.
+  - `python -m evals.claims` -> 6 claims, 3 supported/2 refuted/1 inconclusive, roundtrip true, 13/6 steps.
+  - `python -m unittest discover -s tests -t .` -> 261 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 72**: unittest 261 OK; aikit 5/5; claims 3 supported/2 refuted/1 inconclusive, roundtrip; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
