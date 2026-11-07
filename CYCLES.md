@@ -3060,3 +3060,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 235 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 68**: unittest 235 OK; aikit 5/5; workspace same/cache digest stable, changed source differs, default null; T3:15 13/1.0; episode same/resume/13, T3:65 new/6; generous budget 13/1.0, caps 4/3, 3/2, 10/8, seconds; Merkle 12-20/count 8 proof 3; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 68 - portable run snapshots and deterministic diffs (lattice transfer)
+
+- **Baseline** (commit 167c555, cycle 67; same T3:15/65):
+  - canonical gate: 235 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - cycle evidence was prose and ad hoc; there was no portable run snapshot or deterministic added/removed/changed diff.
+- **Gap**: comparing two batteries required manual reading and could not distinguish a changed record from a volatile bookkeeping difference. `lattice/diff.py:40` keys records by `(record_type,id)`, ignores volatile fields and sorts output.
+- **Target delta**: capture T3:15/65 as two sorted records; same/volatile-only diffs empty; changed steps names the record/field; added/removed names one record each; export/read is atomic and lossless; captured runs stay 13/6 steps with 1.0 reward.
+- **Falsifier**: same battery diff is non-empty; a volatile field is reported; a real change is missed; export/read differs; adding/removing is not named; behavior/pins move.
+- **Change**: snapshot.py adds `run_record`, `capture_snapshot`, `export_snapshot`, `read_snapshot` and `diff_records` (volatile-aware, sorted, summary). Capture unlinks per-case logs so repeated captures are fresh; export writes sorted JSONL atomically. tests/test_snapshot.py covers added/removed/changed, volatile-only unchanged, empty same diff, roundtrip, run fields and capture equality; evals/snapshot_diff.py measures same/changed/added/removed/volatile over T3:15/65. README and ADR-062 record the contract. No new dependencies; no policy change.
+- **After** (same battery):
+  - captured 2 records: `T3_navigate:15` 13 steps, `T3_navigate:65` 6 steps, both success/1.0; action prefixes and syn/phi present.
+  - same: `{added:0, removed:0, changed:0, unchanged:2}`; volatile: same empty diff; changed steps: one `fields:["steps"]`; added: one record; removed: one record.
+  - export/read roundtrip matches with no `.tmp`; behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, keyed telemetry, prompt budget, Merkle, execution budget, resume identity, workspace binding and the 200k tail-read bound are unchanged; 241 tests OK; policy unchanged.
+- **Ablation** (same battery):
+  - without a snapshot/diff, changes are unmeasured prose; with it, same/volatile are empty and changed/added/removed are named. The property and its records die with the snapshot cut.
+  - duplicate `(record_type,id)` records are last-wins; only declared volatile fields are ignored.
+- **Verdict**: evidence-tooling extension. Behavior is unchanged; the measured deltas are the two run records and the deterministic diff summaries. No action or emergence claim.
+- **Gates**: unittest 241/241 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_snapshot.TestSnapshotDiff.test_added_removed_changed_and_volatile -v` -> before: ModuleNotFoundError (`snapshot`); after: OK.
+  - `python -m unittest tests.test_snapshot -v` -> 6 OK.
+  - `python -m evals.snapshot_diff` -> same/volatile empty; changed/added/removed named; 13/6/1.0.
+  - `python -m unittest discover -s tests -t .` -> 241 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 69**: unittest 241 OK; aikit 5/5; snapshots T3:15/65 13/6 both 1.0; same/volatile empty diff; changed steps/added/removed named; workspace same/cache stable/change/default null; episode same/resume/13, T3:65 new/6; generous budget 13/1.0, caps 4/3, 3/2, 10/8, seconds; Merkle 12-20/count 8 proof 3; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

@@ -67,6 +67,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.workspace_binding
   ```
+- **Snapshot-Diff Battery**:
+  ```bash
+  python -m evals.snapshot_diff
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -93,13 +97,14 @@ brain/
 ├── budget.py                 <- opt-in step/LLM/token/time budgets
 ├── identity.py               <- canonical episode digest + resume policy
 ├── workspace.py              <- deterministic source-tree hash for run evidence
+├── snapshot.py               <- portable run snapshots + deterministic diff
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -277,6 +282,17 @@ changed source file changes the digest, a cache file does not, and
 `workspace_root=None` leaves the field null. `python -m
 evals.workspace_binding` shows same/changed/ignored-cache/default cases
 with the unchanged 13-step/1.0 T3:15 run.
+
+## 🧾 Snapshot Diff
+
+`capture_snapshot(cases)` runs each `(task, seed)` and returns records
+with steps, reward, success, action hash, syn and phi.
+`export_snapshot`/`read_snapshot` write portable JSONL atomically.
+`diff_records` matches by `(record_type, id)`, ignores volatile fields
+(`created_at`, `ts`, `duration_ms`, …), and returns sorted
+added/removed/changed lists plus a summary. `python -m
+evals.snapshot_diff` shows empty same/volatile diffs and named
+changed/added/removed cases over the 13/6-step T3:15/65 battery.
 
 ## 🧾 Verdict Facts
 
