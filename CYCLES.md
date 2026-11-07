@@ -1184,3 +1184,53 @@ only integration scores, cross-module dependencies, and ablation differentials.
   pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0
   n32; hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
   variance 0.
+
+## Cycle 25 — exhaustive T3 config coverage (idea transfer)
+- **Source**: Lattice evidence matrix + coverage gaps (fourth transfer
+  after ModelDuck manifests, Crucible holdout, ModelDuck repro).
+- **Gap**: T3 pins sampled seeds 0-999 (1000 of 3906 configs); most of
+  the one-target-one-obstacle family unverified.
+- **Target delta**: enumerate all 3906 (target, obstacle) pairs,
+  assert per-config BFS-optimality + grand total; no source change.
+- **Falsifier**: standing totals move, trace numbers move, or any
+  config non-optimal on the intact tree.
+- **Change** (tests/test_exhaustive_t3.py new only; ADR-024):
+  _ForcedLayoutWorld subclass hook (no cross-module private writes;
+  guidelines gate refused the direct version); per-config equality
+  + total 27860; 1.3s. T1 exhaustive (39711/39711 optimal) and T2
+  2/2 recorded as one-off audit evidence; live gate keeps 100-seed
+  + holdout pins for T1 (40s+ gate cost refused). No new deps.
+- **Baseline** (cycle-24 pins re-verified): 88 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32.
+- **After**:
+  - code identical: 30-seed 466/240/217; all 88 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32 (no source diff).
+  - coverage proven: 3906/3906 optimal, total 27860; T1 audit
+    39711/39711 optimal; seed sampling retired as the coverage
+    argument for T3.
+- **Ablation** (corridor-cut, source reverted then restored
+  byte-identical):
+  - intact: 3906 optimal, total 27860.
+  - cut: 21 non-optimal configs, total 27902 (+42).
+  - Behavior AND config totals die with the cut, return with the
+    restore: the battery catches 21 traps where seed sampling
+    caught a handful.
+- **Verdict**: coverage win (exhaustive proof for the trap-bearing
+  family); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 89/89 OK (88 carried + 1 new); aikit 5/5 PASS
+  (after subclass-hook rewrite; direct private writes failed the
+  guidelines gate with 3 PRINCIPLE-009 R5 findings).
+- **Commands run**:
+  - `python -m unittest tests.test_exhaustive_t3 -v` -> 1 OK (1.3s).
+  - corridor-cut exhaustive probe: 21 bad, 27902 vs 27860; restore
+    -> all optimal.
+  - `python -m unittest discover -s tests -t .` -> 88 OK before,
+    89 OK after.
+  - `python aikit.py check brain` -> 4/5 then 5/5 after rewrite.
+  - standing 30-seed identical; T1 39711 audit scan (all optimal).
+- **Pinned regression baselines for cycle 26**: unittest 89 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; T3 400-499 675; holdout 500-599 1581/800/738;
+  exhaustive T3 3906/3906 total 27860; pins 16/8/13/6/9 + 7/14 +
+  6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro determinism variance 0.

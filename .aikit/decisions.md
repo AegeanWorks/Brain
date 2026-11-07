@@ -163,3 +163,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from ModelDuck determinism lockdown (IDEA-1627 batch-1 + triple-run) and its --deterministic repro mode: Brain recorded variance-0 notes ad hoc per cycle, but nothing gated replay determinism, so future nondeterminism (ordering, clock, RNG) could hide.
 - **Decision**: tests/test_repro.py replays all 9 pin seeds 3x and asserts byte-identical step counts, rewards, and SHA-256 over canonical action sequences. No source change; no new deps.
 - **Consequences**: 88 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); single-action perturbation flips the fingerprint (sensitivity proven); decision paths verified RNG/clock/set-iteration free by grep; routing-cut ablation N/A by design (gate checks variance, value pins live in trap/range tests).
+
+### ADR-024: Exhaustive T3 config coverage (evidence matrix)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Lattice (evidence matrix + coverage gaps): T3 layouts are exactly one target plus one obstacle on 63 free cells (3906 ordered pairs), but pins only sampled seeds 0-999, so most configs were unverified. T1 39711/39711 and T2 2/2 verified by one-off audit scans.
+- **Decision**: tests/test_exhaustive_t3.py enumerates all 3906 (target, obstacle) pairs through a _ForcedLayoutWorld subclass hook (no cross-module private writes; constructor/reset paths untouched) and asserts per-config BFS-optimality plus grand total 27860. T1 exhaustive (39711 configs, all optimal) recorded as audit evidence; live gate keeps 100-seed + holdout pins (40s+ gate cost refused). No new deps.
+- **Consequences**: 89 tests OK (1.3s); aikit check 5/5 after subclass-hook rewrite (direct private writes refused by guidelines gate); standing behavior and trace byte-identical (no source diff); corridor-cut ablation: 21 non-optimal configs, total 27902 vs 27860 (+42) — the battery catches 21 traps where seed sampling caught a handful.
