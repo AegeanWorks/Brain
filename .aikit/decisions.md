@@ -254,3 +254,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Visits-only pooling loops north of the (4,4)+(5,5) block on target (5,6) (200/0.0 vs BFS 11) and costs +8 on (7,5) (20 vs 12): corridor entry is ignored in the pool, so the early eastward entry wins every visits tie.
 - **Decision**: In _step_toward obstacle pooling, two-or-more blockers sort the deduped viable+backup pool by visits then blocked-corridor entry; single blockers stay visits-only (preserves seed-74 blind 200); open-field keeps viable-first. Extend tests/test_multi_obstacle.py to four configs with (7,5) re-pinned 18 and new (5,6) 13. No new deps; deterministic.
 - **Consequences**: 117 tests OK; aikit check 5/5; standing (466/240/217, T1-100 1581, exhaustive 3906/3906, goldens) byte-identical; multi (5,6) 200->13, (7,5) 20->18; blind kills (7,5),(3,6),(5,6) with 200/0.0 while (5,0) stays 9/1.0 pool-sufficient (honest exception); digest unchanged (pooling visits + corridor avoidance already declared).
+
+### ADR-037: Multi-obstacle golden paths for pinned traps
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Keystone pinned simulation hash (standing goldens in cycle 30): multi counts pin outcomes, but a behavior-neutral path swap at identical counts would drift silently.
+- **Decision**: tests/test_multi_goldens.py pins SHA-256 over canonical action sequences for the four multi configs (computed once on the intact tree); regeneration is deliberately manual (reviewed edit, no auto-update). No source change; no new deps.
+- **Consequences**: 118 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); any path change fails loudly — pre-pool ordering gives 200/200/13/200 counts, which necessarily changes every affected hash.

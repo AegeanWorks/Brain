@@ -1967,3 +1967,57 @@ only integration scores, cross-module dependencies, and ablation differentials.
   chain ok + 5 findings; headers 4245d56e...; golden 9/9; pins
   16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical; manifest + repro variance 0.
+
+## Cycle 38 — multi-obstacle golden paths (idea transfer)
+- **Source**: Keystone pinned simulation hash (tenth transfer; cycle-30
+  goldens pinned the nine standing seeds, cycle-25 exhaustive and
+  cycle-35 multi pinned counts only).
+- **Gap**: multi counts pin outcomes (9/18/11/13), but a
+  behavior-neutral path swap at identical counts would drift
+  silently past all 117 tests.
+- **Target delta**: SHA-256 over canonical action sequences for the
+  four multi configs, computed once on the intact tree; 0.007s.
+- **Falsifier**: standing totals move, trace numbers move, multi
+  counts move, or any multi path differs.
+- **Change** (tests/test_multi_goldens.py new only; ADR-037):
+  MULTI_GOLDEN map + one equality test per config across the four
+  pinned multis; regeneration deliberately manual (reviewed edit, no
+  auto-update) so goldens can never rebaseline a red tree green. No
+  source diff; no new deps.
+- **Baseline** (cycle-37 pins re-verified): 117 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; multi
+  9/18/11/13 deterministic 3x identical (variance 0).
+- **After**:
+  - code identical: 30-seed 466/240/217; multi 9/18/11/13; all 117
+    carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - paths pinned: 118/118 with 4/4 multi golden hashes exact.
+- **Ablation / sensitivity** (no source touched):
+  - single-action flip changes the fingerprint (proven cycle 24:
+    99aa6b.. vs 21dcfa.., differ True; multi uses the same
+    canonical-hash helper).
+  - pre-pool ordering gives 200/200/13/200 step counts on the same
+    four configs (different-length lists), which necessarily changes
+    every affected hash — the golden gate inherits every routing
+    cut's sensitivity on top of count pins.
+- **Verdict**: provenance win (multi paths now pinned, not just
+  counts); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 118/118 OK (117 carried + 1 new); aikit 5/5
+  PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_multi_goldens -v` -> 1 OK.
+  - `python -m unittest discover -s tests -t .` -> 117 OK before,
+    118 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig + multi counts identical;
+    determinism 3x identical.
+- **Pinned regression baselines for cycle 39**: unittest 118 OK; aikit
+  5/5; standing 466/240/217; multi 9/18/11/13 with 1.0; multi
+  goldens 4/4 paths; blind 9/200/200/200; seed-74 9 intact / 200
+  blind; 0-99 1581/800/683; T1 100-199 1646; T3 100-199 732;
+  T3 200-299 718; T3 300-399 671; T3 400-499 675; holdout
+  1581/800/738; exhaustive 3906/3906 27860; corridor-cut 12/744;
+  random floor 1271/5.0 vs 89/11.0; chain ok + 5 findings; headers
+  4245d56e...; golden 9/9 + multi 4/4; pins 16/8/13/6/9 + 7/14 +
+  6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro variance 0.
