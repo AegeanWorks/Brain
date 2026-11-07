@@ -2144,3 +2144,64 @@ only integration scores, cross-module dependencies, and ablation differentials.
   grid-rule/planner + ffa19359...; golden 9/9 + multi 5/5; pins
   16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical; manifest + repro variance 0.
+
+## Cycle 41 — three-blocker snapshot matrix (idea transfer)
+- **Source**: Lattice snapshot-diffing completion (twelfth transfer;
+  cycle-39 completed the two-blocker matrix, cycle-38 its paths).
+- **Gap**: five three-obstacle configs verified deterministic 3x
+  identical with visit-coupled blinds, but no test pins any of them
+  — a drift in the 3-blocker family would pass all 121 tests. One
+  truncates (6,5) 200/0.0 vs BFS 13 and is documented as reserved
+  routing headroom (no safe fix without breaking seed-74/T1 pins,
+  per cycles 35/37 prototypes); four complete (15/12/10/13).
+- **Target delta**: pin five counts with rewards, one blind
+  differential (6,7) 15 vs 200, and determinism 3x; 0.75s.
+- **Falsifier**: standing totals move, trace numbers move, or any of
+  the five numbers moves on the intact tree.
+- **Change** (tests/test_three_blocker.py new only; ADR-040):
+  _ForcedThreeWorld hook (no private writes) + THREE_CONFIGS with
+  wants + pins test + blind test on (6,7); regeneration deliberately
+  manual (reviewed edit, no auto-update). No source diff; no new deps.
+- **Baseline** (cycle-40 pins re-verified): 121 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; three-blocker
+  audit 15/12/10/13/200 deterministic 3x identical, blinds
+  200/200/10/200/200 (4/5 killing, (6,0) 10/1.0 pool-sufficient
+  honestly carried like (5,0)).
+- **After**:
+  - code identical: 30-seed 466/240/217; two-blocker 9/18/11/13/14;
+    all 121 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - matrix new: three-blocker counts 5/5 with rewards, blind (6,7)
+    15 vs 200 pinned; variance 0 (deterministic 3x).
+- **Ablation / sensitivity** (no source touched):
+  - memory-blind cut moves (6,7) 15 -> 200 with 0.0 reward and kills
+    (7,3),(4,7) the same way (200/0.0); (6,0) 10/1.0 and (6,5)
+    200/0.0 are pool-sufficient/truncation baselines honestly
+    recorded — the pin catches coupling loss where coupling exists.
+  - any routing change that moves a count fails the pins; a
+    behavior-neutral path swap at identical counts is not yet
+    hashed for this family (reserved: extend goldens only after a
+    reviewed routing change, never to make red green).
+- **Verdict**: provenance win (3-blocker family now pinned); no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 123/123 OK (121 carried + 2 new); aikit 5/5
+  PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_three_blocker -v` -> 2 OK
+    (pins from intact-tree audit).
+  - `python -m unittest discover -s tests -t .` -> 121 OK before,
+    123 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical; three-blocker 3x
+    determinism + blind audit.
+- **Pinned regression baselines for cycle 42**: unittest 123 OK; aikit
+  5/5; standing 466/240/217; multi 9/18/11/13/14 with 1.0; multi
+  goldens 5/5 paths; three-blocker 15/12/10/13/200 with rewards;
+  blind 9/200/200/200/200 + 200/200/10/200/200; seed-74 9 intact /
+  200 blind; 0-99 1581/800/683; T1 100-199 1646; T3 100-199 732;
+  T3 200-299 718; T3 300-399 671; T3 400-499 675; holdout
+  1581/800/738; exhaustive 3906/3906 27860; corridor-cut 12/744;
+  random floor 1271/5.0 vs 89/11.0; chain ok + 5 findings; headers
+  ffa19359...; golden 9/9 + multi 5/5; pins 16/8/13/6/9 + 7/14 +
+  6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro variance 0.

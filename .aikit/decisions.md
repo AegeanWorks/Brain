@@ -275,3 +275,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Cycle 37 gated corridor weighting in the detour pool on two-or-more blockers but left PLANNER_POLICY on pooling-visits only, so run headers cited a planner the code no longer matches.
 - **Decision**: Add pool_corridor >=2 to PLANNER_POLICY; add tests/test_pool_corridor_policy.py (gate declared, digest differs from pre-gate legacy, value-sensitive). No planner logic touched; no new deps.
 - **Consequences**: 121 tests OK; aikit check 5/5; standing behavior (466/240/217, multi 9/18/11/13/14) and trace (syn 0.0541 phi 0.0) byte-identical; policy_digest 4245d56e... -> ffa19359...; headers cite the shipped >=2 gate with chain verify ok; pre-gate citation fails the new gate by construction. 3-blocker (6,5) 200/0.0 truncation carried as documented routing-track headroom.
+
+### ADR-040: Three-blocker snapshot matrix for the new family
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Lattice snapshot-diffing completion (two-blocker matrix in cycle 39): five three-obstacle configs verified deterministic with visit-coupled blinds, but no test pinned them. One truncates (6,5) with no safe routing fix (seed-74/T1 pins block it, per cycles 35/37 prototypes).
+- **Decision**: tests/test_three_blocker.py pins five counts with rewards plus a blind differential on (6,7); _ForcedThreeWorld hook with no private writes; regeneration manual. No source change; no new deps.
+- **Consequences**: 123 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); 3-blocker family 15/12/10/13/200 pinned with blinds 200/200/10/200/200; any routing change that moves a count fails loudly.
