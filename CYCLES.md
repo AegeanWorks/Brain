@@ -321,3 +321,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Pinned regression baselines for cycle 8**: unittest 52 OK; aikit 5/5;
   all cycle-6 pins carried; fixed-rig (T1 seed7) syn 0.1246 phi 0.0;
   hub0/m0 syn 0.0; p0/s0 syn bit-identical to intact.
+
+## Cycle 8 — substrate-contract audit: zero verified improvements (STOP)
+
+- **Baseline**: 52 tests OK; aikit 5/5; all prior pins carried.
+- **Measure**: reviewed the remaining unaudited contracts — MemoryStore
+  recall (FTS5 + LIKE fallback, ordering, limits), telemetry edge paths,
+  inventory/demo peripherals — against existing tests (test_memory,
+  test_telemetry) and the consumer graph.
+- **Find**: no qualifying gap.
+  - Recall-quality improvements (e.g. syntax-char sanitization) would
+    move a unit number on a path with no in-repo consumer: the planner
+    never recalls the store, and routing is optimal on 200/200 seeds
+    without it — optimizing an unused path moves no system number
+    (dead, one line).
+  - Cross-episode store recall wired into planning is the reserved
+    lever for a future task family that defeats reactive planning;
+    on today's tasks it has zero headroom by measurement (dead).
+  - Calibration, P/M redefinition, hub reads, phi floor: rejections
+    from cycle 6 stand; nothing changed under them.
+  - No estimator, gate, or contract deviation found.
+- **Verdict**: full cycle, zero verified improvements. Stop condition
+  met. No code change; no ADR (no decision taken). Verdict UNKNOWN.
+- **Gates re-verified on the committed tree**: unittest 52/52 OK;
+  aikit check 5/5 PASS.
+- **Commands run**:
+  - contract review reads (test_memory.py, inventory.py) + consumer
+    grep for mean_conf/recall call sites: no downstream consumers.
+  - `python -m unittest discover -s tests -t .` -> 52 OK.
+  - `python aikit.py check brain` -> 5/5.
