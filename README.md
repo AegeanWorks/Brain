@@ -63,6 +63,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.merkle_journal
   ```
+- **Merkle-Compaction Battery**:
+  ```bash
+  python -m evals.merkle_compaction
+  ```
 - **Execution-Budget Battery**:
   ```bash
   python -m evals.execution_budget
@@ -140,7 +144,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/claims/claims-store batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/claims/claims-store batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -312,6 +316,21 @@ stays provable after a newer anchor. `python -m
 evals.merkle_journal` shows two chained batches (16–24, 24–32), record
 20 still proving against batch 1, truncation/tamper/rollback findings,
 and the old single-anchor overwrite that loses the earlier proof.
+
+`compact_merkle_journal(log_path, journal_path=None, output_path=None,
+replace=False)` merges every journal anchor into one record spanning
+`min(start)..max(end)` with a freshly computed root, so every record in
+that union keeps an inclusion proof. By default it writes
+`<journal>.compact` and leaves the source untouched; `replace=True`
+backs the source up as `.bak` and atomically replaces the live journal.
+A `.compaction` sidecar records the source anchor count/head, union
+range and compacted hash. Missing or truncated journals are refused, as
+is `output_path == journal_path` without `replace=True`; a proof outside
+the union is rejected. Compaction is an offline single-writer operation
+because the append path does not lock against it. `python -m
+evals.merkle_compaction` shows a 3-anchor 0–24 journal compacted to one
+anchor, proofs for records 0/12/23, the replace backup (3 anchors), and
+the 8–24 union boundary.
 
 ## 🧮 Execution Budgets
 

@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle77-calibration-bridge",
+    "task_id": "brain-cycle78-merkle-compaction",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794084786.8905184,
-    "owner": "opencode:cycle77",
-    "started_by": "opencode:cycle77",
+    "updated_at": 1794085551.5506454,
+    "owner": "opencode:cycle78",
+    "started_by": "opencode:cycle78",
     "continuations": [],
-    "completed_at": 1794084787.3299108
+    "completed_at": 1794085551.9518113
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle74-progress-skip' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794081755.626783,
-      "timestamp_str": "2026-11-07 23:02:35",
-      "agent": "opencode:cycle74"
-    },
-    {
-      "task_id": "brain-cycle75-claim-store",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: durable checksummed claim-ledger store with backup and quarantine recovery",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794082233.007945,
-      "timestamp_str": "2026-11-07 23:10:33",
-      "agent": "opencode:cycle75",
-      "impact_assessment": {
-        "why": "ClaimLedger roundtrips as JSON but has no file API, so verdicts and kill-test evidence are lost when the process exits. The open-ended evidence loop needs a durable claim store.",
-        "benefits": "save_ledger writes one checksummed snapshot atomically (temp+fsync+replace) with a .bak of the previous snapshot; load_ledger restores it, quarantines a corrupt primary and falls back to .bak; verify_ledger_file names missing/checksum/schema defects; a lock serialises writers and steals stale locks.",
-        "risks": "contract: new claims_store.py module only, no agent API change; dependency: stdlib only; concurrency: O_CREAT|O_EXCL lock with 30s stale steal and bounded timeout; state: new local snapshot/.bak/.lock files, not committed.",
-        "mitigation": "Keep ClaimLedger as the data model; verify schema/checksum/claims on load; write temp+fsync+replace with 5 retries and a .bak; test roundtrip, backup fallback, tamper, schema, stale lock, fresh-lock timeout, deterministic checksum and no temp leftovers; rerun 282 tests and AIKit."
-      },
-      "plan_digest": "2407d42497355f2ef0702c01ab1345fbb19df6ec827a259a78b6772f961e7d50"
-    },
-    {
-      "task_id": "brain-cycle75-claim-store",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first claims_store ImportError; checksummed save/load/verify, atomic replace, .bak, lock, quarantine, tests/eval, README/ADR-069",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794082827.7176223,
-      "timestamp_str": "2026-11-07 23:20:27",
-      "agent": "opencode:cycle75"
-    },
-    {
-      "task_id": "brain-cycle75-claim-store",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: roundtrip 6/6; corrupt-primary backup 3/3 + quarantine; tamper checksum; missing; stale lock stolen; fresh lock timeout; no temp; 293 tests OK; aikit 5/5; behavior/policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794082828.290986,
-      "timestamp_str": "2026-11-07 23:20:28",
-      "agent": "opencode:cycle75"
-    },
-    {
-      "task_id": "brain-cycle75-claim-store",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit claim store, eval, tests, ADR-069, cycle 75",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794082828.715283,
-      "timestamp_str": "2026-11-07 23:20:28",
-      "agent": "opencode:cycle75"
-    },
     {
       "task_id": "brain-cycle75-claim-store",
       "phase": "completed",
@@ -247,6 +186,67 @@
       "timestamp": 1794084787.3299131,
       "timestamp_str": "2026-11-07 23:53:07",
       "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle78-merkle-compaction",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: non-destructive Merkle journal compaction into one union-root anchor with optional backed-up replace",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794085082.5317428,
+      "timestamp_str": "2026-11-07 23:58:02",
+      "agent": "opencode:cycle78",
+      "impact_assessment": {
+        "why": "The .merkle.journal appends one anchor per batch and grows without bound. A compacted journal can keep one root over the union of all anchored ranges, preserving every record proof while bounding the journal to one line, with the original kept as .bak on opt-in replace.",
+        "benefits": "compact_merkle_journal writes a one-anchor compact journal, records source anchors/head in a .compaction sidecar, keeps the original untouched by default, and with replace=True backs the original up as .bak; proofs for first/middle/last records still verify, and verification names missing/truncated/invalid journals.",
+        "risks": "contract: new merkle compaction function only, existing append/verify/proof APIs unchanged; dependency: stdlib shutil added; concurrency: offline single-writer rewrite (no live-append lock); state: new .compact/.compaction/.bak files, opt-in replace.",
+        "mitigation": "Require a valid journal and log ranges; compute the union root from log digests; write atomically; keep the original by default; back it up before replace; test copy/replace/proofs/metadata/missing/truncated/same-output/invalid flags and no temp leftovers; rerun 314 tests and AIKit."
+      },
+      "plan_digest": "35d4131f1c0baa2a673bbaf9fa228b641837fe0e049d100bf1c138fa81361cf0"
+    },
+    {
+      "task_id": "brain-cycle78-merkle-compaction",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first compact import; union-root compaction, atomic copy/replace, .bak, .compaction metadata, tests/eval, README/ADR-072",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794085550.8248813,
+      "timestamp_str": "2026-11-08 00:05:50",
+      "agent": "opencode:cycle78"
+    },
+    {
+      "task_id": "brain-cycle78-merkle-compaction",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: copy 3->1 0-24 with 3/3 proofs; replace live 1 + backup 3; outside 8-24 rejects record 0; missing/truncated errors; 322 tests OK; aikit 5/5; behavior/policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794085551.180446,
+      "timestamp_str": "2026-11-08 00:05:51",
+      "agent": "opencode:cycle78"
+    },
+    {
+      "task_id": "brain-cycle78-merkle-compaction",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit compaction, eval, tests, ADR-072, cycle 78",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794085551.5506454,
+      "timestamp_str": "2026-11-08 00:05:51",
+      "agent": "opencode:cycle78"
+    },
+    {
+      "task_id": "brain-cycle78-merkle-compaction",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle78-merkle-compaction' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794085551.9518135,
+      "timestamp_str": "2026-11-08 00:05:51",
+      "agent": "opencode:cycle78"
     }
   ]
 }

@@ -14,6 +14,7 @@ and its inclusion proof survive later anchors.
 import hashlib
 import json
 import os
+import shutil
 import time
 from pathlib import Path
 
@@ -154,6 +155,29 @@ def _write_anchor(target, anchor):
     tmp = target.with_name(target.name + ".tmp")
     with open(tmp, "w", encoding="utf-8") as handle:
         json.dump(anchor, handle, sort_keys=True)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, target)
+    _fsync_dir(target.parent)
+
+
+def _write_journal_record(target, record):
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(target.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(record, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, target)
+    _fsync_dir(target.parent)
+
+
+def _write_meta(target, meta):
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(target.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(meta, handle, sort_keys=True)
         handle.write("\n")
         handle.flush()
         os.fsync(handle.fileno())
@@ -333,6 +357,116 @@ def append_merkle_anchor(log_path, batch_size=64, journal_path=None,
         os.fsync(handle.fileno())
     _fsync_dir(target.parent)
     return record
+
+
+def compact_merkle_journal(log_path, journal_path=None, output_path=None,
+                           replace=False, created_at=None):
+    """Merge every journal anchor into one root over their union.
+
+    The compacted journal has one record spanning ``min(start)`` to
+    ``max(end)`` with a freshly computed root, so every record in that
+    union keeps an inclusion proof. By default the source journal is
+    untouched and the compacted copy is written to
+    ``<journal>.compact`` (or ``output_path``); ``replace=True`` backs
+    the source up as ``.bak`` and atomically replaces it. A
+    ``.compaction`` sidecar records the source anchor count/head, union
+    range and compacted hash. Appends are not locked, so compaction is an
+    offline maintenance operation.
+    """
+    if not isinstance(replace, bool):
+        raise ValueError(
+            "Why: replace must be a bool. Fix: pass replace=True or False.")
+    source = (Path(journal_path) if journal_path is not None
+              else _journal_path(log_path))
+    if replace:
+        if output_path is not None and Path(output_path) != source:
+            raise ValueError(
+                "replace=True compacts the journal in place; output_path "
+                "must match journal_path or be omitted.")
+        target = source
+    else:
+        target = (Path(output_path) if output_path is not None
+                  else Path(str(source) + ".compact"))
+        if target == source:
+            raise ValueError(
+                "output_path must differ from journal_path unless "
+                "replace=True.")
+    records, errors = _scan_journal(source)
+    if errors:
+        raise ValueError("merkle journal is invalid: %s" % errors[0])
+    if not records:
+        raise ValueError("merkle journal is empty")
+    log_records = _read_records(log_path)
+    for anchor in records:
+        if anchor["end"] > len(log_records):
+            raise ValueError("truncated-batch:%d>%d"
+                             % (anchor["end"], len(log_records)))
+    start = min(anchor["start"] for anchor in records)
+    end = max(anchor["end"] for anchor in records)
+    leaves = [_leaf(record.get("digest"))
+              for record in log_records[start:end]]
+    stamp = created_at or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    compact = {
+        "schema": ANCHOR_SCHEMA,
+        "ledger": records[0]["ledger"],
+        "start": start,
+        "end": end,
+        "count": end - start,
+        "root": merkle_root(leaves).hex(),
+        "created_at": stamp,
+        "prev": GENESIS,
+    }
+    compact["hash"] = _anchor_hash(compact)
+    source_head = records[-1]["hash"]
+    meta = {
+        "schema": ANCHOR_SCHEMA,
+        "source": source.name,
+        "source_anchors": len(records),
+        "source_head": source_head,
+        "start": start,
+        "end": end,
+        "count": end - start,
+        "compact_sha256": compact["hash"],
+        "created_at": stamp,
+    }
+    backup = None
+    if replace:
+        backup = Path(str(source) + ".bak")
+        tmp = target.with_name(target.name + ".compact.tmp")
+        backup_tmp = backup.with_name(backup.name + ".tmp")
+        try:
+            with open(tmp, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps(compact, sort_keys=True) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            shutil.copyfile(source, backup_tmp)
+            with open(backup_tmp, "r+b") as handle:
+                os.fsync(handle.fileno())
+            os.replace(backup_tmp, backup)
+            os.replace(tmp, target)
+        except OSError:
+            for leftover in (tmp, backup_tmp):
+                try:
+                    leftover.unlink(missing_ok=True)
+                except OSError:  # hygiene: allow best-effort cleanup; the source is untouched
+                    pass
+            raise
+    else:
+        _write_journal_record(target, compact)
+    _write_meta(Path(str(target) + ".compaction"), meta)
+    _fsync_dir(target.parent)
+    return {
+        "path": str(target),
+        "replaced": replace,
+        "source_anchors": len(records),
+        "source_head": source_head,
+        "start": start,
+        "end": end,
+        "count": end - start,
+        "hash": compact["hash"],
+        "backup": str(backup) if backup is not None else None,
+        "metadata": str(target) + ".compaction",
+    }
 
 
 def verify_merkle_journal(log_path, journal_path=None):
