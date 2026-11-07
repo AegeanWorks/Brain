@@ -9,8 +9,11 @@ silently heals or breaks the probe fails loudly instead of passing
 vacuously.
 
 Control C1 (corridor): disable _enters_blocked_corridor (visits-only
-ordering = pre-cycle-20 semantics, depth kept 4). Must detour on 479
-(12 vs intact 10) and move holdout-500s T3 738 -> 742.
+ordering = pre-cycle-20 semantics). Background since cycle 32 is the
+leaf viability check (depth machinery removed as proven-dead), so the
+cut signature is 479 -> 12 and holdout-500s T3 738 -> 744 (it was 742
+against the depth-4 background: without corridor, depth fixed 2 more
+steps of traps).
 """
 
 import unittest
@@ -36,7 +39,7 @@ class TestNegativeControl(unittest.TestCase):
                 leg = _steps("T3_navigate", seed)
                 self.assertTrue(leg[-1]["done"])
                 total += len(leg)
-            self.assertEqual(total, 742)
+            self.assertEqual(total, 744)
             self.assertGreater(cut.call_count, 0)
 
     def test_intact_side_of_control_pair(self):

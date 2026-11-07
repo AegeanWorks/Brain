@@ -1559,3 +1559,63 @@ only integration scores, cross-module dependencies, and ablation differentials.
   paths; pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn
   0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; manifest +
   repro determinism variance 0.
+
+## Cycle 32 — collapse dead lookahead depth (idea transfer)
+- **Source**: lacon RLM's explicit depth caps prompted the question;
+  proof is Brain's own exhaustive battery (Lattice transfer).
+- **Gap**: _has_exit carried a depth-4 recursion knob that corridor
+  avoidance (cycle 20) had silently subsumed — a misleading tuner
+  with zero verified effect anywhere in the task family.
+- **Target delta**: delete the depth parameter (leaf check only);
+  byte-identical behavior everywhere; control re-pinned with
+  documented background change.
+- **Falsifier**: any config, pin, golden path, oracle, or trace
+  number moves.
+- **Change** (agent.py _has_exit collapse + tests/test_negative_
+  control.py re-pin 742->744 + docstring; ADR-031): recursion and
+  depth param removed; viable/dead structure untouched. No new deps.
+- **Baseline** (cycle-31 pins re-verified): 105 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32.
+- **Proof before edit**: depth-2 + corridor = 3906/3906 optimal
+  (total 27860, identical); depth-2 vs depth-4 action sequences
+  byte-identical on all 3906 configs (0 path diffs); depth-1 also
+  0 diffs — the parameter is dead given corridor + visits.
+- **After**:
+  - code identical: 30-seed 466/240/217; all 105 tests pass
+    (incl. 9 goldens, exhaustive, holdout, oracles, hidden).
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - T1 re-audit under final code: 39711/39711 optimal (loop closed).
+- **Ablation / sensitivity**:
+  - corridor-cut control now reads 479=12, holdout T3=744
+    (was 742 vs depth-4: without corridor, depth had fixed 2 more
+    steps) — fails loudly vs intact 10/738 as designed; call_count
+    engagement still asserted.
+  - Exhaustive battery would catch any revival-relevant divergence
+    (21-trap precedent under the cut).
+  - Revival condition: multi-obstacle layouts or larger grids, where
+    leaf viability may no longer suffice — re-add depth then, with
+    a failing config first.
+- **Verdict**: substrate simplification with exhaustive proof (-3
+  lines, dead knob removed, no wall-time claim — battery dominated
+  by world-sim, noise floor); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 105/105 OK (control re-pinned, rest untouched);
+  aikit 5/5 PASS.
+- **Commands run**:
+  - depth-2 + corridor exhaustive: 3906/3906, total 27860.
+  - depth-2 vs depth-4 path-hash diff: 0/3906.
+  - depth-1 vs depth-2: 0/3906 (collapse justified).
+  - T1 39711 re-audit under final code: 0 bad.
+  - `python -m unittest discover -s tests -t .` -> 104/105 with
+    cut-background mismatch before re-pin, 105/105 after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical.
+- **Pinned regression baselines for cycle 33**: unittest 105 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T1 100-199 1646;
+  T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499 675;
+  holdout 500-599 1581/800/738; exhaustive T3 3906/3906 total
+  27860; corridor-cut control 12/744 (leaf background); random
+  floor best 1271/5.0 vs rule 89/11.0 (margins x10/+5); chain
+  intact ok + 5 named tamper findings; headers cite policy+digest
+  +model; golden 9/9 paths; pins 16/8/13/6/9 + 7/14 + 6/10;
+  fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro determinism variance 0.

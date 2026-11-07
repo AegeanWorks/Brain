@@ -212,3 +212,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Assay per-record policy citation + research-engine 3b evidence binding (a run is bound to what produced it): run_task_logged wrote headers with no policy reference (manifest_sha256 always None), so a log could not say which configuration produced it.
 - **Decision**: agent.py declares PLANNER_POLICY (name + depth/corridor/visits/recall) with policy_digest() (SHA-256 over canonical declared config — behavior-preserving refactors do not invalidate evidence, any policy change does) and model_label() (rule/stub/model basename); run_task_logged cites all three in write_header (new optional policy/policy_sha256/model fields, additive on schema 2). No new deps.
 - **Consequences**: 105 tests OK (4 new, ~1s); aikit check 5/5; standing behavior and trace byte-identical (94 carried behavior tests + fixed-rig syn 0.0541 green); config-variant digest differs (sensitivity); header policy tamper fails verify as edited-record:0 (binding rides the chain).
+
+### ADR-031: Collapse dead lookahead depth to a leaf check
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Prompted by lacon RLM's explicit depth caps: questioned whether Brain's depth-4 chain still carries weight now that corridor avoidance (cycle 20) decides entries distance-independently.
+- **Decision**: Replace recursive _has_exit(cell, depth) with the leaf check (free distance-reducing exit or goal); delete the depth parameter. Proven byte-identical action sequences on all 3906 T3 configs at depths 1, 2 and 4, plus T1 39711/39711 optimal and T2 structural.
+- **Consequences**: 105 tests OK; aikit check 5/5; standing behavior (466/240/217, all pins incl. 9 goldens) and trace (syn 0.0541 phi 0.0) byte-identical; -3 lines, dead tuning knob removed. Corridor-cut control re-pinned 742 -> 744 (without corridor, depth had fixed 2 more steps of traps) with the background change documented in the test. Revival condition honestly recorded: multi-obstacle layouts or larger grids, where leaf viability may no longer suffice.
