@@ -14,7 +14,7 @@ import tempfile
 from agent import Agent, Planner
 from telemetry.log import Telemetry
 
-MODES = ("on", "off", "seeds", "unique", "tie", "collect")
+MODES = ("on", "off", "seeds", "unique", "tie", "collect", "tour")
 PIN_SEEDS = (
     ("T1_forage", 71, 16, 3.0),
     ("T2_delayed_match", 3, 8, 1.0),
@@ -60,7 +60,7 @@ def _tie_stats(pairs):
     chosen_least = 0
     chosen_not_least = 0
     not_in_alternatives = 0
-    for action, rule in pairs:
+    for action, rule, _tour in pairs:
         if not isinstance(rule, dict):
             continue
         alternatives = rule.get("alternatives") or []
@@ -89,6 +89,21 @@ def _tie_stats(pairs):
     }
 
 
+def _tour_stats(tours):
+    present = [tour for tour in tours if isinstance(tour, dict)]
+    return {
+        "tour_steps": len(present),
+        "tour_tie_steps": sum(1 for tour in present
+                              if tour.get("tie_count", 1) > 1),
+        "tour_extra_tied_firsts": sum(
+            max(0, tour.get("tie_count", 1) - 1) for tour in present),
+        "tour_chosen_optimal": sum(1 for tour in present
+                                   if tour.get("optimal") is True),
+        "tour_not_optimal": sum(1 for tour in present
+                                if tour.get("optimal") is False),
+    }
+
+
 def _run_seed(task, seed, readout, directory, suffix):
     log_path = os.path.join(directory, "%s-%d-%s.jsonl"
                             % (task, seed, suffix))
@@ -97,7 +112,8 @@ def _run_seed(task, seed, readout, directory, suffix):
         task, seed, max_steps=200, log_path=log_path)
     records = Telemetry(log_path).read_all()
     pairs = [(record.get("args", {}).get("action"),
-              record.get("args", {}).get("probe", {}).get("rule"))
+              record.get("args", {}).get("probe", {}).get("rule"),
+              record.get("args", {}).get("probe", {}).get("tour"))
              for record in records
              if record.get("type") == "action"
              and record.get("kind") == "step"]
@@ -112,7 +128,10 @@ def measure_seeds(mode, directory):
               "alternatives_total": 0, "tie_steps": 0,
               "visit_spread_steps": 0, "chosen_least_visited": 0,
               "chosen_not_least_visited": 0,
-              "chosen_not_in_alternatives": 0}
+              "chosen_not_in_alternatives": 0,
+              "tour_steps": 0, "tour_tie_steps": 0,
+              "tour_extra_tied_firsts": 0, "tour_chosen_optimal": 0,
+              "tour_not_optimal": 0}
     totals = {"readout_steps": 0, "ambiguous_steps": 0,
               "nonoptimal_steps": 0, "ties": {}}
     for task, seed, _steps, _reward in PIN_SEEDS:
@@ -121,8 +140,9 @@ def measure_seeds(mode, directory):
         off_trace, off_pairs = _run_seed(task, seed, False, directory,
                                          "%s-off" % mode)
         pairs = on_pairs if mode != "off" else off_pairs
-        stats = _readout_stats([rule for _action, rule in pairs])
+        stats = _readout_stats([rule for _action, rule, _tour in pairs])
         tie_stats = _tie_stats(pairs)
+        tour_stats = _tour_stats([tour for _action, _rule, tour in pairs])
         result["steps"] += len(on_trace)
         result["reward"] += sum(record["reward"] for record in on_trace)
         result["actions_match"] = result["actions_match"] and (
@@ -138,13 +158,21 @@ def measure_seeds(mode, directory):
             "chosen_least_visited": tie_stats["chosen_least_visited"],
             "chosen_not_least_visited":
                 tie_stats["chosen_not_least_visited"],
+            "tour_steps": tour_stats["tour_steps"],
+            "tour_tie_steps": tour_stats["tour_tie_steps"],
+            "tour_chosen_optimal": tour_stats["tour_chosen_optimal"],
         })
         for key in ("readout_steps", "ambiguous_steps", "nonoptimal_steps"):
             totals[key] += stats[key]
         for key in ("alternatives_total", "tie_steps", "visit_spread_steps",
                     "chosen_least_visited", "chosen_not_least_visited",
-                    "chosen_not_in_alternatives"):
-            result[key] += tie_stats[key]
+                    "chosen_not_in_alternatives", "tour_steps",
+                    "tour_tie_steps", "tour_extra_tied_firsts",
+                    "tour_chosen_optimal", "tour_not_optimal"):
+            if key in tie_stats:
+                result[key] += tie_stats[key]
+            else:
+                result[key] += tour_stats[key]
         for tie, count in stats["ties"].items():
             totals["ties"][tie] = totals["ties"].get(tie, 0) + count
     result.update(totals)
@@ -158,6 +186,11 @@ def measure_case(mode="on", directory=None):
     if mode in ("on", "off", "seeds"):
         return measure_seeds(mode, directory)
     planner = Planner(rule_readout=True)
+    if mode == "tour":
+        action = planner.plan(
+            _state(0, 0, task="T1_forage", items=[[1, 0], [0, 1]]), [])
+        return {"mode": mode, "action": action,
+                "tour": planner.last_probe.get("tour")}
     if mode == "unique":
         action = planner.plan(_state(0, 0, [2, 0]), [])
     elif mode == "tie":

@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle83-tiebreak-audit",
+    "task_id": "brain-cycle84-tour-audit",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794089338.8659515,
-    "owner": "opencode:cycle83",
-    "started_by": "opencode:cycle83",
+    "updated_at": 1794090102.8280056,
+    "owner": "opencode:cycle84",
+    "started_by": "opencode:cycle84",
     "continuations": [],
-    "completed_at": 1794089339.3932374
+    "completed_at": 1794090103.4343657
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle80-calibration-retention",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: archive-based calibration-journal rotation with backup and lossless combined loading",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794086735.1460214,
-      "timestamp_str": "2026-11-08 00:25:35",
-      "agent": "opencode:cycle80",
-      "impact_assessment": {
-        "why": "The calibration forecast journal grows one checksummed line per forecast and has no retention. Rotation can bound the live file to the newest N records while archiving older records and preserving every score, unlike pruning which would discard evidence.",
-        "benefits": "rotate_forecast_journal moves older records to .archive, keeps the newest N live, backs the pre-rotation journal up as .bak, and records source/archive counts in a .rotation sidecar; load_all_forecasts combines archive+live with unique ids and the same Brier/skill; missing/short journals are no-ops.",
-        "risks": "contract: new calibration_store rotation/load-all APIs only, append/load/verify unchanged; dependency: stdlib shutil; concurrency: rotation holds the existing writer lock; state: new .archive/.bak/.rotation files, local only.",
-        "mitigation": "Validate every record and keep archives idempotent by id; write archive/live atomically; back up the live journal before replacement; test split, score preservation, second rotation, conflict, no-op, missing, corrupt, stale/fresh lock, and rerun 334 tests plus AIKit."
-      },
-      "plan_digest": "00e390e2826955cb86e92a812e683ddda000e0e40fc6c12a02000822ff6c4516"
-    },
-    {
-      "task_id": "brain-cycle80-calibration-retention",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first load_all ImportError; archive rotation, atomic archive/live writes, .bak, .rotation metadata, load_all, tests/eval, README/ADR-074",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794087135.923571,
-      "timestamp_str": "2026-11-08 00:32:15",
-      "agent": "opencode:cycle80"
-    },
-    {
-      "task_id": "brain-cycle80-calibration-retention",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: 19 -> 10 live/9 archive with same 0.181579/0.255114; backup 19; second 10/15/25; noop/conflict/missing/lock; 343 tests OK; aikit 5/5; behavior/policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794087136.8967624,
-      "timestamp_str": "2026-11-08 00:32:16",
-      "agent": "opencode:cycle80"
-    },
-    {
-      "task_id": "brain-cycle80-calibration-retention",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit retention, eval, tests, ADR-074, cycle 80",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794087137.791936,
-      "timestamp_str": "2026-11-08 00:32:17",
-      "agent": "opencode:cycle80"
-    },
-    {
-      "task_id": "brain-cycle80-calibration-retention",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle80-calibration-retention' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794087139.2135918,
-      "timestamp_str": "2026-11-08 00:32:19",
-      "agent": "opencode:cycle80"
-    },
     {
       "task_id": "brain-cycle81-auto-retention",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794089339.3932397,
       "timestamp_str": "2026-11-08 01:08:59",
       "agent": "opencode:cycle83"
+    },
+    {
+      "task_id": "brain-cycle84-tour-audit",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: readout-only multi-item tour-order audit via exhaustive first-item ties",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794089661.6451428,
+      "timestamp_str": "2026-11-08 01:14:21",
+      "agent": "opencode:cycle84",
+      "impact_assessment": {
+        "why": "The rule picks the lexicographically first shortest tour, but the probe does not show whether multiple first items achieve the same tour length. A readout-only audit can measure the current ordering choice without changing actions.",
+        "benefits": "probe.tour lists items/chosen/best_length/chosen_length/tied_firsts/tie_count/optimal on T1 movement steps; the eval counts tour steps, tie steps, extra tied firsts and optimal choices; rule_readout=False removes the field; actions/steps/rewards stay identical.",
+        "risks": "contract: readout-only probe.tour addition, no new policy key; dependency: stdlib itertools already imported; concurrency: none; state: telemetry probe grows by one dict on T1 moves.",
+        "mitigation": "Reuse the existing exhaustive tour semantics; compute the audit only for T1 movement (not collect); test single/tie/no-tie/three-item/off/T3-no-tour/collect/action parity/JSON; run the seed battery and 361 tests plus AIKit."
+      },
+      "plan_digest": "0fcf383a2f385666957eafa41fc40d89a050603d65caa25bef7129bf7ae971c6"
+    },
+    {
+      "task_id": "brain-cycle84-tour-audit",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first KeyError tour; _tour_audit alternatives/ties, probe.tour on T1 moves, tests/eval, README/ADR-078",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794090101.3449953,
+      "timestamp_str": "2026-11-08 01:21:41",
+      "agent": "opencode:cycle84"
+    },
+    {
+      "task_id": "brain-cycle84-tour-audit",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: T1:71 13 tour steps/0 ties/13 optimal; synthetic tie 2; off 0; actions match; 369 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794090102.022748,
+      "timestamp_str": "2026-11-08 01:21:42",
+      "agent": "opencode:cycle84"
+    },
+    {
+      "task_id": "brain-cycle84-tour-audit",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit tour audit, tests/eval, ADR-078, cycle 84",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794090102.8280056,
+      "timestamp_str": "2026-11-08 01:21:42",
+      "agent": "opencode:cycle84"
+    },
+    {
+      "task_id": "brain-cycle84-tour-audit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle84-tour-audit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794090103.4343677,
+      "timestamp_str": "2026-11-08 01:21:43",
+      "agent": "opencode:cycle84"
     }
   ]
 }

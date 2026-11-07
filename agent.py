@@ -146,6 +146,48 @@ def _first_of_best_tour(pos, cells):
     return [first[0], first[1]]
 
 
+def _tour_audit(pos, cells):
+    """Audit first-item ties in the exhaustive shortest item tour.
+
+    Returns the sorted items, the lexicographically first shortest-tour
+    first item (the rule's choice), the best/chosen tour lengths, every
+    first item that achieves the best length, and whether the choice is
+    optimal. Readout only; returns None for unusable input.
+    """
+    try:
+        x, y = int(pos[0]), int(pos[1])
+        uniq = sorted({(int(c[0]), int(c[1])) for c in cells})
+    except (TypeError, ValueError, IndexError):
+        return None
+    if not uniq:
+        return None
+    first_lengths = {}
+    best_len = None
+    best_first = None
+    for perm in itertools.permutations(uniq):
+        total = abs(perm[0][0] - x) + abs(perm[0][1] - y)
+        for a, b in zip(perm, perm[1:]):
+            total += abs(a[0] - b[0]) + abs(a[1] - b[1])
+        first = perm[0]
+        if first not in first_lengths or total < first_lengths[first]:
+            first_lengths[first] = total
+        if best_len is None or total < best_len:
+            best_len = total
+            best_first = first
+    chosen_length = first_lengths[best_first]
+    tied = sorted([list(first) for first, length in first_lengths.items()
+                   if length == best_len])
+    return {
+        "items": [list(cell) for cell in uniq],
+        "chosen": list(best_first),
+        "best_length": best_len,
+        "chosen_length": chosen_length,
+        "tied_firsts": tied,
+        "tie_count": len(tied),
+        "optimal": chosen_length == best_len,
+    }
+
+
 def _enters_blocked_corridor(nxt, goal, obstacles):
     """True when stepping onto the goal's column/row while an obstacle
     still lies between that cell and the goal: entering now forces a
@@ -777,6 +819,9 @@ class Planner:
                     rule_goal = list(pos)
                 else:
                     rule_goal = _first_of_best_tour(pos, cells)
+                    tour = _tour_audit(pos, cells)
+                    if tour is not None:
+                        probe["tour"] = tour
             elif recalled_target is not None:
                 rule_goal = list(recalled_target)
             readout = _rule_confidence(pos, rule_goal, obstacles,

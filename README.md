@@ -226,6 +226,15 @@ differing visit counts, and the rule choosing the least-visited
 alternative in all 28 with identical on/off 89-step/11.0 traces, plus
 unique/tie/collect fixtures.
 
+On T1 movement steps the same readout adds `probe.tour`: the sorted
+remaining items, the lexicographic shortest-tour first item, the
+best/chosen tour lengths, every first item tied at the best length, and
+`optimal`. `python -m evals.rule_confidence` finds 13 T1:71 tour steps
+with 0 first-item ties and all 13 optimal; a synthetic two-item tie
+(`[1,0]`/`[0,1]` from `[0,0]`) has two tied firsts and still chooses a
+shortest tour. `rule_readout=False` removes the field; no tour-order
+behavior change is made.
+
 ## 🔗 Model-Manifest Binding
 
 A backend that exposes `last_manifest` (model id, checkpoint label,
