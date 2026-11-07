@@ -208,6 +208,11 @@ def _step_toward(pos, goal, obstacles, visits=None):
     # the proven viable-first order (T1 39711/39711 optimal); the pool
     # fixes multi-blocker truncations while single-obstacle exhaustive
     # stays 3906/3906 optimal and seed-74 blind truncation is preserved.
+    # Two-or-more blockers also weigh blocked-corridor entry after visits;
+    # single blockers stay visits-only so corridor alone cannot solve a
+    # trap without memory (seed-74 coupling). (5,0) is the honest
+    # exception: corridor+pool suffices there without visits, like the
+    # single-obstacle seeds 15/65 where lookahead suffices.
     pool = viable + backup
     seen = set()
     uniq = []
@@ -216,7 +221,11 @@ def _step_toward(pos, goal, obstacles, visits=None):
         if key not in seen:
             seen.add(key)
             uniq.append((name, cell))
-    uniq.sort(key=lambda pair: counts.get((pair[1][0], pair[1][1]), 0))
+    if len(obstacles or []) >= 2:
+        uniq.sort(key=lambda pair: (counts.get((pair[1][0], pair[1][1]), 0),
+                                    _enters_blocked(pair[1])))
+    else:
+        uniq.sort(key=lambda pair: counts.get((pair[1][0], pair[1][1]), 0))
     for name, _nxt in uniq + dead:
         return name
     return "wait"
