@@ -5,7 +5,8 @@ records. A claim carries an id, text, kill test, declared confidence and
 status. ``record_verdict`` appends a supports/refutes/inconclusive
 verdict and returns a new claim; the previous record is never mutated.
 The ledger is in-memory and JSON-roundtrippable; persistence is left to
-the caller.
+the caller. A verdict may carry an optional ``ref`` (for example the
+episode digest of the logged run that produced the evidence).
 """
 
 import time
@@ -29,6 +30,17 @@ class Verdict:
     status: str
     evidence: str
     at: str
+    ref: str = None
+
+
+def _validate_ref(value):
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(
+            "Why: verdict ref must be a non-empty string or None. "
+            "Fix: pass the episode/run digest or omit ref.")
+    return value
 
 
 @dataclass(frozen=True)
@@ -69,17 +81,19 @@ def _validate_claim(claim):
             raise ValueError("verdicts must be Verdict records")
         if verdict.status not in VERDICT_STATUSES:
             raise ValueError("unknown verdict status %r" % verdict.status)
+        _validate_ref(verdict.ref)
     return claim
 
 
-def record_verdict(claim, status, evidence, at=None):
+def record_verdict(claim, status, evidence, at=None, ref=None):
     """Return a new Claim with the verdict appended and status updated."""
     if status not in VERDICT_STATUSES:
         raise ValueError("Why: unknown verdict status %r. Fix: use %s."
                          % (status, VERDICT_STATUSES))
     evidence = _validate_text(evidence, "evidence")
+    ref = _validate_ref(ref)
     stamp = at if isinstance(at, str) and at else _stamp()
-    verdict = Verdict(status=status, evidence=evidence, at=stamp)
+    verdict = Verdict(status=status, evidence=evidence, at=stamp, ref=ref)
     return replace(claim, status=_VERDICT_TO_CLAIM[status],
                    verdicts=tuple(claim.verdicts) + (verdict,))
 
@@ -120,10 +134,10 @@ class ClaimLedger:
                 return claim
         raise ValueError("unknown claim id %r" % claim_id)
 
-    def record(self, claim_id, status, evidence, at=None):
+    def record(self, claim_id, status, evidence, at=None, ref=None):
         """Append a verdict to one claim and return the updated claim."""
         claim = self.get(claim_id)
-        updated = record_verdict(claim, status, evidence, at=at)
+        updated = record_verdict(claim, status, evidence, at=at, ref=ref)
         for index, existing in enumerate(self._claims):
             if existing.id == claim_id:
                 self._claims[index] = updated
@@ -151,7 +165,12 @@ class ClaimLedger:
         }
 
     def to_dict(self):
-        return {"claims": [asdict(claim) for claim in self._claims]}
+        claims = []
+        for claim in self._claims:
+            value = asdict(claim)
+            value["verdicts"] = [dict(item) for item in value["verdicts"]]
+            claims.append(value)
+        return {"claims": claims}
 
     @classmethod
     def from_dict(cls, payload):
@@ -161,11 +180,17 @@ class ClaimLedger:
         for raw in payload["claims"]:
             if not isinstance(raw, dict):
                 raise ValueError("each claim must be an object")
+            raw_verdicts = raw.get("verdicts") or []
+            if not isinstance(raw_verdicts, (list, tuple)):
+                raise ValueError("verdicts must be a list")
             verdicts = tuple(
                 Verdict(status=item.get("status"), evidence=item.get("evidence"),
-                        at=item.get("at"))
-                for item in raw.get("verdicts", [])
+                        at=item.get("at"), ref=item.get("ref"))
+                for item in raw_verdicts
+                if isinstance(item, dict)
             )
+            if len(verdicts) != len(raw_verdicts):
+                raise ValueError("each verdict must be an object")
             claim = Claim(
                 id=str(raw.get("id", "")),
                 text=raw.get("text", ""),

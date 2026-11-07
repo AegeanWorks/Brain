@@ -44,6 +44,57 @@ class TestClaims(unittest.TestCase):
                          ["supports", "refutes"])
         self.assertEqual(ledger.get("C1"), refuted)
 
+    def test_verdict_ref_roundtrip(self):
+        ledger = ClaimLedger()
+        ledger.add("T3:15 takes 13 steps", "steps != 13")
+        ledger.record("C1", "supports", "actual=13", at=STAMP,
+                      ref="episode-abc123")
+        payload = ledger.to_dict()
+        restored = ClaimLedger.from_dict(payload)
+        verdict = restored.get("C1").verdicts[0]
+        self.assertEqual(verdict.ref, "episode-abc123")
+        self.assertEqual(json.loads(json.dumps(payload)),
+                         payload)
+
+    def test_legacy_verdict_without_ref_loads_none(self):
+        payload = {
+            "claims": [{
+                "id": "C1", "text": "text", "kill_test": "kill",
+                "status": "supported", "confidence": 0.5,
+                "verdicts": [{"status": "supports", "evidence": "ok",
+                              "at": STAMP}],
+            }]
+        }
+        restored = ClaimLedger.from_dict(payload)
+        self.assertIsNone(restored.get("C1").verdicts[0].ref)
+        self.assertEqual(restored.get("C1").status, "supported")
+
+    def test_invalid_ref_rejected(self):
+        ledger = ClaimLedger()
+        ledger.add("text", "kill")
+        for value in ("", "   ", 3, True):
+            with self.assertRaises(ValueError):
+                ledger.record("C1", "supports", "ok", at=STAMP,
+                              ref=value)
+
+    def test_ref_history_preserved(self):
+        ledger = ClaimLedger()
+        ledger.add("text", "kill")
+        ledger.record("C1", "supports", "first", at=STAMP, ref="episode-a")
+        result = ledger.record("C1", "refutes", "second", at=STAMP,
+                               ref="episode-b")
+        self.assertEqual([v.ref for v in result.verdicts],
+                         ["episode-a", "episode-b"])
+        restored = ClaimLedger.from_dict(ledger.to_dict())
+        self.assertEqual([v.ref for v in restored.get("C1").verdicts],
+                         ["episode-a", "episode-b"])
+
+    def test_frozen_verdict_with_ref(self):
+        verdict = Verdict("supports", "evidence", STAMP, ref="episode-a")
+        with self.assertRaises(Exception):
+            verdict.ref = "episode-b"
+        self.assertEqual(verdict.ref, "episode-a")
+
     def test_inconclusive_verdict(self):
         ledger = ClaimLedger()
         ledger.add("unresolved", "no evidence")

@@ -119,6 +119,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.claims_store
   ```
+- **Claim-Evidence Battery**:
+  ```bash
+  python -m evals.claim_evidence
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -156,7 +160,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -525,6 +529,15 @@ claims from the backup), a checksum tamper, missing, stale-lock steal,
 and a fresh-lock refusal. Keep the snapshot under `.aikit/` or outside
 the source tree; it is local evidence, not committed. The checksum
 detects accidental edits, not a keyed signature.
+
+`ClaimLedger.record(..., ref=...)` accepts an optional non-empty verdict
+ref, for example the `episode_sha256` from a logged run header. The ref
+is stored on the frozen `Verdict`, preserved through `to_dict`/
+`from_dict` and the claim store, and old verdicts without a ref load as
+`None`. `python -m evals.claim_evidence` logs T3:15, records a supports
+verdict with the header episode digest, saves/loads the claim and checks
+that the ref matches; two runs keep distinct refs; a legacy payload
+loads with `None`; an invalid ref leaves the history unchanged.
 
 ## 🧾 Verdict Facts
 

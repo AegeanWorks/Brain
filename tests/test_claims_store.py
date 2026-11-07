@@ -57,6 +57,19 @@ class TestClaimStore(unittest.TestCase):
         self.assertEqual(verified["claims"], 3)
         self.assertEqual(verified["verdicts"], 3)
 
+    def test_refs_survive_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "claims.json")
+            ledger = ClaimLedger()
+            ledger.add("T3:15 takes 13 steps", "steps != 13")
+            ledger.record("C1", "supports", "actual=13", at=AT,
+                          ref="episode-a")
+            save_ledger(ledger, path, saved_at=STAMP)
+            loaded = load_ledger(path)
+            verified = verify_ledger_file(path)
+        self.assertEqual(loaded.get("C1").verdicts[0].ref, "episode-a")
+        self.assertTrue(verified["ok"], verified["findings"])
+
     def test_missing_primary_returns_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "claims.json")
