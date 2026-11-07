@@ -159,7 +159,6 @@ class Planner:
                 positions.append((m["x"], m["y"]))
         x, y = state["x"], state["y"]
         pos = [x, y]
-        stuck = positions.count((x, y)) >= 2
         visits = {}
         for px, py in positions:
             visits[(px, py)] = visits.get((px, py), 0) + 1
@@ -169,12 +168,6 @@ class Planner:
             obstacles.append(state["obstacle"])
 
         def _toward(goal):
-            if stuck:
-                dx = goal[0] - pos[0]
-                dy = goal[1] - pos[1]
-                for name, nxt in (("down", [pos[0], pos[1] + 1]) if dy > 0 else ("up", [pos[0], pos[1] - 1]),) if dy != 0 else ():
-                    if 0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE and tuple(nxt) not in {tuple(o) for o in obstacles}:
-                        return name
             return _step_toward(pos, goal, obstacles, visits)
 
         remaining = state.get("items_positions")

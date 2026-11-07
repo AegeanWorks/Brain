@@ -191,3 +191,44 @@ only integration scores, cross-module dependencies, and ablation differentials.
   T1 seeds 71/74/78 = 16/12/18; T3 seed 15 = 13; T3 seed 65 = 6;
   T3 seed 74 = 9 intact / 200 blind zero-reward; wiring SM errors
   T1=125 T2=70 T3=60; phi 0.0 x3; syn 0.1167/0.1000/0.1229.
+
+## Cycle 5 — remove the inert stuck-override backstop
+
+- **Baseline**: 49 tests OK; aikit 5/5; 100-seed totals T1=1581, T2=800,
+  T3=683 (measured this cycle). Calibration audit: persistent mean_conf
+  0.56-0.60 vs true reward rates 0.13-0.19 (error ~0.42) — but mean_conf
+  is consumed by nothing (snapshot display only), so recalibrating it
+  would be number churn with no downstream effect (rejected, one line).
+- **Gap**: ADR-004's stuck override (position repeated >=2 forces one
+  y-first step) fired 238 times in 3064 plan calls yet a disabled-stuck
+  probe returned byte-identical 100-seed totals (1581/800/683, all
+  complete): the firings land on collect dwells and routing states where
+  _toward agrees anyway. Dead code with proof.
+- **Target delta**: -6 lines, zero behavior change on all 300 runs;
+  all 49 tests and all pins stay green.
+- **Falsifier**: any test red, or any 100-seed total differing post-removal.
+- **Change** (agent.py only, 6 lines deleted): removed the stuck flag
+  computation and the y-first override branch in _toward. positions and
+  visit counts stay (visit ordering remains load-bearing per the seed-74
+  ablation). T2 wait rule stays (task-contract semantics).
+- **After** (identical battery, same seeds):
+  - 100-seed totals: T1=1581, T2=800, T3=683 — byte-identical, all
+    complete with reward.
+  - unittest 49/49 OK (includes tour/trap pins, substrate-error tests).
+- **Ablation**: not an integration claim; the cut evidence is the
+  disabled-stuck probe on the pre-removal tree (identical totals), i.e.
+  the branch's presence never moved a number. Removal proof: full suite
+  plus 300-run totals green after.
+- **Verdict**: simplification win with complete behavior-identity proof;
+  no emergence claim. Verdict UNKNOWN.
+- **Gates**: unittest 49/49 OK; aikit check 5/5 PASS.
+- **Commands run**:
+  - disabled-stuck probe (temporary flag): 1581/800/683 identical.
+  - `python -m unittest discover -s tests -t .` -> 49 OK (after removal).
+  - `python aikit.py check brain` -> 5/5.
+  - post-removal 100-seed re-run: 1581/800/683 identical.
+- **Pinned regression baselines for cycle 6**: unittest 49 OK; aikit 5/5;
+  step totals T1=466 T2=240 T3=217 (30 seeds); T1 100-seed total 1581;
+  T3 100-seed total 683; T2 100-seed total 800; trap/tour pins carried;
+  wiring SM errors T1=125 T2=70 T3=60; phi 0.0 x3;
+  syn 0.1167/0.1000/0.1229.

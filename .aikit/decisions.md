@@ -65,3 +65,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Cycle 2 audited only seeds 0-29 (greedy==optimal throughout) and closed ordering as a dead end. A cycle-4 100-seed audit found 3 greedy traps: seeds 71/74/78 took 18/14/20 steps vs 16/12/18 optimal (+2 each).
 - **Decision**: Planner picks the first cell of the shortest Manhattan tour over remaining items (exhaustive permutations, deterministic: cells sorted, first strictly-shortest wins) instead of nearest-first. Removes the now-unused _nearest helper.
 - **Consequences**: 49 tests OK; aikit check 5/5; T1 seeds 71/74/78 at optimal (16/12/18), 100-seed T1 total 1587->1581 with all other 97 seeds byte-identical; T2/T3 untouched.
+
+### ADR-010: Remove the inert stuck-override backstop from the planner
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: ADR-004 added a stuck detector (position repeated >=2 in recent memories forces one y-first step). After cycles 2-3, 2-ply lookahead plus least-visited ordering handles all traps; the override fired 238 times in 3064 plan calls (mostly collect dwells, where it never routes) without changing any outcome.
+- **Decision**: Delete the stuck computation and the y-first override branch. positions/visits stay: visit counts remain load-bearing (seed-74 ablation). T2 delayed-match wait rule stays: it is task-contract semantics, unreachable today (min target distance 7 > 2) but falsifiable by layout change.
+- **Consequences**: 49 tests OK; aikit check 5/5; -6 lines; 100-seed totals per task byte-identical (T1 1581, T2 800, T3 683), all runs complete.
