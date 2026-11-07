@@ -6,7 +6,7 @@ Deterministic agent substrate with memory planner self-model and integration tel
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
-- **Runtime Prerequisites**: <FILL: each runtime this project needs and its minimum version>
+- **Runtime Prerequisites**: Python 3.10+ stdlib only, no third-party packages.
 - **Canonical Regression Shield Gate**:
   ```bash
   python -m unittest discover -s tests -t .
@@ -24,15 +24,18 @@ Deterministic agent substrate with memory planner self-model and integration tel
 
 ```text
 brain/
-├── .gitignore                <- transient AIKit state excluded
-├── LICENSE                   <- Aegean License 1.1 (AL-1.1): free personal use
-├── COMMERCIAL.md             <- Commercial licensing terms
-├── LICENSES/                 <- REUSE license texts
-├── REUSE.toml                <- Machine-readable SPDX metadata
-├── README.md
-├── inventory.py              <- AI-compat inventory: kind|name|locator lines (ADR-315)
-├── demo.py                   <- AI-compat scripted drive: WORLD-DELTA lines (ADR-315)
-└── .aikit/                   <- this project's memory: record, ledger, decisions
+├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
+├── memory/store.py           <- SQLite FTS5 persistent store (WAL, fsync)
+├── planner/plan.py           <- explicit steps + recover
+├── self_model/model.py       <- budget/error/confidence counters
+├── worlds/grid.py            <- deterministic 8x8 fixed-step tasks T1-T3
+├── telemetry/log.py          <- JSONL append-only, fsync before exec
+├── telemetry/ablate.py       <- hub_zero / lesion / shuffle (pure)
+├── evals/estimators.py       <- MI, Phi_AR, SYN, GBI, k, gain, recovery, null
+├── evals/recompute.py        <- independent recompute from logs (--log)
+├── evals/tasks.yaml          <- pinned tasks, Vc, windows, seeds
+├── evals/verdict.json        <- UNKNOWN, no claim drafted
+├── tests/                    <- unittest gate, tempdir only
 ```
 
 ## 📜 License
