@@ -1,15 +1,15 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle47-backend-trust",
+    "task_id": "brain-cycle48-honest-verdict",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794063643.6573308,
-    "owner": "opencode:cycle47",
-    "started_by": "opencode:cycle47",
+    "updated_at": 1794063945.113347,
+    "owner": "opencode:cycle48",
+    "started_by": "opencode:cycle48",
     "continuations": [],
-    "completed_at": 1794063652.563167
+    "completed_at": 1794063954.4548302
   },
   "checkpoints": [
     {
@@ -194,6 +194,67 @@
       "timestamp": 1794063652.5631683,
       "timestamp_str": "2026-11-07 18:00:52",
       "agent": "opencode:cycle47"
+    },
+    {
+      "task_id": "brain-cycle48-honest-verdict",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: distinguish genuine completion from step-cap exhaustion in run verdicts",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063757.5254288,
+      "timestamp_str": "2026-11-07 18:02:37",
+      "agent": "opencode:cycle48",
+      "impact_assessment": {
+        "why": "run_task_logged writes verdict done whenever the world sets done, but the world also sets done at the 200-step/energy cap, so failed runs are logged as successes.",
+        "benefits": "Verdict records state the fact: done only before the cap; truncated at the cap; reason carries steps and reward.",
+        "risks": "contract: verdict/reason text changes for capped runs only; dependency: stdlib only; concurrency: none; state: hash chain unchanged, record count unchanged.",
+        "mitigation": "Extract verdict helper, pin success and cap cases, patch-helper ablation restores legacy label, all standing pins re-run."
+      },
+      "plan_digest": "ecedd62c11fba9ff4c9fca3f3435e790003e77a6253eb7b9ad1658f3edfb7817"
+    },
+    {
+      "task_id": "brain-cycle48-honest-verdict",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first verdict tests; _episode_verdict distinguishes pre-cap completion from cap exhaustion; reason carries steps and reward",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063936.100368,
+      "timestamp_str": "2026-11-07 18:05:36",
+      "agent": "opencode:cycle48"
+    },
+    {
+      "task_id": "brain-cycle48-honest-verdict",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Verdict facts verified: cap 200/0 done -> truncated with reward=0.0; success 33/1 done with reward=1.0; behavior and record counts unchanged; legacy-predicate ablation restores done; 140 tests OK; aikit 5/5; ADR-046 and cycle 48 recorded",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063940.906038,
+      "timestamp_str": "2026-11-07 18:05:40",
+      "agent": "opencode:cycle48"
+    },
+    {
+      "task_id": "brain-cycle48-honest-verdict",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit verdict fix, tests, ADR-046, cycle 48",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063945.113347,
+      "timestamp_str": "2026-11-07 18:05:45",
+      "agent": "opencode:cycle48"
+    },
+    {
+      "task_id": "brain-cycle48-honest-verdict",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle48-honest-verdict' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794063954.4548316,
+      "timestamp_str": "2026-11-07 18:05:54",
+      "agent": "opencode:cycle48"
     }
   ]
 }

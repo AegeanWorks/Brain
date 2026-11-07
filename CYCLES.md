@@ -2475,3 +2475,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0, warm store_reads 0.
 - **Pinned regression baselines for cycle 48**: unittest 137 OK; aikit 5/5; trust after 36/28/33/26 with 3/1/1/1 and fallbacks 16/8/13/6; trust ablate 200/0 x4; prompt hashes 6e19bc1d/78c208fb/816fa226/ae3c4f52 unchanged; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy e400adcd...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 48 - honest verdicts at the step cap
+
+- **Baseline** (commit 409c17e, cycle 47; same stalled backend, seeds and prompts):
+  - canonical gate: 137 tests OK; aikit check 5/5; policy e400adcd...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - stalled-backend cap run: 200 steps, 0.0 reward, 402 records, verdict `done`, reason `steps=200`.
+  - trusted-backend success run: 33 steps, 1.0 reward, 68 records, verdict `done`, reason `steps=33`.
+- **Gap**: the world sets `done` at the step/energy cap, so `run_task_logged` labels a failed 200-step run as a success. The trace says `done` while the reward is 0.0.
+- **Target delta**: cap verdict `done` -> `truncated`; cap reason `steps=200` -> `steps=200 reward=0.0`; success reason gains `reward=1.0`; behavior actions, steps and rewards stay identical; the legacy-predicate ablation restores `done`.
+- **Falsifier**: the cap still reads `done`; the success run becomes `truncated`; record count or chain changes; any standing pin moves.
+- **Change**: agent.py `_episode_verdict` distinguishes pre-cap completion from budget exhaustion and carries steps+reward in the reason; `run_task_logged` consumes it; tests/test_verdict.py adds success, cap and legacy-predicate ablation; README verdict-facts contract. No policy change; no new deps.
+- **After** (same runs):
+  - behavior unchanged: cap 200 steps / 0.0 reward; success 33 steps / 1.0 reward; 402 and 68 records.
+  - trace: cap verdict `truncated`, reason `steps=200 reward=0.0`; success verdict `done`, reason `steps=33 reward=1.0`.
+  - policy e400adcd... unchanged; standing 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0 unchanged.
+  - recompute syn/phi for the cap run: 0.0/0.0 (terminal-sparse reward; no synergy claim).
+- **Ablation** (patch `Agent._episode_verdict` to the legacy `done` predicate, same seed and backend):
+  - cap verdict returns to `done`, reason `steps=200`; behavior unchanged. The corrected fact and its trace die with the cut.
+- **Verdict**: measurement-integrity fix, trace-only instrumentation by design. No behavior or emergence claim; the value is that a capped run can no longer read back as a success.
+- **Gates**: unittest 140/140 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_verdict -v` -> before: 2 failures, 1 error; after: 3 OK.
+  - `python -m unittest discover -s tests -t .` -> 140 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - verdict baseline/after script -> cap done/steps=200 -> truncated/steps=200 reward=0.0; success done/steps=33 -> done/steps=33 reward=1.0.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
+- **Pinned regression baselines for cycle 49**: unittest 140 OK; aikit 5/5; cap verdict truncated with reward 0.0; success verdict done with reward 1.0; record counts 402/68; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy e400adcd...; goldens 9/9 + multi 5/5 + three 5/5.

@@ -77,6 +77,13 @@ is the raw-backend ablation. Each step's action record carries
 `steps_since_reward`; rule-only runs and good-backend replays keep their exact
 actions and zero fallbacks.
 
+## 🧾 Verdict Facts
+
+A logged run is `done` only when it ended before the step budget. A run that
+consumes the full budget is `truncated` even though the world's `done` flag is
+set by the cap; the verdict reason always carries `steps` and `reward`, so a
+capped run cannot read back as a success.
+
 ## 📜 License
 
 Free for personal use under the Aegean License 1.1 (AL-1.1); see [LICENSE](LICENSE). Any commercial use needs the Aegean Commercial License 1.0 (ACL-1.0); see [COMMERCIAL.md](COMMERCIAL.md).

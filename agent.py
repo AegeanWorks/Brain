@@ -895,12 +895,29 @@ class Agent:
         self._reset_episode()
         return self.run(max_steps=max_steps)
 
+    def _episode_verdict(self, trace, max_steps):
+        """Return (verdict, reason) without mistaking the cap for success.
+
+        The world sets done at the energy/step cap as well as on task
+        completion, so ``done`` alone is not a success fact. A trace
+        that consumed the full budget is truncated even when its last
+        record says done; the reason carries steps and reward.
+        """
+        steps = len(trace)
+        reward = sum(float(record.get("reward", 0.0)) for record in trace)
+        ended = bool(trace) and bool(trace[-1].get("done"))
+        at_cap = steps >= int(max_steps)
+        verdict = "done" if ended and not at_cap else "truncated"
+        return verdict, "steps=%d reward=%.1f" % (steps, reward)
+
     def run_task_logged(self, task_id, seed, max_steps=200, log_path=None):
         """Run task with header, per-step actions+results, and verdict.
 
         Writes header (seq 0), one kind "step" action plus one result
         per grid step with numeric M/P/S/hub vectors, then a verdict.
-        Returns the in-memory trace list with unchanged shape.
+        The verdict is done only for a pre-cap completion; a full-budget
+        run is truncated. Returns the in-memory trace list with
+        unchanged shape.
         """
         if log_path is not None:
             from telemetry.log import Telemetry as _FileTelemetry
@@ -917,8 +934,7 @@ class Agent:
         self.world = GridWorld(task_id, seed)
         self._reset_episode()
         trace = self.run(max_steps=max_steps)
-        verdict = "done" if (trace and trace[-1].get("done")) else "truncated"
-        reason = "steps=%d" % len(trace)
+        verdict, reason = self._episode_verdict(trace, max_steps)
         try:
             self.telemetry_log.write_verdict(verdict, reason)
         except Exception:
