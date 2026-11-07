@@ -87,6 +87,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.calibration
   ```
+- **Calibration-Store Battery**:
+  ```bash
+  python -m evals.calibration_store
+  ```
 - **Claim-Verdict Battery**:
   ```bash
   python -m evals.claims
@@ -123,6 +127,7 @@ brain/
 ├── workspace.py              <- deterministic source-tree hash for run evidence
 ├── snapshot.py               <- portable run snapshots + deterministic diff
 ├── calibration.py            <- Brier/log-loss/reliability scoring for forecasts
+├── calibration_store.py      <- append-only checksummed forecast journal
 ├── claims.py                 <- immutable claim/kill-test/verdict ledger
 ├── claims_store.py           <- checksummed snapshots + backup recovery
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
@@ -131,7 +136,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims/claims-store batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/claims/claims-store batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -375,6 +380,22 @@ persistent self-model already records, without changing actions.
 `python -m evals.calibration` shows perfect (Brier 0, skill 1),
 calibrated (0.166), inverted (1.0, skill −3), small/ignored warnings
 and the real 13-step/1.0 T3:15 readout.
+
+`calibration_store.py` makes forecasts durable across runs.
+`append_forecasts(forecasts, path, at=...)` validates each `{id,
+probability, outcome}` record, refuses duplicate ids, and appends one
+checksummed JSONL line under an `O_CREAT|O_EXCL` lock (30 s stale
+steal, bounded timeout, 10 MiB free). `load_forecasts` restores the
+records and raises on any defect; `verify_forecast_file` names corrupt
+lines, checksum mismatches and duplicates without raising. The
+checksum covers the record (`schema/id/probability/outcome/at`), not a
+keyed signature. `python -m evals.calibration_store` shows the
+in-memory file-before/after ablation, a 6-forecast first run (Brier
+0.185, skill 0.26, descriptive warning), two runs aggregating to 10
+resolved (Brier 0.129, skill 0.484), duplicate refusal, tamper/corrupt
+findings, missing, stale-lock steal and fresh-lock timeout. Keep the
+journal under `.aikit/` or outside the source tree; it is local
+evidence, not committed.
 
 ## 🧾 Claim & Verdict Register
 

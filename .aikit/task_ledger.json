@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle75-claim-store",
+    "task_id": "brain-cycle76-calibration-store",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794082828.715283,
-    "owner": "opencode:cycle75",
-    "started_by": "opencode:cycle75",
+    "updated_at": 1794083847.5013256,
+    "owner": "opencode:cycle76",
+    "started_by": "opencode:cycle76",
     "continuations": [],
-    "completed_at": 1794082829.1284459
+    "completed_at": 1794083848.2009602
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle72-progress-guard",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle72-progress-guard' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794080047.4124813,
-      "timestamp_str": "2026-11-07 22:34:07",
-      "agent": "opencode:cycle72"
-    },
-    {
-      "task_id": "brain-cycle73-merkle-journal",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: append-only hash-chained Merkle batch journal with historical proofs",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794080309.6927044,
-      "timestamp_str": "2026-11-07 22:38:29",
-      "agent": "opencode:cycle73",
-      "impact_assessment": {
-        "why": "The single .merkle sidecar is overwritten by each new anchor, so an earlier batch root and its inclusion proofs are lost. The telemetry anchor journal solved the same overwrite problem for head anchors.",
-        "benefits": "append_merkle_anchor appends batches with prev/hash links and monotonic ranges; verify_merkle_journal names prev/order/root/truncation defects; merkle_proof_for_journal_record proves membership in an earlier batch after a newer anchor is written; the single-anchor API is unchanged.",
-        "risks": "contract: new journal functions/wrappers; dependency: stdlib only; concurrency: single-writer append under fsync (same boundary as the single anchor); state: new .merkle.journal sidecar, not committed.",
-        "mitigation": "Keep the single-anchor format untouched; validate every record's schema/ranges/root/prev/hash; reject range rollback; test intact, truncated, deleted, tampered, rollback, missing and proof cases; run 266 tests and AIKit."
-      },
-      "plan_digest": "ecf34aab7fb24d52a9e5f35fd0fa00265501a4a2ef6ff0db41eb81413169151d"
-    },
-    {
-      "task_id": "brain-cycle73-merkle-journal",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first append_merkle_anchor ImportError; chained journal, verifier, historical proof, Telemetry wrapper, tests, eval, README/ADR-067",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794080896.0689452,
-      "timestamp_str": "2026-11-07 22:48:16",
-      "agent": "opencode:cycle73"
-    },
-    {
-      "task_id": "brain-cycle73-merkle-journal",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: 2 anchors 16-24/24-32; record 20 proof batch 1 after batch 2; truncated 32>30; deleted prev; tampered root-mismatch:2; rollback refused; missing; single-anchor proof lost; 277 tests OK; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794080896.4694834,
-      "timestamp_str": "2026-11-07 22:48:16",
-      "agent": "opencode:cycle73"
-    },
-    {
-      "task_id": "brain-cycle73-merkle-journal",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit Merkle journal, eval, tests, ADR-067, cycle 73",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794080896.8424413,
-      "timestamp_str": "2026-11-07 22:48:16",
-      "agent": "opencode:cycle73"
-    },
     {
       "task_id": "brain-cycle73-merkle-journal",
       "phase": "completed",
@@ -247,6 +186,67 @@
       "timestamp": 1794082829.1284485,
       "timestamp_str": "2026-11-07 23:20:29",
       "agent": "opencode:cycle75"
+    },
+    {
+      "task_id": "brain-cycle76-calibration-store",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: append-only checksummed calibration forecast journal for cross-run scoring",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794083232.478182,
+      "timestamp_str": "2026-11-07 23:27:12",
+      "agent": "opencode:cycle76",
+      "impact_assessment": {
+        "why": "calibration.summary scores only the forecasts present in one process; SelfModel.calibration() reads the current episode lists. Forecasts are immutable observations but vanish on exit, so cross-run Brier/skill cannot be computed.",
+        "benefits": "append_forecasts validates and appends one checksummed JSONL record per forecast under a writer lock; load_forecasts restores them; verify_forecast_file names corrupt/duplicate records; two runs aggregate to 10 resolved forecasts and a stable Brier/skill.",
+        "risks": "contract: new calibration_store.py module only, no agent API change; dependency: stdlib only; concurrency: O_CREAT|O_EXCL lock with 30s stale steal and bounded timeout; state: new local JSONL/.lock files, not committed.",
+        "mitigation": "Keep scoring in calibration.summary; enforce unique ids and schema/checksum per line; append under the lock with fsync and dir fsync; test roundtrip, two-run aggregation, duplicates, tamper, corrupt line, missing, stale/fresh lock and invalid inputs; rerun 293 tests and AIKit."
+      },
+      "plan_digest": "da8e67a2c8477668b66f3d453898fd8f02d004f7631f4175b91a3164a444c67e"
+    },
+    {
+      "task_id": "brain-cycle76-calibration-store",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first calibration_store ImportError; append/load/verify, per-record checksum, duplicate refusal, lock, tests/eval, README/ADR-070",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794083843.9730117,
+      "timestamp_str": "2026-11-07 23:37:23",
+      "agent": "opencode:cycle76"
+    },
+    {
+      "task_id": "brain-cycle76-calibration-store",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: first 6 0.185/0.26; aggregated 10 0.129/0.484; duplicate refused; tamper/corrupt/missing/stale/fresh lock; 306 tests OK; aikit 5/5; behavior/policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794083845.6435874,
+      "timestamp_str": "2026-11-07 23:37:25",
+      "agent": "opencode:cycle76"
+    },
+    {
+      "task_id": "brain-cycle76-calibration-store",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit calibration journal, eval, tests, ADR-070, cycle 76",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794083847.5013256,
+      "timestamp_str": "2026-11-07 23:37:27",
+      "agent": "opencode:cycle76"
+    },
+    {
+      "task_id": "brain-cycle76-calibration-store",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle76-calibration-store' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794083848.2009628,
+      "timestamp_str": "2026-11-07 23:37:28",
+      "agent": "opencode:cycle76"
     }
   ]
 }
