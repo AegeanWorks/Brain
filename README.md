@@ -63,6 +63,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.resume_identity
   ```
+- **Workspace-Binding Battery**:
+  ```bash
+  python -m evals.workspace_binding
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -88,13 +92,14 @@ brain/
 ├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
 ├── budget.py                 <- opt-in step/LLM/token/time budgets
 ├── identity.py               <- canonical episode digest + resume policy
+├── workspace.py              <- deterministic source-tree hash for run evidence
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -260,6 +265,18 @@ header: reruns with the same task/seed/config match, while a changed
 seed, target or policy digest differs. `python -m
 evals.resume_identity` shows same/volatile resume, changed seed/target
 new, legacy ask, policy-any resume, and the 13/6-step header traces.
+
+## 📁 Workspace Evidence Binding
+
+`workspace_files(root)` maps each relative source file to SHA-256 and
+`workspace_digest(root)` hashes the sorted path/digest lines. `.git`,
+caches, logs, JSONL telemetry, databases and local reports are excluded,
+so identical source trees rerun stable. `run_task_logged(...,
+workspace_root=...)` writes `workspace_sha256` into the header; a
+changed source file changes the digest, a cache file does not, and
+`workspace_root=None` leaves the field null. `python -m
+evals.workspace_binding` shows same/changed/ignored-cache/default cases
+with the unchanged 13-step/1.0 T3:15 run.
 
 ## 🧾 Verdict Facts
 

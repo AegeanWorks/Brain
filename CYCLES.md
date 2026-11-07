@@ -3035,3 +3035,28 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 230 OK.
   - `python aikit.py check brain` -> 5/5 after adding `budget.py` and `identity.py` to the README tree.
 - **Pinned regression baselines for cycle 67**: unittest 230 OK; aikit 5/5; same T3:15 digest/resume/13 steps; T3:65 different digest/6; changed target new; volatile resume; legacy ask; policy-any resume; header digest binding; generous budget 13/1.0/actions match; caps 4/3, 3/2, 10/8, seconds; Merkle 12-20/count 8 proof 3; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 67 - workspace source hash bound into run headers (harness transfer)
+
+- **Baseline** (commit 6c4a572, cycle 66; same T3:15 and temp tree):
+  - canonical gate: 230 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - headers bound episode identity, policy and model manifests, but not the source tree that produced the run; there was no workspace file map or tree digest.
+- **Gap**: a run log could not be tied to the exact source tree. A replay/evidence claim needs a deterministic source digest that ignores caches, logs, reports and databases.
+- **Target delta**: a three-file temp tree hashes stably; editing `a.py` changes the digest; adding `__pycache__/x.pyc` does not; `run_task_logged(workspace_root=...)` writes a matching `workspace_sha256`; default `None` leaves it null; T3:15 stays 13/1.0.
+- **Falsifier**: the digest changes on a cache file or rerun; a source edit leaves it unchanged; the header disagrees with the independent digest; default headers gain a value; behavior/pins move.
+- **Change**: workspace.py adds `workspace_files` and `workspace_digest` with a stable skip set (`.git`, caches, `.aikit`, reports, logs/JSONL/db/bak/tmp). `run_task_logged` gains `workspace_root=None`; when supplied it computes the digest and writes `workspace_sha256` into the header via the additive `Telemetry.write_header` field. Tests cover map exclusions, digest stability/sensitivity, missing roots, header binding and default null; the eval measures same/changed/ignored-cache/default. README and ADR-061 record the contract. No new dependencies; no schema bump.
+- **After** (same temp tree and T3:15):
+  - same: digest stable, header matches, 13 steps/1.0; changed `a.py`: different digest and header, 13/1.0; ignored cache: same digest/header, 13/1.0; default: header `workspace_sha256` null, 13/1.0.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, keyed telemetry, prompt budget, Merkle, execution budget, resume identity and the 200k tail-read bound are unchanged; 235 tests OK; policy unchanged.
+- **Ablation** (same T3:15):
+  - `workspace_root=None`: the header field is null and no source tree is hashed; the binding and its evidence die with the cut.
+  - ignored cache/`.git`/logs/reports: the digest is unchanged, so only source changes move the evidence.
+- **Verdict**: evidence-binding extension. Behavior is unchanged; the measured deltas are the source digest and header binding. No action or emergence claim.
+- **Gates**: unittest 235/235 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_workspace.TestWorkspaceHash.test_file_map_excludes_noise -v` -> before: ModuleNotFoundError (`workspace`); after: OK.
+  - `python -m unittest tests.test_workspace -v` -> 5 OK.
+  - `python -m evals.workspace_binding` -> same/cache stable, changed source differs, default null, 13/1.0.
+  - `python -m unittest discover -s tests -t .` -> 235 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 68**: unittest 235 OK; aikit 5/5; workspace same/cache digest stable, changed source differs, default null; T3:15 13/1.0; episode same/resume/13, T3:65 new/6; generous budget 13/1.0, caps 4/3, 3/2, 10/8, seconds; Merkle 12-20/count 8 proof 3; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

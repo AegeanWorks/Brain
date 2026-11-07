@@ -22,6 +22,7 @@ from collections import deque
 
 from budget import BudgetExceeded, spend, use_budget
 from identity import input_digest
+from workspace import workspace_digest
 
 SIZE = 8
 
@@ -1139,7 +1140,7 @@ class Agent:
         return verdict, "steps=%d reward=%.1f" % (steps, reward)
 
     def run_task_logged(self, task_id, seed, max_steps=200, log_path=None,
-                        budget=None):
+                        budget=None, workspace_root=None):
         """Run task with header, per-step actions+results, and verdict.
 
         Writes header (seq 0), one kind "step" action plus one result
@@ -1163,12 +1164,16 @@ class Agent:
             "task": task_id, "seed": seed, "max_steps": max_steps,
             "policy_sha256": policy_digest(),
         })
+        workspace_sha = (workspace_digest(workspace_root)
+                         if workspace_root is not None else None)
         self.last_episode_sha256 = identity_sha
+        self.last_workspace_sha256 = workspace_sha
         self.telemetry_log.write_header(task_id, max_steps,
                                           policy=PLANNER_POLICY["name"],
                                           policy_sha256=policy_digest(),
                                           model=model_label(self.planner.backend),
-                                          episode_sha256=identity_sha)
+                                          episode_sha256=identity_sha,
+                                          workspace_sha256=workspace_sha)
         trace = self.run(max_steps=max_steps, budget=budget)
         verdict, reason = self._episode_verdict(trace, max_steps)
         try:
