@@ -909,3 +909,60 @@ only integration scores, cross-module dependencies, and ablation differentials.
   T3 300-399 671; trap 16/8/13/6/9 + column 7/14 + adjacent 6;
   fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical.
+
+## Cycle 20 — blocked-corridor entry deprioritization
+- **Baseline** (cycle-19 pins re-verified):
+  - canonical: 77 OK; aikit 5/5.
+  - code: 8 pins optimal (16/8/13/6/9/7/14/6); 30-seed 466/240/217.
+  - trace: fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0 n32;
+    hub0/m0 0.0; p0/s0 identical.
+  - seam: visit-oracle 5/5; hidden-transient 13/16;
+    persistent-hidden 13/6.
+  - headroom scan (new, seeds 400-499): T1 0 non-optimal; T2 0;
+    T3 1 trap: 479 12 vs 10 (target [3,7] behind obstacle [3,6]);
+    current T3 400-499 total 677.
+  - dead ends: T1/T2 400-499 clean; mean_conf churn; hub no
+    behavior; persistent store reserved; phi/P/S refused; live
+    fine-tuning blocked; T2 wait kept; energy never binds; T1 items
+    persistent-hidden stale-list reserved; unbounded depth chase
+    rejected (corridor rule is O(1), distance-independent).
+- **Gap**: goal-column entry with a blocker ahead at any distance;
+  depth alone needs unbounded ply.
+- **Target delta**: corridor deprioritization; 479 12->10,
+  400-499 total 677->675, all else identical.
+- **Falsifier**: 479 stays 12, or any 0-499 seed moves.
+- **Change** (agent.py _step_toward grouping only;
+  tests/test_blocked_corridor.py new): sort viable/dead by
+  (enters_blocked, visits) stable; backup unchanged. No new deps.
+- **After**:
+  - code: 479 12->10/1.0; 30-seed 466/240/217; 0-99 1581/800/683;
+    T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499
+    677->675 (99 identical); 500/500 T3 0-499 optimal; 3x repeats
+    variance 0.
+  - trace: fixed-rig syn 0.05411532 phi 0.0 n32 unchanged; trap
+    12->10 (S -2, M -2).
+  - seam carried: all oracles unchanged; corridor+depth suffices
+    (blind==intact); visits pinned by 74 blind 200.
+- **Ablation** (corridor-cut = visits-only ordering restores 12/677;
+  seed-74 blind 200 carried):
+  - intact: 10 optimal.
+  - cut: 12 detour (pre-change baseline).
+  - corridor blind: 10 (sufficiency honestly recorded).
+- **Verdict**: efficiency win (-2 steps, 500/500 optimal 0-499); no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 80/80 OK (77 carried + 3 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_blocked_corridor -v` -> 3 FAIL
+    (12 vs 10, 677 vs 675) before, 3 OK after (ablation corrected
+    with note).
+  - `python -m unittest discover -s tests -t .` -> 77 OK before,
+    80 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - 0-29 + 0-99 + 100/200/300/400-range probes; optimality scans
+    0/100/200/300/400 all 0 non-optimal after.
+  - fixed-rig identical; 3x repeats + cut + blind.
+- **Pinned regression baselines for cycle 21**: unittest 80 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; T3 400-499 675; pins 16/8/13/6/9 + 7/14 + 6/10;
+  fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical.

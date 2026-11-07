@@ -135,3 +135,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Depth-3 still entered the column early on T3 seed 307 (target [1,5] directly behind obstacle [1,4]); the free cell (1,3) masked the trap within 3 ply. A 300-399 scan found exactly this 1 trap.
 - **Decision**: Generalize _has_exit depth 3 -> 4 (one constant; branching still <= 2; deterministic). No new deps; visits ordering unchanged.
 - **Consequences**: 77 tests OK; aikit check 5/5; T3 307 8 -> 6 (optimal); T3 300-399 total 673 -> 671 with all other 99 seeds byte-identical; 400/400 T3 seeds optimal across 0-399; all prior totals unchanged; fixed-rig syn 0.0541 phi 0.0 unchanged; depth-4 lookahead alone suffices here (blind == intact); visit-memory coupling still carried by seed-74 blind truncation.
+
+### ADR-020: Blocked-corridor entry deprioritization (distance-independent)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Depth-only lookahead needs unbounded depth to see distant column/row blocks (seed 479: target [3,7] behind obstacle [3,6] at distance 6-7); a 400-499 scan found exactly this 1 trap (+2).
+- **Decision**: In _step_toward grouping, sort each of viable/dead by (enters_blocked, visits) with stable order: entering the goal's column/row while an obstacle lies strictly between the candidate cell and the goal sorts after staying out; visits still break ties; x-first survives ties; backup (no goal-directed free cell) unchanged. O(1), deterministic, no new deps.
+- **Consequences**: 80 tests OK; aikit check 5/5; T3 479 12 -> 10 (optimal); T3 400-499 total 677 -> 675 with all other 99 byte-identical; 500/500 T3 seeds optimal across 0-499; all prior totals unchanged; fixed-rig syn 0.0541 phi 0.0 unchanged; corridor+depth suffices here (blind == intact); visit-memory coupling still carried by seed-74 blind truncation.
