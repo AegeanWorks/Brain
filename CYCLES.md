@@ -3555,3 +3555,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 86**: unittest 379 OK; aikit 5/5; claim ref T3:15 f9343058... match, two runs 3622529a... distinct, legacy None, invalid rejected; policy decbfce3...; tour audit 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; calibration journal 6/6 0.185/0.26 and 10/10 0.129/0.484; claim store 6/6 + backup 3/3; progress skip-on T3:15 13/4/3, T3:65 6/4/3, T2:3 8/3/3, T1:71 36/22/0; guard-on 13/13/12, 6/6/5, 8/8/8, 36/22/0; guard-off 33/21, 26/21, 34/21, 36/22; Merkle journal 2 anchors 16-24/24-32; Merkle compaction 3->1 0-24 3/3 proofs; claims 3/2/1; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle anchor 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 86 - read-only claim-ref verification against live log headers (fresh gap audit)
+
+- **Baseline** (commit 2636170, cycle 85; same T3:15/65 runs):
+  - canonical gate: 379 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - verdict refs were caller-provided and unverified; nothing matched them to a real log header.
+- **Gap**: no live-ref verifier. A read-only check can union header episode_sha256 values and report verified/unverified/unreferenced refs without touching claims.
+- **Target delta**: two logs verify 2/2; one log leaves C2 unverified with an unknown-episode finding; a fabricated ref is 0/1; an unreferenced verdict is reported; the claim store verifies 2/2; no-header/missing-file logs fail clearly.
+- **Falsifier**: a verified ref is rejected; a fabricated/missing ref passes; a headerless/missing log is accepted; the verifier writes or changes claims; any behavior/pin moves.
+- **Change**: claims_verify.py adds `verify_claim_refs(ledger, log_paths)` and `verify_claim_store(store_path, log_paths)`. It normalizes one/many paths, requires each log to exist and carry at least one non-empty episode_sha256 header, unions episodes across logs and multiple headers, counts verified/unverified/unreferenced verdicts, and names unknown-episode findings. It writes nothing. tests/test_claim_ref_verify.py covers 2-log verification, missing-log, fabricated, unreferenced, missing path, no-header, malformed, multiple headers, store and invalid inputs; evals/claim_ref_verify.py measures verified/missing-log/fabricated/unreferenced/store/no-header/missing-file. README and ADR-080 record the contract. No new dependencies; no agent behavior or policy change.
+- **After** (same runs):
+  - verified: 2 claims/2 verdicts, 2 verified/0 unverified/0 unreferenced, 2 episodes, ok true.
+  - missing-log: 1 verified/1 unverified, finding C2 verdict 0 reason unknown-episode; fabricated: 0/1 unverified; unreferenced: 0/0/1 ok true; store: 2/2 ok; no-header/missing-file: clear ValueErrors.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0, rule readout/tie/tour audits, progress guard/skip, Merkle journal/compaction, claim store, calibration journal/bridge/retention, keyed telemetry, prompt budget, execution budget, resume identity, workspace binding, snapshot diff/digest, calibration and the 200k tail-read bound unchanged; 389 tests OK; policy unchanged.
+- **Ablation** (same claims):
+  - one log vs two: the second run's ref is unverified when its log is omitted; adding the log verifies it. Unreferenced verdicts are counted but do not fail.
+  - no signature check: a copied episode digest in a caller-supplied log would pass; the verifier proves membership in header episodes only.
+- **Verdict**: evidence-traceability extension. Behavior is unchanged; the measured deltas are 2/2 verified refs, named missing/fabricated cases, and the store path. No action or emergence claim.
+- **Gates**: unittest 389/389 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_claim_ref_verify.TestClaimRefVerifier.test_two_logs_verify_both_refs -v` -> before: ModuleNotFoundError (`claims_verify`); after: OK.
+  - `python -m unittest tests.test_claim_ref_verify -v` -> 10 OK.
+  - `python -m evals.claim_ref_verify` -> verified 2/2, missing-log 1/1, fabricated 0/1, unreferenced 1, store 2/2, no-header/missing-file errors.
+  - `python -m unittest discover -s tests -t .` -> 389 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 87**: unittest 389 OK; aikit 5/5; ref verify 2/2, missing-log 1/1, fabricated 0/1, unreferenced 1, store 2/2, no-header/missing-file errors; policy decbfce3...; claim ref T3:15 f9343058... match, two runs 3622529a... distinct; tour audit 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration journal 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins unchanged; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+

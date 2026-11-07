@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle85-claim-evidence",
+    "task_id": "brain-cycle86-ref-verifier",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794090798.754489,
-    "owner": "opencode:cycle85",
-    "started_by": "opencode:cycle85",
+    "updated_at": 1794091475.788462,
+    "owner": "opencode:cycle86",
+    "started_by": "opencode:cycle86",
     "continuations": [],
-    "completed_at": 1794090799.0197194
+    "completed_at": 1794091476.123373
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle82-atomic-retention",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: atomic append+retention threshold in the calibration store",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794088137.7274187,
-      "timestamp_str": "2026-11-08 00:48:57",
-      "agent": "opencode:cycle82",
-      "impact_assessment": {
-        "why": "The cycle-81 bridge appends forecasts and then calls rotate_forecast_journal as two lock acquisitions. append_forecasts(keep_recent=...) can append and rotate under one store lock, closing the ADR-075 atomicity boundary and making retention available to every caller.",
-        "benefits": "One append call with keep_recent rotates to live N/archive rest/total unchanged, preserves Brier/skill, creates the backup/rotation metadata, and reports rotated/live/archived; the bridge passes its threshold through instead of a second lock; None keeps all live; a corrupt archive fails after the append with every new forecast live.",
-        "risks": "contract: append_forecasts gains keep_recent only, rotate/load APIs unchanged; dependency: stdlib only; concurrency: one lock covers append+rotation; state: automatic .archive/.bak/.rotation files, opt-in.",
-        "mitigation": "Extract the locked rotation core, keep rotate_forecast_journal as the manual wrapper, validate the threshold before writing, test store-level single/second/corrupt/invalid/noop cases plus the bridge suite, and rerun 351 tests and AIKit."
-      },
-      "plan_digest": "116ff613425d4ebdf094d5b6e9624467c6c72f5d5a1c324b8edcfe0b7fbd10ed"
-    },
-    {
-      "task_id": "brain-cycle82-atomic-retention",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first keep_recent TypeError; _rotate_locked extraction, append keep_recent under one lock, bridge pass-through, store tests/eval, README/ADR-076",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794088575.4706857,
-      "timestamp_str": "2026-11-08 00:56:15",
-      "agent": "opencode:cycle82"
-    },
-    {
-      "task_id": "brain-cycle82-atomic-retention",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: append 10/9/19 same 0.181579/0.255114, backup 19; incremental 10+9; noop 5; corrupt keeps 19; bridge 10/3/13 and 10/9/19; 356 tests OK; aikit 5/5; policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794088576.2472465,
-      "timestamp_str": "2026-11-08 00:56:16",
-      "agent": "opencode:cycle82"
-    },
-    {
-      "task_id": "brain-cycle82-atomic-retention",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit atomic retention, tests/eval, ADR-076, cycle 82",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794088577.533082,
-      "timestamp_str": "2026-11-08 00:56:17",
-      "agent": "opencode:cycle82"
-    },
-    {
-      "task_id": "brain-cycle82-atomic-retention",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle82-atomic-retention' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794088578.1388445,
-      "timestamp_str": "2026-11-08 00:56:18",
-      "agent": "opencode:cycle82"
-    },
     {
       "task_id": "brain-cycle83-tiebreak-audit",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794090799.019721,
       "timestamp_str": "2026-11-08 01:33:19",
       "agent": "opencode:cycle85"
+    },
+    {
+      "task_id": "brain-cycle86-ref-verifier",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: read-only claim-ref verifier against live log episode headers",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794091057.2667973,
+      "timestamp_str": "2026-11-08 01:37:37",
+      "agent": "opencode:cycle86",
+      "impact_assessment": {
+        "why": "Cycle 85 made verdict refs caller-provided but nothing checks them against a real log. A verifier can extract header episode_sha256 values and report verified/unverified/unreferenced refs, closing the provenance gap without changing claims.",
+        "benefits": "verify_claim_refs builds verified/unverified/unreferenced counts and unknown-episode findings; verify_claim_store loads a snapshot first; multiple logs and multiple headers per log are unioned; a real T3:15/T3:65 ref pair verifies 2/2 while a missing log or fabricated ref is named.",
+        "risks": "contract: new claims_verify.py only, no claim/store schema change; dependency: telemetry.log read-only; concurrency: none; state: no writes.",
+        "mitigation": "Require a ClaimLedger and at least one readable log with an episode header; validate missing/malformed/no-header logs; test verified/unknown/missing-log/no-header/multiple-headers/store/invalid; rerun 379 tests and AIKit."
+      },
+      "plan_digest": "855f62ab5a7995ee106647a46a5b7fd331d2cee94e9c2c751774762deb428574"
+    },
+    {
+      "task_id": "brain-cycle86-ref-verifier",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first claims_verify import; read-only ref verifier, multi-log/header union, store wrapper, tests/eval, README/ADR-080",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794091475.1575325,
+      "timestamp_str": "2026-11-08 01:44:35",
+      "agent": "opencode:cycle86"
+    },
+    {
+      "task_id": "brain-cycle86-ref-verifier",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: 2/2 verified, missing-log 1/1, fabricated 0/1, unreferenced 1, store 2/2, no-header/missing-file errors; 389 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794091475.4846215,
+      "timestamp_str": "2026-11-08 01:44:35",
+      "agent": "opencode:cycle86"
+    },
+    {
+      "task_id": "brain-cycle86-ref-verifier",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit ref verifier, tests/eval, ADR-080, cycle 86",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794091475.788462,
+      "timestamp_str": "2026-11-08 01:44:35",
+      "agent": "opencode:cycle86"
+    },
+    {
+      "task_id": "brain-cycle86-ref-verifier",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle86-ref-verifier' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794091476.1233757,
+      "timestamp_str": "2026-11-08 01:44:36",
+      "agent": "opencode:cycle86"
     }
   ]
 }

@@ -123,6 +123,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.claim_evidence
   ```
+- **Claim-Ref Battery**:
+  ```bash
+  python -m evals.claim_ref_verify
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -160,7 +164,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence/claim-ref-verify batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -538,6 +542,17 @@ is stored on the frozen `Verdict`, preserved through `to_dict`/
 verdict with the header episode digest, saves/loads the claim and checks
 that the ref matches; two runs keep distinct refs; a legacy payload
 loads with `None`; an invalid ref leaves the history unchanged.
+
+`claims_verify.py` checks refs against live logs. `verify_claim_refs(ledger,
+log_paths)` reads every header `episode_sha256` (union across logs and
+multiple headers), reports `verified/unverified/unreferenced` counts and
+names `unknown-episode` findings; `verify_claim_store` loads a snapshot
+first. It writes nothing. `python -m evals.claim_ref_verify` shows a
+2/2 verified pair, missing-log 1/1, fabricated 0/1, an unreferenced
+verdict, the store path, and no-header/missing-file errors. The verifier
+confirms membership in header episodes; it does not verify the log chain
+or signature, so a caller-supplied log with a copied episode digest
+would still pass.
 
 ## 🧾 Verdict Facts
 
