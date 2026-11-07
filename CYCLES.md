@@ -3687,3 +3687,16 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 91**: unittest 415 OK; aikit 5/5; episode header intact f9343058..., wrong seed 7be0905c..., policy-current ok, policy-wrong/forged policy-mismatch, claims-policy 1 and wrong pin rejected; policy decbfce3...; ref verify journaled 2/2, truncated 26<28, keyed/tampered cases; claim refs f9343058.../3622529a...; tour 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 91 - zero-finding audit and loop stop
+
+- **Scope**: audit the remaining named candidate space for any safe, measurable improvement. No rule, policy, or behavior change is made.
+- **Candidates measured/reviewed**:
+  - **Rule confidence as the SelfModel forecast**: rejected by measurement. The current SelfModel records `1.0` on rewarded steps and `0.5` otherwise (Brier 0.219101 over the 89 pin-seed steps). Using `probe.rule.confidence` as the probability gives Brier 0.640449, 0.421348 worse; the 28 ambiguous steps are move-tie ambiguity, not outcome probability, so this is a category mismatch.
+  - **Retention-policy default**: rejected as an arbitrary policy choice. `calibration_keep_recent` is already opt-in per logged run (10/3/13 and 10/9/19 with unchanged scores); choosing a global default (or auto-rotating by file size) has no evidence and changes caller data without a request.
+  - **Claims-side policy-pin report**: no-op. The pin already propagates through `verify_claim_refs`/`verify_claim_store` (claims-policy 1/1, wrong pin `policy-mismatch`); reporting the pin again on the claim object would be cosmetic.
+  - **Header-policy cross-check**: implemented in cycle 90 (forged policy passes internally, fails the pin).
+  - **Tie-break / tour-order behavior changes**: rejected by the cycle-83/84 audits (28/28 least-visited choices; 13/13 optimal tours, 0 ties on the pin seed). No evidence supports a behavior change.
+  - **Merkle journal pruning, calibration pruning, destructive retention**: rejected; archive/compaction already preserve evidence losslessly and pruning would discard it.
+- **Verdict**: zero-finding audit. The last 31 cycles are evidence/readout/digest extensions with unchanged actions, steps, rewards, scores and `policy_digest` (decbfce3...). No safe measurable gap remains that would not be an arbitrary policy choice, a semantic mismatch, or a re-measurement of an already-audited decision.
+- **State**: unittest 415 OK; aikit check brain 5/5; tree clean at commit 9dc7d98 before this record; no push made.
+
