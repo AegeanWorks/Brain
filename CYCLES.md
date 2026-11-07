@@ -3634,3 +3634,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 89**: unittest 402 OK; aikit 5/5; ref verify journaled 2/2, truncated chain-only 1/journal `26<28`, missing/tampered journals; intact 2/2, tampered rejected, keyed 1/ok, wrong bad-mac, missing-log 1/1, fabricated 0/1, store 2/2; policy decbfce3...; claim refs T3:15 f9343058..., T3:65 3622529a...; tour 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 89 - header seed and independent episode-digest verification (fresh gap audit)
+
+- **Baseline** (commit ebc1fbb, cycle 88; same T3:15 run):
+  - canonical gate: 402 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the header bound episode_sha256 but omitted seed, so the digest could not be rebuilt from the deterministic world; claim refs trusted an unverified episode binding.
+- **Gap**: no independent episode verifier. Adding seed to the header and recomputing input_digest from the stored task/seed/budget/policy closes it.
+- **Target delta**: T3:15 seed 15/episode f9343058... recomputes identically; wrong seed/episode are `episode-mismatch`; missing seed/header are named; `verify_claim_refs(verify_episodes=True)` verifies 1/1 and rejects a tampered header while membership-only still passes.
+- **Falsifier**: the logged seed/episode does not recompute; a wrong seed/episode passes; missing seed is ignored; the opt-in check changes membership or actions; policy/pins move.
+- **Change**: telemetry/log.py adds `seed=None` to `write_header` and stores it; agent.py passes its seed. episode_verify.py rebuilds `GridWorld(task, seed).reset()` and `input_digest` from the header fields, naming missing/malformed/mismatch findings. claims_verify.py adds `verify_episodes=False` to `verify_claim_refs`/`verify_claim_store`; when true, each log's header is verified first. tests/test_episode_verify.py covers intact/wrong-seed/wrong-episode/missing-seed/missing-header/malformed/claims/opt-in; evals/episode_header.py measures intact/wrong-seed/wrong-episode/missing-seed/missing-header/claims/claims-tampered. README and ADR-083 record the contract. No new dependencies; no policy change.
+- **After** (same T3:15 run):
+  - intact: seed 15, episode f934305889d4..., recomputed f934305889d4..., ok true; wrong seed 16: recomputed 7be0905c0dff..., episode-mismatch; wrong episode: episode-mismatch; missing seed/header: missing-seed/missing-header.
+  - claims: 1 verified/ok with verify_episodes true; claims-tampered: `failed episode verification: episode-mismatch`, membership-only 1 verified.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0, rule readout/tie/tour audits, progress guard/skip, Merkle journal/compaction, claim store/ref verifier, calibration journal/bridge/retention, keyed telemetry, prompt budget, execution budget, resume identity, workspace binding, snapshot diff/digest, calibration and the 200k tail-read bound unchanged; 410 tests OK; policy unchanged.
+- **Ablation** (same tampered header):
+  - membership-only (`verify_episodes=False`, `verify_logs=False`): the claim ref verifies 1/1; with `verify_episodes=True`: `episode-mismatch`. The recomputation property dies with the opt-in.
+  - the verifier trusts the stored task/seed/budget/policy; it proves internal consistency, not execution.
+- **Verdict**: evidence-integrity extension. Behavior is unchanged; the measured delta is a reproducible episode digest from the seed, named wrong/missing cases, and the claim-ref opt-in. No action or emergence claim.
+- **Gates**: unittest 410/410 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_episode_verify.TestEpisodeVerify.test_logged_header_has_seed_and_verifies -v` -> before: ModuleNotFoundError (`episode_verify`); after: OK.
+  - `python -m unittest tests.test_episode_verify -v` -> 8 OK.
+  - `python -m evals.episode_header` -> intact f9343058...; wrong seed 7be0905c... mismatch; wrong episode/missing; claims 1; claims-tampered error/membership 1.
+  - `python -m unittest discover -s tests -t .` -> 410 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 90**: unittest 410 OK; aikit 5/5; episode header seed 15, episode f9343058..., wrong seed 7be0905c..., claims 1/ok, claims-tampered episode-mismatch; policy decbfce3...; ref verify journaled 2/2, truncated 26<28, keyed/tampered cases; claim refs f9343058.../3622529a...; tour 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+

@@ -114,21 +114,27 @@ def _log_episodes(path, hmac_key=None, verify_logs=True,
 
 
 def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
-                      journal_paths=None):
+                      journal_paths=None, verify_episodes=False):
     """Check every verdict ref against the episodes found in the logs.
 
     ``verify_logs=True`` (default) first verifies each log's hash chain;
     an optional ``hmac_key`` also verifies keyed records and an optional
     ``journal_paths`` witness (one path for one log, or a per-log
-    mapping) checks the log head/count against an anchor journal. A
-    failed check raises instead of trusting the header. ``verify_logs=False``
-    is the membership-only ablation and cannot take an hmac_key or a
-    journal.
+    mapping) checks the log head/count against an anchor journal.
+    ``verify_episodes=True`` additionally rebuilds each header's episode
+    digest from its task/seed/budget/policy and rejects a mismatch. A
+    failed check raises instead of trusting the header.
+    ``verify_logs=False`` is the membership-only ablation and cannot take
+    an hmac_key or a journal.
     """
     if not isinstance(ledger, ClaimLedger):
         raise ValueError(
             "Why: ledger must be a ClaimLedger. "
             "Fix: build or load a ClaimLedger first.")
+    if not isinstance(verify_episodes, bool):
+        raise ValueError(
+            "Why: verify_episodes must be a bool. "
+            "Fix: pass verify_episodes=True or False.")
     _validate_options(hmac_key, verify_logs)
     paths = _normalise_paths(log_paths)
     journals = _normalise_journals(paths, journal_paths)
@@ -137,6 +143,16 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
         raise ValueError(
             "Why: journal_paths need verify_logs=True. "
             "Fix: enable chain verification or omit journal_paths.")
+    if verify_episodes:
+        from episode_verify import verify_episode_header
+
+        for path in paths:
+            episode = verify_episode_header(path)
+            if not episode["ok"]:
+                raise ValueError(
+                    "log %s failed episode verification: %s. "
+                    "Fix: regenerate the run or repair the header."
+                    % (path, ", ".join(episode["findings"])))
     logs = {}
     episodes = set()
     for path in paths:
@@ -178,14 +194,17 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
         "journals": {log: str(journal)
                      for log, journal in journals.items()
                      if journal is not None},
+        "verify_episodes": verify_episodes,
     }
 
 
 def verify_claim_store(store_path, log_paths, hmac_key=None,
-                       verify_logs=True, journal_paths=None):
+                       verify_logs=True, journal_paths=None,
+                       verify_episodes=False):
     """Load a claim-store snapshot and verify its verdict refs."""
     from claims_store import load_ledger
 
     return verify_claim_refs(load_ledger(store_path), log_paths,
                              hmac_key=hmac_key, verify_logs=verify_logs,
-                             journal_paths=journal_paths)
+                             journal_paths=journal_paths,
+                             verify_episodes=verify_episodes)

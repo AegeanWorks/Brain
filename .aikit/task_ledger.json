@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle88-ref-journal",
+    "task_id": "brain-cycle89-episode-verify",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794093374.7432792,
-    "owner": "opencode:cycle88",
-    "started_by": "opencode:cycle88",
+    "updated_at": 1794094345.2237065,
+    "owner": "opencode:cycle89",
+    "started_by": "opencode:cycle89",
     "continuations": [],
-    "completed_at": 1794093375.1993253
+    "completed_at": 1794094345.551118
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle85-claim-evidence",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: optional verdict ref cross-linking claims to logged episode evidence",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794090355.8745186,
-      "timestamp_str": "2026-11-08 01:25:55",
-      "agent": "opencode:cycle85",
-      "impact_assessment": {
-        "why": "Claims and verdicts carry only free-text evidence; a verdict cannot cite the exact run/episode that supports or refutes it. An optional ref on Verdict can carry the episode digest from run_task_logged without changing claim status semantics.",
-        "benefits": "record(..., ref=...) stores a non-empty ref; to_dict/from_dict and claims_store preserve it; legacy verdicts load ref=None; a T3:15 claim cites the header episode_sha256; the eval shows run/two-runs/legacy/bad-ref.",
-        "risks": "contract: optional Verdict field plus record/from_dict handling, no claim-store schema bump; dependency: stdlib only; concurrency: none; state: optional field in local claim snapshots.",
-        "mitigation": "Default ref=None and validate non-empty strings; keep old payloads loading; test roundtrip/history/legacy/invalid/store/logged-run; verify the ref equals the header episode digest; rerun 369 tests and AIKit."
-      },
-      "plan_digest": "1b638b81286aa49d443b57e8814bcc4149780a2b8b2b4d2335a6a5535b5d9c21"
-    },
-    {
-      "task_id": "brain-cycle85-claim-evidence",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first ref TypeError; Verdict.ref, validation, record/from_dict, store roundtrip, tests/eval, README/ADR-079",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794090798.1541016,
-      "timestamp_str": "2026-11-08 01:33:18",
-      "agent": "opencode:cycle85"
-    },
-    {
-      "task_id": "brain-cycle85-claim-evidence",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: T3:15 ref f9343058 match/1-1/store ok; T3:65 ref 3622529a distinct/2-2; legacy None; invalid rejected; 379 tests OK; aikit 5/5; policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794090798.4529223,
-      "timestamp_str": "2026-11-08 01:33:18",
-      "agent": "opencode:cycle85"
-    },
-    {
-      "task_id": "brain-cycle85-claim-evidence",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit claim refs, tests/eval, ADR-079, cycle 85",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794090798.754489,
-      "timestamp_str": "2026-11-08 01:33:18",
-      "agent": "opencode:cycle85"
-    },
-    {
-      "task_id": "brain-cycle85-claim-evidence",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle85-claim-evidence' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794090799.019721,
-      "timestamp_str": "2026-11-08 01:33:19",
-      "agent": "opencode:cycle85"
-    },
     {
       "task_id": "brain-cycle86-ref-verifier",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794093375.199328,
       "timestamp_str": "2026-11-08 02:16:15",
       "agent": "opencode:cycle88"
+    },
+    {
+      "task_id": "brain-cycle89-episode-verify",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: add header seed and independently verify episode_sha256; opt-in claim-ref integration",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794093783.8263981,
+      "timestamp_str": "2026-11-08 02:23:03",
+      "agent": "opencode:cycle89",
+      "impact_assessment": {
+        "why": "The header binds an episode digest computed from the initial state, task, seed, max_steps and policy digest, but it omits the seed. A verifier cannot rebuild the deterministic initial state and recompute the digest, so claim refs trust an unverified episode binding.",
+        "benefits": "write_header accepts seed; run_task_logged records it; verify_episode_header rebuilds GridWorld(task,seed).reset() and input_digest, returning ok/recomputed/mismatch findings; verify_claim_refs(verify_episodes=True) rejects a mismatched header; intact runs verify, wrong seed/episode and missing seed/header are named.",
+        "risks": "contract: additive header field and opt-in verifier/claim flag; dependency: worlds.grid + identity; concurrency: read-only; state: header schema additive, episode digest unchanged.",
+        "mitigation": "Default seed=None and verify_episodes=False for backward compatibility; validate the header fields; test intact/wrong-seed/wrong-episode/missing-seed/missing-header/malformed and the claim-ref integration; rerun 402 tests plus AIKit."
+      },
+      "plan_digest": "cc54c6e2614e263f3f7983a7bb088dfe015cde195ee13b09f42ef533268e52f2"
+    },
+    {
+      "task_id": "brain-cycle89-episode-verify",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first episode_verify import; header seed, GridWorld/input_digest verifier, opt-in claim check, tests/eval, README/ADR-083",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794094344.5022993,
+      "timestamp_str": "2026-11-08 02:32:24",
+      "agent": "opencode:cycle89"
+    },
+    {
+      "task_id": "brain-cycle89-episode-verify",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: seed 15/episode f9343058... recomputes; wrong seed 7be0905c... mismatch; missing/claims 1; claims-tampered episode-mismatch/membership 1; 410 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794094344.843969,
+      "timestamp_str": "2026-11-08 02:32:24",
+      "agent": "opencode:cycle89"
+    },
+    {
+      "task_id": "brain-cycle89-episode-verify",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit episode header verifier, tests/eval, ADR-083, cycle 89",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794094345.2237065,
+      "timestamp_str": "2026-11-08 02:32:25",
+      "agent": "opencode:cycle89"
+    },
+    {
+      "task_id": "brain-cycle89-episode-verify",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle89-episode-verify' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794094345.5511198,
+      "timestamp_str": "2026-11-08 02:32:25",
+      "agent": "opencode:cycle89"
     }
   ]
 }

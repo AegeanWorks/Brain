@@ -294,7 +294,7 @@ class Telemetry:
 
     def write_header(self, task, budget, manifest_sha256=None, manifest_path=None,
                      policy=None, policy_sha256=None, model=None,
-                     episode_sha256=None, workspace_sha256=None):
+                     episode_sha256=None, workspace_sha256=None, seed=None):
         """Write header record (seq 0) describing task and budget.
 
         ``manifest_sha256`` is stored verbatim when given. When
@@ -316,6 +316,7 @@ class Telemetry:
                 "ts": time.time(),
                 "task": task,
                 "budget": budget,
+                "seed": seed,
                 "manifest_sha256": manifest_sha256,
                 "policy": policy,
                 "policy_sha256": policy_sha256,

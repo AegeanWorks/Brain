@@ -1491,7 +1491,8 @@ class Agent:
             policy_sha256=policy_digest(),
             model=model_label(self.planner.backend),
             episode_sha256=identity_sha,
-            workspace_sha256=workspace_sha)
+            workspace_sha256=workspace_sha,
+            seed=seed)
         forecast_start = (self.self_model.forecast_count()
                           if calibration_path is not None else 0)
         trace = self.run(max_steps=max_steps, budget=budget)

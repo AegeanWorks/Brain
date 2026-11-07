@@ -127,6 +127,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.claim_ref_verify
   ```
+- **Episode-Header Battery**:
+  ```bash
+  python -m evals.episode_header
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -159,13 +163,14 @@ brain/
 ├── claims.py                 <- immutable claim/kill-test/verdict ledger
 ├── claims_store.py           <- checksummed snapshots + backup recovery
 ├── claims_verify.py          <- read-only verdict-ref verification
+├── episode_verify.py         <- independent episode-digest recomputation
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence/claim-ref-verify batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence/claim-ref-verify/episode-header batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -402,6 +407,18 @@ header: reruns with the same task/seed/config match, while a changed
 seed, target or policy digest differs. `python -m
 evals.resume_identity` shows same/volatile resume, changed seed/target
 new, legacy ask, policy-any resume, and the 13/6-step header traces.
+
+`run_task_logged` writes `seed` into the header alongside task, budget,
+policy digest, episode digest and workspace. `verify_episode_header(path)`
+rebuilds `GridWorld(task, seed)` and recomputes `input_digest` from the
+stored fields; `ok` means the header's episode digest is independently
+reproducible. `verify_claim_refs(..., verify_episodes=True)` opts into the
+same check. `python -m evals.episode_header` shows intact seed 15 /
+`f9343058…`, wrong seed/episode (`episode-mismatch`), missing seed/header,
+and claims/tampered (the claim-ref check rejects; membership-only still
+verifies). The recomputation trusts the stored task/seed/budget/policy; it
+proves internal consistency, not that the run happened, and old headers
+without a seed report `missing-seed`.
 
 ## 📁 Workspace Evidence Binding
 
