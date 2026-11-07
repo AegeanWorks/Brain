@@ -23,12 +23,21 @@ SIZE = 8
 
 _LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
 
+# Goal fields each known task actually consumes. Unknown task names keep
+# the generic all-field fallback so custom worlds still recover.
+_TASK_FIELDS = {
+    "T1_forage": ("items_positions",),
+    "T2_delayed_match": ("target", "cue"),
+    "T3_navigate": ("target", "obstacles"),
+}
+
 PLANNER_POLICY = {
     "name": "grid-rule/planner",
     "viability": "leaf",
     "corridor_avoidance": True,
     "visits_tiebreak": True,
     "recall": "full-history+goal",
+    "recovery_recall": "persistent-layout",
     "detour_pooling": "visits",
     "pool_corridor": ">=2",
 }
@@ -37,6 +46,17 @@ PLANNER_POLICY = {
 def _canonical_json(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"),
                       ensure_ascii=True)
+
+
+def _probe_safe(value):
+    """Coerce a recalled value into JSON-safe probe data."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_probe_safe(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _probe_safe(item) for key, item in value.items()}
+    return str(value)
 
 
 def policy_digest(policy=None):
@@ -244,9 +264,30 @@ class Planner:
         self._get_hub = None
         self.backend = backend
         self.fallbacks = 0
+        self._recall_source = None
+        self._persistent_loaded = False
+        self._persistent_cache = None
+        self._store_reads = 0
+        self.last_probe = {}
 
     def bind_hub(self, getter):
         self._get_hub = getter
+
+    def bind_recall_source(self, source):
+        """Install a callable returning the persisted initial state.
+
+        The source is consulted only when neither the current state nor
+        the in-memory episode recall carries a needed field. Passing
+        None disables the channel (executable ablation).
+        """
+        self._recall_source = source
+        self.reset_recall_cache()
+
+    def reset_recall_cache(self):
+        """Forget any cached layout; called once per episode."""
+        self._persistent_loaded = False
+        self._persistent_cache = None
+        self._store_reads = 0
 
     def read_hub(self):
         if self._get_hub is None:
@@ -271,13 +312,45 @@ class Planner:
             visits[(px, py)] = visits.get((px, py), 0) + 1
         steps = state.get("steps", 0)
         mem_list = list(memories) if memories else []
+        probe = {"state": [], "memory": [], "persistent": [],
+                 "store_reads": self._store_reads}
+        self.last_probe = probe
+
+        def _persistent_state():
+            """Load the persisted initial state once per episode, lazily."""
+            if self._persistent_loaded:
+                return self._persistent_cache
+            self._persistent_loaded = True
+            if not callable(self._recall_source):
+                return None
+            self._store_reads += 1
+            probe["store_reads"] = self._store_reads
+            try:
+                value = self._recall_source()
+            except Exception:
+                value = None
+            if isinstance(value, dict):
+                self._persistent_cache = value
+            return self._persistent_cache
 
         def _recall(key):
             if state.get(key) is not None:
+                if key not in probe["state"]:
+                    probe["state"].append(key)
                 return state.get(key)
             for m in reversed(mem_list):
                 if isinstance(m, dict) and m.get(key) is not None:
+                    if key not in probe["memory"]:
+                        probe["memory"].append(key)
                     return m.get(key)
+            fields = _TASK_FIELDS.get(state.get("task"))
+            if fields is not None and key not in fields:
+                return None
+            persisted = _persistent_state()
+            if isinstance(persisted, dict) and persisted.get(key) is not None:
+                if key not in probe["persistent"]:
+                    probe["persistent"].append(key)
+                return persisted.get(key)
             return None
 
         if state.get("obstacles") is not None:
@@ -308,6 +381,13 @@ class Planner:
             cue_val = state.get("cue")
         else:
             cue_val = _recall("cue")
+        probe["resolved"] = {
+            "target": _probe_safe(recalled_target),
+            "items_positions": _probe_safe(remaining),
+            "obstacles": _probe_safe(obstacles),
+            "cue": _probe_safe(cue_val),
+        }
+        self.last_probe = probe
         if self.backend is not None:
             obs = {"task": state.get("task"), "x": x, "y": y,
                    "steps": steps, "legal": list(_LEGAL_ACTIONS)}
@@ -324,6 +404,7 @@ class Planner:
             if visits:
                 obs["visits"] = [[int(px), int(py), int(visits[(px, py)])]
                                  for (px, py) in sorted(visits)]
+            probe["model_obs_keys"] = sorted(obs)
             try:
                 proposed = self.backend.generate(obs)
             except Exception:
@@ -462,6 +543,12 @@ class Agent:
                     bind(self.get_hub)
                 except Exception:
                     self._substrate_errors["bind"] += 1
+        bind_recall = getattr(self.planner, "bind_recall_source", None)
+        if callable(bind_recall):
+            try:
+                bind_recall(self._persistent_layout)
+            except Exception:
+                self._substrate_errors["bind"] += 1
 
     @property
     def log_path(self):
@@ -493,7 +580,64 @@ class Agent:
             clear = getattr(mod, "clear", None)
             if callable(clear):
                 clear()
+        reset_recall = getattr(self.planner, "reset_recall_cache", None)
+        if callable(reset_recall):
+            reset_recall()
         self._hub = {}
+
+    def _persistent_layout(self):
+        """Return the persisted initial state for this world, or None.
+
+        The layout is stored once per (task, seed) in a separate table,
+        so it survives a process restart even after the per-step memory
+        rows have advanced. Any read failure is counted and treated as
+        absent: recovery degrades to the old behavior, never a crash.
+        """
+        store = self.memory_store
+        world = self.world
+        if store is None or world is None:
+            return None
+        get_layout = getattr(store, "get_layout", None)
+        if not callable(get_layout):
+            return None
+        task = getattr(world, "task_id", None)
+        seed = getattr(world, "seed", None)
+        if task is None or seed is None:
+            return None
+        try:
+            content = get_layout(task, seed)
+        except Exception:
+            self._substrate_errors["memory_store"] += 1
+            return None
+        if not isinstance(content, str):
+            return None
+        try:
+            value = json.loads(content)
+        except (TypeError, ValueError):
+            return None
+        return value if isinstance(value, dict) else None
+
+    def _remember_layout(self, state):
+        """Persist the initial state once; first write wins.
+
+        Only stores that expose save_layout participate. A failure is
+        counted and never interrupts the episode.
+        """
+        store = self.memory_store
+        world = self.world
+        if store is None or world is None or not isinstance(state, dict):
+            return
+        save_layout = getattr(store, "save_layout", None)
+        if not callable(save_layout):
+            return
+        task = getattr(world, "task_id", None)
+        seed = getattr(world, "seed", None)
+        if task is None or seed is None:
+            return
+        try:
+            save_layout(task, seed, json.dumps(state, sort_keys=True))
+        except Exception:
+            self._substrate_errors["memory_store"] += 1
 
     # -- loop ----------------------------------------------------------
 
@@ -554,8 +698,12 @@ class Agent:
             raise ValueError("Agent.world is None; pass a world or use run_task")
         if max_steps <= 0:
             raise ValueError("max_steps must be positive")
+        reset_recall = getattr(self.planner, "reset_recall_cache", None)
+        if callable(reset_recall):
+            reset_recall()
         trace = []
         state = self.world.reset()
+        self._remember_layout(state)
         for i in range(int(max_steps)):
             self.memory.save(state)  # perceive
             memories = self.memory.recall(limit=None)  # recall for planner
@@ -618,6 +766,9 @@ class Agent:
                     "S": list(s_vec),
                     "hub": list(hub_vec),
                 }
+                probe = getattr(self.planner, "last_probe", None)
+                if isinstance(probe, dict):
+                    args["probe"] = copy.deepcopy(probe)
                 try:
                     self.telemetry_log.append_action(
                         i + 1, "step", args,

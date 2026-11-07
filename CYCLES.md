@@ -2386,3 +2386,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   kills 4/4 + 3/3; seed-74 9/200; 0-99 1581/800/683; exhaustive
   27860; headers ffa19359...; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical.
+
+## Cycle 45 - persistent layout recall for cold-start recovery
+
+- **Baseline** (clean HEAD worktree 3a4ea9a; identical harness, model label, seeds and probe code):
+  - canonical gate: 124 tests OK before the new tests; aikit check 5/5.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - cold-start battery (T1:71, T2:3, T3:15, T3:65; capture backend): success 0/4; steps 200/200/200/200; reward 0/0/0/0; transfer gain 0; recovery 0; probe absent; model observations lacked items_positions/target/cue/obstacles; action hash 4b2b1802... for every case.
+- **Gap**: the persistent MemoryStore is written every step but read only through count(); Planner.plan recalls from the current state then the in-memory episode. A restart with hidden goal fields has no route to the persisted layout.
+- **Target delta**: success 0/4 -> 4/4; steps 200/200/200/200 -> 16/8/13/6; rewards 0 -> 3/1/1/1; gain 0 -> .92/.96/.935/.97; trace probe store_reads 0 -> 1 with persistent fields; model observation keys gain the recovered fields; ablation restores baseline.
+- **Falsifier**: any cold case stays at 200/0; ablation does not; any standing pin moves; probe does not name the persistent source.
+- **Change**: memory/store.py additive layouts table plus first-write-wins save_layout/get_layout; agent.py layout persistence, recall-source binding, lazy episode cache with task-field gating, per-plan probe in telemetry args, PLANNER_POLICY recovery_recall; evals/coldstart.py warm/cold/ablation battery with capture backend; tests/test_coldstart_recovery.py five failing-first tests.
+- **After** (same harness, same model label CaptureBackend, same seeds, same probe code):
+  - cold-start: success 4/4; steps 16/8/13/6; rewards 3/1/1/1; gain .92/.96/.935/.97; recovery 1.0 x4; action hashes match the four standing goldens (bafe50ff..., 8d077e83..., 63c67660..., 8484f2ab...).
+  - trace: first probe store_reads 1; persistent [items_positions] / [cue,target] / [obstacles,target] / [obstacles,target]; model first-observation keys include those fields.
+  - model-track prompt hashes (same capture model/seed): T1:71 19843a2f -> 53ff78c8; T2:3 b1014f83 -> d8da4712; T3:15 0663429f -> d0447fba; T3:65 495e6bbc -> 34fd0e2f.
+  - standing behavior and trace: 466/240/217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; warm probe store_reads 0 and persistent [] (store not consulted when the state carries the fields).
+  - recompute syn/phi on cold logs: 0.0/0.0 (terminal-sparse reward; no synergy claim).
+- **Ablation** (bind_recall_source(None), same seeds and store):
+  - behavior: success 0/4; steps 200/200/200/200; rewards 0; gain 0; recovery 0.
+  - trace: store_reads 0; persistent []; model observations lack the goal fields; action hash 4b2b1802... equals the pre-change baseline. Property and trace die with the cut.
+- **Verdict**: integration confirmed for cold-start recovery only. No sentience or general emergence claim; the numeric synergy estimator is flat, and the claim rests on the behavior quadruple plus the source probe and its ablation.
+- **Gates**: unittest 129/129 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_coldstart_recovery -v` -> before: 2 failures, 3 errors; after: 5 OK.
+  - `python -m evals.coldstart --capture` -> before (HEAD worktree) / after JSON; `--ablate` for the cut.
+  - `python -m unittest discover -s tests -t .` -> 129 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0, warm store_reads 0.
+- **Pinned regression baselines for cycle 46**: unittest 129 OK; aikit 5/5; cold-start 16/8/13/6 with 3/1/1/1; cold ablate/before 200/200/200/200 with 0; probe store_reads 1 cold / 0 warm; model obs keys include the recovered fields; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy f53f99a8...; goldens 9/9 + multi 5/5 + three 5/5.

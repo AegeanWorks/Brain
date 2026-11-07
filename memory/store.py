@@ -3,6 +3,9 @@
 Operational notes:
 - One base table holds the records; one FTS5 external-content
   table indexes key/content for ranked lookup.
+- A separate layouts table holds one full initial state per
+  (task, seed) for cold-start recovery. It is written once
+  (first write wins) and never touches the memories row count.
 - Durability: commit then os.fsync on the database file.
 - Ordering is deterministic: all reads use ORDER BY id ASC.
 Stdlib only: sqlite3, os, time.
@@ -26,6 +29,15 @@ _SCHEMA_FTS = (
     "USING fts5(key, content, content='memories', content_rowid='id')"
 )
 
+_SCHEMA_LAYOUT = (
+    "CREATE TABLE IF NOT EXISTS layouts("
+    "task TEXT NOT NULL, "
+    "seed INTEGER NOT NULL, "
+    "content TEXT NOT NULL, "
+    "ts REAL NOT NULL, "
+    "PRIMARY KEY(task, seed))"
+)
+
 _TRIGGERS = (
     "CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories BEGIN "
     "INSERT INTO memories_fts(rowid, key, content) "
@@ -45,7 +57,9 @@ class MemoryStore:
     """Persisted key/content map with full-text lookup.
 
     Layout: memories(id INTEGER PK, key TEXT UNIQUE,
-    content TEXT, conf REAL, ts REAL) plus FTS5 index.
+    content TEXT, conf REAL, ts REAL) plus FTS5 index, and
+    layouts(task TEXT, seed INTEGER, content TEXT, ts REAL)
+    with a composite primary key.
     """
 
     def __init__(self, path):
@@ -73,6 +87,7 @@ class MemoryStore:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute(_SCHEMA_BASE)
             conn.execute(_SCHEMA_FTS)
+            conn.execute(_SCHEMA_LAYOUT)
             for stmt in _TRIGGERS:
                 conn.execute(stmt)
             checked = conn.execute("PRAGMA quick_check").fetchall()
@@ -138,6 +153,36 @@ class MemoryStore:
             "SELECT id FROM memories WHERE key=?", (key,)
         ).fetchone()
         return int(row[0])
+
+    def save_layout(self, task, seed, content):
+        """Persist one initial task state; first write wins.
+
+        Returns True when this call inserted the row and False when an
+        existing (task, seed) layout was kept. Later writes never
+        overwrite the recovered initial state, so a cold restart can
+        re-read the layout after the episode itself has advanced.
+        """
+        if not isinstance(task, str) or not task:
+            raise ValueError("Why: task must be a non-empty string. Fix: pass task=str.")
+        if not isinstance(seed, int) or isinstance(seed, bool):
+            raise ValueError("Why: seed must be an int. Fix: pass seed=int.")
+        if not isinstance(content, str):
+            raise ValueError("Why: content must be a string. Fix: pass content=str.")
+        cur = self._conn.execute(
+            "INSERT OR IGNORE INTO layouts(task, seed, content, ts) VALUES(?, ?, ?, ?)",
+            (task, int(seed), content, time.time()),
+        )
+        inserted = cur.rowcount > 0
+        self._persist()
+        return inserted
+
+    def get_layout(self, task, seed):
+        """Return the stored initial-state content for (task, seed), or None."""
+        row = self._conn.execute(
+            "SELECT content FROM layouts WHERE task=? AND seed=?",
+            (str(task), int(seed)),
+        ).fetchone()
+        return None if row is None else row[0]
 
     def recall(self, query, limit=5):
         """Return up to limit records matching query, ordered by id ASC.

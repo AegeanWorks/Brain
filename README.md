@@ -11,6 +11,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m unittest discover -s tests -t .
   ```
+- **Cold-Start Recovery Battery**:
+  ```bash
+  python -m evals.coldstart --capture
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -35,15 +39,25 @@ brain/
 ├── demo.py
 ├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
-├── memory/                   <- SQLite FTS5 persistent store (store.py)
+├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators.py, recompute.py, tasks.yaml, verdict.json
+├── evals/                    <- estimators, recompute, coldstart battery, tasks, verdict
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
+
+## 🧊 Cold-Start Recovery Contract
+
+A warm run stores one full initial state per `(task, seed)` in the additive
+`layouts` table (first write wins). A cold run whose observations omit goal
+fields reads that layout once per episode; the planner probe records
+`store_reads` plus the fields supplied by `state`, `memory`, or `persistent`,
+and the same fields reach the model-seam observation. Cutting the source with
+`Planner.bind_recall_source(None)` restores the store-blind behavior, so the
+recovery property and its trace share one ablation.
 
 ## 📜 License
 
