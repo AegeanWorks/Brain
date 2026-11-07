@@ -735,3 +735,62 @@ only integration scores, cross-module dependencies, and ablation differentials.
   5/5; standing 466/240/217 trap 16/8/13/6/9; fixed-rig syn
   0.12455861 phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; visit-oracle
   5/5; hidden-target 13 hidden-items 16; blind ablation 200/0.0.
+
+## Cycle 17 — full-history episode recall for persistent hidden goals
+- **Baseline** (cycle-16 pins re-verified):
+  - canonical: 69 OK; aikit 5/5.
+  - code: T1-71 16, T2-3 8, T3-15 13, T3-65 6, T3-74 9; 30-seed
+    466/240/217.
+  - trace: fixed-rig syn 0.12455861 syn_n 0.24891688 phi 0.0 n32;
+    hub0/m0 0.0; p0/s0 identical.
+  - seam: visit-oracle 5/5; hidden-transient 13/16.
+  - persistent-hidden probe (new, HiddenWorld omits target after
+    initial state): T3-15 200/0.0 vs intact 13/1.0; T3-65 200/0.0
+    vs 6/1.0 with last-5 window.
+  - dead ends: mean_conf churn; hub no failing behavior; persistent
+    store recall zero headroom (reserved); phi/P/S gaming refused;
+    live fine-tuning blocked; T2 wait kept; energy never binds; T1
+    items persistent-hidden needs stale-list handling (reserved).
+- **Gap**: Agent passes last-5 to Planner; initial-only goals fall
+  out after step 5.
+- **Target delta**: pass full history; persistent-hidden 200 ->
+  13/6 with standing identical; standing trace moves (M[1] depth)
+  with hidden gain on same channel.
+- **Falsifier**: standing behavior moves, or persistent-hidden stays
+  200; emergence falsifier: forced last-5 must restore 200.
+- **Change** (agent.py one line; tests/test_recall_depth.py new):
+  recall(limit=None) to Planner; visits still last 4; _recall
+  searches all. No new deps.
+- **After**:
+  - code identical: 16/8/13/6/9; 466/240/217.
+  - trace: fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0 n32
+    (M[1] full depth vs capped; lesions still hold, signal >0.05);
+    standing behavior identical so trace move is depth-reporting
+    tied to hidden gain, not churn.
+  - seam carried: visit 5/5, hidden-transient 13/16 unchanged.
+  - persistent-hidden fixed: T3-15 200 -> 13/1.0; T3-65 200 ->
+    6/1.0; 3x repeats variance 0.
+- **Ablation** (forced last-5 window, same HiddenWorld):
+  - intact full: 13/1.0.
+  - cut last-5: 200/0.0.
+  - Gain dies with the cut, returns with the restore: recall depth
+    load-bearing. Standing None control unchanged.
+  - Boundary: T1 items persistent-hidden reserved (stale initial
+    list after collects).
+- **Verdict**: depth win with proven recall-depth coupling; no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 71/71 OK (69 carried + 2 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_recall_depth -v` -> 2 FAIL
+    (200/0.0) before, 2 OK after.
+  - `python -m unittest discover -s tests -t .` -> 69 OK before,
+    71 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 5-seed + 30-seed identical.
+  - fixed-rig recompute 0.1246 -> 0.0541 (depth-reporting).
+  - persistent-hidden 2-seed + 3x repeats + forced-5 ablation.
+- **Pinned regression baselines for cycle 18**: unittest 71 OK; aikit
+  5/5; standing 466/240/217 trap 16/8/13/6/9; fixed-rig syn
+  0.05411532 syn_n 0.10814360 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; visit-oracle 5/5; hidden-transient 13/16;
+  persistent-hidden 13/6; forced-5 ablation 200/0.0.

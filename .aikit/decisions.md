@@ -114,3 +114,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Planner read goal keys only from the current state, so transient dropout (target/items stripped at plan-time with memories intact) truncated runs the episode buffer could have saved.
 - **Decision**: Planner recalls missing target/items_positions/obstacles/cue from provided episode memories (most-recent-first, deterministic copies) for both rule geometry and backend obs; present keys (including empty lists) never trigger recall. No new deps; no world change.
 - **Consequences**: 69 tests OK; aikit check 5/5; standing totals byte-identical (466/240/217); fixed-rig syn 0.1246 phi 0.0 unchanged; hidden-target 200 -> 13 and hidden-items 200 -> 16 with variance 0; memory-blind ablation restores 200/0.0. Boundary: persistent hidden worlds (saved states also hide) need full-history recall plus a new task family — reserved.
+
+### ADR-017: Full-history episode recall for persistent hidden goals
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Goal recall searched the last-5 window Agent passed to Planner, so initial-only goals fell out after step 5 and persistent-hidden runs truncated.
+- **Decision**: Agent.run passes full episode history (recall(limit=None)) to Planner; Planner still slices last 4 for visits and searches all provided memories most-recent-first for missing goals. No new deps.
+- **Consequences**: 71 tests OK; aikit check 5/5; standing behavior byte-identical (466/240/217, trap 16/8/13/6/9); standing trace syn 0.1246 -> 0.0541 (M[1] now carries full depth vs capped 5; lesions still hold: hub0/m0 kill, p0/s0 no-op, signal still >0.05); persistent-hidden T3-15 200 -> 13 and T3-65 200 -> 6 with variance 0; forced last-5 ablation restores 200/0.0. Boundary: T1 items persistent-hidden needs stale-list handling (initial list goes stale after collects) — reserved.

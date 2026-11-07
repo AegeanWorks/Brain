@@ -451,7 +451,7 @@ class Agent:
         state = self.world.reset()
         for i in range(int(max_steps)):
             self.memory.save(state)  # perceive
-            memories = self.memory.recall()  # recall for planner
+            memories = self.memory.recall(limit=None)  # recall for planner
             action = self.planner.plan(state, memories)  # plan
             new_state, reward, done = self.world.step(action)  # act
             self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
