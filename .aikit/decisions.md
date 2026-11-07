@@ -282,3 +282,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Lattice snapshot-diffing completion (two-blocker matrix in cycle 39): five three-obstacle configs verified deterministic with visit-coupled blinds, but no test pinned them. One truncates (6,5) with no safe routing fix (seed-74/T1 pins block it, per cycles 35/37 prototypes).
 - **Decision**: tests/test_three_blocker.py pins five counts with rewards plus a blind differential on (6,7); _ForcedThreeWorld hook with no private writes; regeneration manual. No source change; no new deps.
 - **Consequences**: 123 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); 3-blocker family 15/12/10/13/200 pinned with blinds 200/200/10/200/200; any routing change that moves a count fails loudly.
+
+### ADR-041: Three-blocker golden paths for the pinned family
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Keystone pinned simulation hash (multi paths in cycle 38, counts in cycle 41): three-blocker counts pin outcomes, but a behavior-neutral path swap at identical counts would drift silently.
+- **Decision**: tests/test_three_goldens.py pins SHA-256 over canonical action sequences for the five configs (computed once on the intact tree); regeneration is deliberately manual (reviewed edit, no auto-update). No source change; no new deps.
+- **Consequences**: 124 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); any path change fails loudly.

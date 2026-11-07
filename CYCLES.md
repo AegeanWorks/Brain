@@ -2205,3 +2205,56 @@ only integration scores, cross-module dependencies, and ablation differentials.
   ffa19359...; golden 9/9 + multi 5/5; pins 16/8/13/6/9 + 7/14 +
   6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest + repro variance 0.
+
+## Cycle 42 — three-blocker golden paths (idea transfer)
+- **Source**: Keystone pinned simulation hash (thirteenth transfer;
+  cycle-38 pinned four multi paths, cycle-41 pinned five
+  three-blocker counts).
+- **Gap**: three-blocker counts pin outcomes (15/12/10/13/200) but a
+  behavior-neutral path swap at identical counts would drift silently
+  past all 123 tests.
+- **Target delta**: SHA-256 over canonical action sequences for the
+  five three-blocker configs, computed once on the intact tree.
+- **Falsifier**: standing totals move, trace numbers move,
+  three-blocker counts move, or any three-blocker path differs.
+- **Change** (tests/test_three_goldens.py new only; ADR-041):
+  THREE_GOLDEN map + one equality test across the five configs;
+  regeneration deliberately manual (reviewed edit, no auto-update).
+  No source diff; no new deps.
+- **Baseline** (cycle-41 pins re-verified): 123 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; three-blocker
+  15/12/10/13/200 deterministic 3x identical (variance 0).
+- **After**:
+  - code identical: 30-seed 466/240/217; multi 9/18/11/13/14;
+    three-blocker 15/12/10/13/200; all 123 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - paths pinned: 124/124 with 5/5 three-blocker golden hashes exact.
+- **Ablation / sensitivity** (no source touched):
+  - single-action flip changes the fingerprint (proven cycle-24 and
+    reused in cycles 30/38 with the same canonical-hash helper).
+  - any routing change that moves a count (e.g., pre-pool ordering
+    on the same five) necessarily changes every affected hash — the
+    golden gate inherits every routing cut's sensitivity on top of
+    count pins.
+- **Verdict**: provenance win (three-blocker paths now pinned, not
+  just counts); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 124/124 OK (123 carried + 1 new); aikit 5/5
+  PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_three_goldens -v` -> 1 OK.
+  - `python -m unittest discover -s tests -t .` -> 123 OK before,
+    124 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig + three-blocker counts identical;
+    determinism 3x identical.
+- **Pinned regression baselines for cycle 43**: unittest 124 OK; aikit
+  5/5; standing 466/240/217; multi 9/18/11/13/14 with 1.0; multi
+  goldens 5/5 paths; three-blocker 15/12/10/13/200 with rewards and
+  5/5 paths; blind 9/200/200/200/200 + 200/200/10/200/200; seed-74 9
+  intact / 200 blind; 0-99 1581/800/683; T1 100-199 1646; T3 100-199
+  732; T3 200-299 718; T3 300-399 671; T3 400-499 675; holdout
+  1581/800/738; exhaustive 3906/3906 27860; corridor-cut 12/744;
+  random floor 1271/5.0 vs 89/11.0; chain ok + 5 findings; headers
+  ffa19359...; golden 9/9 + multi 5/5 + three 5/5; pins
+  16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
+  hub0/m0 0.0 p0/s0 identical; manifest + repro variance 0.
