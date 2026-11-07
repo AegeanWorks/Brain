@@ -966,3 +966,54 @@ only integration scores, cross-module dependencies, and ablation differentials.
   T3 300-399 671; T3 400-499 675; pins 16/8/13/6/9 + 7/14 + 6/10;
   fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical.
+
+## Cycle 21 — full audit, zero verified improvements (STOP)
+- **Baseline** (cycle-20 pins re-verified):
+  - canonical: 80 OK; aikit 5/5.
+  - code: 9 pins optimal; 30-seed 466/240/217.
+  - trace: fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0 n32;
+    hub0/m0 0.0; p0/s0 identical.
+  - seam: visit-oracle 5/5; hidden-transient 13/16;
+    persistent-hidden 13/6.
+  - audit scans (new): T1/T2/T3 500-599 all optimal (0 traps);
+    T1/T2/T3 600-999 all optimal (0 traps); 1000/1000 T3 seeds
+    optimal across 0-999; 400/400 T1+T2 across 600-999 optimal.
+  - substrate re-read: planner/plan.py tracker (mark_fail/recover
+    never used in production, unit-covered only); self_model/model.py
+    counters (never read by planner); telemetry/log.py bins (strict,
+    pinned); inventory/demo peripherals (no task numbers).
+  - dead ends, one line each: T1/T2/T3 500-999 fully optimal (no
+    routing headroom 0-999); mean_conf consumed by nothing (churn);
+    hub last_action no failing behavior (dead); persistent store
+    recall zero headroom on visible tasks (reserved); phi/P/S
+    lifting would be gaming (refused); live fine-tuning needs
+    torch/TRL + approval (blocked); T2 wait kept (contract); energy
+    never binds; T1 items persistent-hidden stale-list reserved
+    (needs new family + collected-filtering).
+- **Gap**: none qualifies. Routing optimal 0-999 on all tasks;
+  every remaining candidate is dead, refused, blocked, or reserved
+  (see dead ends). No depth chase (corridor rule already
+  distance-independent); no metric edits (would be gaming); no new
+  task family in an audit cycle (scope expansion, not a gap fix).
+- **Target delta**: none. Falsifier is moot: any change would need a
+  failing eval first, and none exists.
+- **Change**: none. No code, no harness, no ADR (audit result, not
+  a design decision).
+- **After**: identical battery re-verified — 80 OK, T3-0-99 683,
+  T1-100 1581, aikit 5/5. No deltas, variance not applicable.
+- **Ablation**: none (no integration claim).
+- **Verdict**: full cycle with zero verified improvements. Stopping
+  per goal rule (allowed stop: told to stop, zero-findings cycle,
+  or unfixable gate failure). Verdict STOP.
+- **Gates**: unittest 80/80 OK; aikit 5/5 PASS (re-verified, no
+  changes).
+- **Commands run**:
+  - `python -m unittest discover -s tests -t .` -> 80 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - T1/T2/T3 500-599 + 600-999 optimality scans (all 0 traps).
+  - standing pins re-verified (T3-0-99 683, T1-100 1581).
+- **Pinned regression baselines carried (no new pins)**: unittest 80
+  OK; aikit 5/5; standing 466/240/217; 0-99 1581/800/683;
+  T3 200-299 718; T3 300-399 671; T3 400-499 675; pins
+  16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
+  hub0/m0 0.0 p0/s0 identical.
