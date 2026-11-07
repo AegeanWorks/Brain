@@ -20,7 +20,11 @@ compares the log with the latest journal anchor. Optional HMAC-SHA256
 signing (``Telemetry(path, hmac_key=bytes)`` and
 ``verify_chain(path, hmac_key=...)``) adds a keyed ``mac`` to every
 record; missing or bad MACs are named, and unkeyed logs stay
-byte-compatible. Keys come from outside the repository.
+byte-compatible. Keys come from outside the repository. A Merkle batch
+anchor (``Telemetry.write_merkle_anchor``) commits a contiguous batch
+of record digests to a separate root, and
+``telemetry.merkle.merkle_proof_for_record`` returns a detached
+inclusion proof.
 
 Durability: each append writes one line, calls ``flush`` + ``os.fsync``
 on the file descriptor, then fsyncs the containing directory when the
@@ -407,6 +411,14 @@ class Telemetry:
         return append_anchor(self.path, head, len(records),
                              journal_path=journal_path,
                              created_at=created_at)
+
+    def write_merkle_anchor(self, batch_size=64, anchor_path=None,
+                            created_at=None):
+        """Write a Merkle batch anchor for the last records."""
+        from telemetry.merkle import write_merkle_anchor
+        return write_merkle_anchor(self.path, batch_size=batch_size,
+                                   anchor_path=anchor_path,
+                                   created_at=created_at)
 
     def read_all(self):
         """Return list of decoded JSON objects in file order."""

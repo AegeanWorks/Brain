@@ -51,6 +51,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.prompt_budget
   ```
+- **Merkle-Anchor Battery**:
+  ```bash
+  python -m evals.merkle_anchor
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -80,7 +84,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -207,6 +211,20 @@ the budget and records `last_prompt_stats`; the manifest binds the
 capped prompt. `python -m evals.prompt_budget` shows uncapped 63 /
 budgeted 52 tokens with 13 omitted visit lines on T3:15 while the rule
 actions, steps and reward stay identical.
+
+## 🌿 Merkle Batch Anchors
+
+`Telemetry.write_merkle_anchor(batch_size=64)` commits the last N record
+digests to a separate `.merkle` sidecar with `start/end/count/root`.
+`verify_merkle_anchor` checks the batch range and root;
+`merkle_proof_for_record` returns a detached O(log n) inclusion proof
+and `verify_merkle_proof` validates it. Leaf and node hashes are
+domain-separated, an odd node is promoted rather than duplicated, and
+an empty tree has a defined root. The anchor is a separate witness for
+batch membership; run `verify_chain` separately for order/authorship.
+`python -m evals.merkle_anchor` shows the intact 8-record batch
+(12–20), a 3-sibling proof for record 15, and truncation/tamper
+findings.
 
 ## 🧾 Verdict Facts
 

@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle63-prompt-budget",
+    "task_id": "brain-cycle64-merkle-anchor",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794074078.8449588,
-    "owner": "opencode:cycle63",
-    "started_by": "opencode:cycle63",
+    "updated_at": 1794074704.0472746,
+    "owner": "opencode:cycle64",
+    "started_by": "opencode:cycle64",
     "continuations": [],
-    "completed_at": 1794074079.1551716
+    "completed_at": 1794074704.2888596
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle60-tail-head",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: replace the full-file telemetry head scan with the assay tail reader",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794071889.2119045,
-      "timestamp_str": "2026-11-07 20:18:09",
-      "agent": "opencode:cycle60",
-      "impact_assessment": {
-        "why": "A fresh Telemetry instance on an existing log scans every line to find the last digest: 100k records (1.3 MB) ~191 ms, 1M records ~2 s. assay/storage.py:27 last_nonempty_line reads only the tail chunk.",
-        "benefits": "O(file) -> O(tail chunk) head lookup with identical digest and legacy-tail output; no new dependencies; append/byte content unchanged.",
-        "risks": "contract: no schema or policy change; dependency: stdlib only; concurrency: no change; state: no new files. Legacy-tail hashing must preserve the exact text-mode terminator.",
-        "mitigation": "Add failing-first timing and equivalence tests for normal, blank-tail and legacy logs; compare head values before/after; run the full 177-test and AIKit gates."
-      },
-      "plan_digest": "d324ba59d9d8f9636d474f62a47dab06fb2f7e2bcb00c9d76b5d6dee11e333bc"
-    },
-    {
-      "task_id": "brain-cycle60-tail-head",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: 200k 381.8ms -> 0.764ms; 100k/500k/1M 191/943/1986 -> 0.98/0.81/0.82ms; head/legacy equivalence; 1001-record chain ok; 179 tests OK; aikit 5/5; policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794072168.1489418,
-      "timestamp_str": "2026-11-07 20:22:48",
-      "agent": "opencode:cycle60"
-    },
-    {
-      "task_id": "brain-cycle60-tail-head",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first 200k tail-read test; _last_nonempty_line adapted from assay, _head_digest tail read with exact legacy terminator; 179 tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794072168.156289,
-      "timestamp_str": "2026-11-07 20:22:48",
-      "agent": "opencode:cycle60"
-    },
-    {
-      "task_id": "brain-cycle60-tail-head",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit tail-read head lookup, tests, cycle 60",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794072174.1079755,
-      "timestamp_str": "2026-11-07 20:22:54",
-      "agent": "opencode:cycle60"
-    },
-    {
-      "task_id": "brain-cycle60-tail-head",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle60-tail-head' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794072174.339764,
-      "timestamp_str": "2026-11-07 20:22:54",
-      "agent": "opencode:cycle60"
-    },
     {
       "task_id": "brain-cycle61-anchor-journal",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794074079.1551738,
       "timestamp_str": "2026-11-07 20:54:39",
       "agent": "opencode:cycle63"
+    },
+    {
+      "task_id": "brain-cycle64-merkle-anchor",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: Merkle batch anchors and inclusion proofs (merklock hashing transfer)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794074222.6191416,
+      "timestamp_str": "2026-11-07 20:57:02",
+      "agent": "opencode:cycle64",
+      "impact_assessment": {
+        "why": "The linear hash chain and anchor journal prove order and continuity, but not membership of a specific record in a batch without replaying the chain. merklock/hashing.py:38-104 provides domain-separated Merkle roots, proofs and verification with odd-node promotion.",
+        "benefits": "A .merkle sidecar commits a contiguous batch (start/end/root); a single record gets an O(log n) inclusion proof; a truncated log, changed digest or edited root is named; no change to the log format or rule behavior.",
+        "risks": "contract: new telemetry/merkle.py and Telemetry.write_merkle_anchor; dependency: stdlib only; concurrency: atomic sidecar write; state: sidecar only, not committed.",
+        "mitigation": "Keep leaves as existing record digests, domain-separate leaf/node hashes, validate anchor ranges and detached proofs, test odd/empty trees and tamper cases, and re-run the 200-test and AIKit gates."
+      },
+      "plan_digest": "d038a236aa45dc0a72a08a80c7c52e743aa8540d3d7211deead0cfd94e5ac2b9"
+    },
+    {
+      "task_id": "brain-cycle64-merkle-anchor",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first merkle import; domain-separated root/proof/verify, .merkle batch anchor, Telemetry.write_merkle_anchor, eval, tests, README/ADR-058",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794074693.5487995,
+      "timestamp_str": "2026-11-07 21:04:53",
+      "agent": "opencode:cycle64"
+    },
+    {
+      "task_id": "brain-cycle64-merkle-anchor",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: 20-record log, batch 12-20/count 8 root verified; record 15 proof 3 siblings ok; truncated/tampered root/digest/proof/missing detected; 211 tests OK; aikit 5/5; standing unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794074693.5521123,
+      "timestamp_str": "2026-11-07 21:04:53",
+      "agent": "opencode:cycle64"
+    },
+    {
+      "task_id": "brain-cycle64-merkle-anchor",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit Merkle anchors, proofs, eval, tests, ADR-058, cycle 64",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794074704.0472746,
+      "timestamp_str": "2026-11-07 21:05:04",
+      "agent": "opencode:cycle64"
+    },
+    {
+      "task_id": "brain-cycle64-merkle-anchor",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle64-merkle-anchor' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794074704.2888613,
+      "timestamp_str": "2026-11-07 21:05:04",
+      "agent": "opencode:cycle64"
     }
   ]
 }

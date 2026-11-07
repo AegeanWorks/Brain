@@ -2952,3 +2952,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 200 OK.
   - `python aikit.py check brain` -> 5/5 after fixing the ADR numbering gap (HMAC was ADR-056, prompt budget ADR-057).
 - **Pinned regression baselines for cycle 64**: unittest 200 OK; aikit 5/5; prompt uncapped T3 63 tokens/0 omitted, budgeted 52/13; synthetic 228 -> 52 with target/obstacles; manifest first 714c1368... -> a5307733...; keyed 8/8 MACs; wrong/missing/tampered findings; anchor journal 2 anchors seq 11/16, truncated 13/16; single anchor 4/4; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 64 - Merkle batch anchors and inclusion proofs (merklock transfer)
+
+- **Baseline** (commit cfd8816, cycle 63; same 20-record log):
+  - canonical gate: 200 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - the linear chain and anchor journal proved order/continuity, but there was no compact batch commitment or detached inclusion proof for one record.
+- **Gap**: verifying that a specific record belongs to a batch required replaying the chain. A Merkle root over the batch digests plus a sibling path gives O(log n) membership without the rest of the batch.
+- **Target delta**: a 20-record log anchored over its last 8 records has start 12 / end 20 / count 8; the intact root verifies; record 15 yields a 3-sibling proof that verifies; truncation, a changed root, a changed batch digest, a tampered proof and a missing anchor are named; behavior/standing unchanged.
+- **Falsifier**: the root/proof does not verify; a truncation/tamper passes; the proof accepts a wrong leaf; the single anchor/journal, prompt budget, telemetry chain or standing pins move.
+- **Change**: telemetry/merkle.py adds domain-separated `pack`/`digest`, `merkle_root`, `merkle_proof`, `merkle_verify`, `write_merkle_anchor`, `verify_merkle_anchor`, `merkle_proof_for_record` and `verify_merkle_proof`; `Telemetry.write_merkle_anchor` writes the `.merkle` sidecar atomically. Leaves are existing record digests; odd nodes are promoted, empty trees have a defined root, and batch verification is independent of the log verifier (no import cycle). tests/test_merkle.py covers pure trees, odd/empty cases, batch anchor, proof, truncation, tampered root/digest/proof, missing anchor and atomic writes; evals/merkle_anchor.py measures intact/truncated/tampered/proof/missing. README and ADR-058 record the contract. No new dependencies; the log format is unchanged.
+- **After** (same log and anchor settings):
+  - intact: 20 records; batch start 12/end 20/count 8; anchor `ok=true`; record 15 proof 3 siblings `ok=true`.
+  - truncated to 15: `ok=false`, `truncated-batch:20>15`; proof cannot be built.
+  - tampered root: `ok=false`, `root-mismatch`; edited batch digest: `ok=false`, `root-mismatch`; proof-tampered: proof verify false; missing anchor: `missing-anchor`.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, keyed telemetry, prompt budget and the 200k tail-read bound are unchanged; 211 tests OK; policy unchanged.
+- **Ablation** (same log):
+  - without the `.merkle` sidecar, verification reports `missing-anchor`; with the sidecar but a tampered root/digest/proof, verification fails. The batch-membership property and its findings die with the root/proof.
+  - the root is a separate witness and can be rewritten with the log; the proof says membership in the committed batch, not global order/authorship. `verify_chain` remains the order/authorship check.
+- **Verdict**: trace-integrity extension. Behavior is unchanged by design; the measured deltas are the 8-record batch root, the 3-sibling proof, and named truncation/tamper/missing findings. No action or emergence claim.
+- **Gates**: unittest 211/211 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_merkle.TestMerkleTree.test_root_and_proof_roundtrip -v` -> before: ModuleNotFoundError (`telemetry.merkle`); after: OK.
+  - `python -m unittest tests.test_merkle -v` -> 11 OK.
+  - `python -m evals.merkle_anchor` -> intact 20/12-20/8, proof 3 siblings; truncated/tampered/missing detected.
+  - `python -m unittest discover -s tests -t .` -> 211 OK.
+  - `python aikit.py check brain` -> 5/5 after removing the log↔merkle import cycle.
+- **Pinned regression baselines for cycle 65**: unittest 211 OK; aikit 5/5; Merkle batch 12-20/count 8 root/proof 3 siblings; truncated `truncated-batch:20>15`; tampered root/digest/proof/missing detected; prompt T3 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 anchors seq 11/16; single anchor 4/4; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
