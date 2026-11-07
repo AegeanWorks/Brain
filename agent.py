@@ -106,10 +106,10 @@ def _step_toward(pos, goal, obstacles, visits=None):
             out.append([cell[0], cell[1] - 1])
         return out
 
-    def _has_exit(cell, depth=2):
-        # Two-step lookahead: a candidate cell is viable when stepping onto
-        # it leaves a free distance-reducing exit that itself still has a
-        # free exit (or is the goal). The goal cell is trivially viable.
+    def _has_exit(cell, depth=3):
+        # Three-step lookahead: a candidate cell is viable when stepping onto
+        # it leaves a free distance-reducing exit chain of the remaining
+        # depth (or reaches the goal). The goal cell is trivially viable.
         # Depth bounds the recursion; branching is at most 2.
         if list(cell) == list(goal):
             return True

@@ -121,3 +121,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Goal recall searched the last-5 window Agent passed to Planner, so initial-only goals fell out after step 5 and persistent-hidden runs truncated.
 - **Decision**: Agent.run passes full episode history (recall(limit=None)) to Planner; Planner still slices last 4 for visits and searches all provided memories most-recent-first for missing goals. No new deps.
 - **Consequences**: 71 tests OK; aikit check 5/5; standing behavior byte-identical (466/240/217, trap 16/8/13/6/9); standing trace syn 0.1246 -> 0.0541 (M[1] now carries full depth vs capped 5; lesions still hold: hub0/m0 kill, p0/s0 no-op, signal still >0.05); persistent-hidden T3-15 200 -> 13 and T3-65 200 -> 6 with variance 0; forced last-5 ablation restores 200/0.0. Boundary: T1 items persistent-hidden needs stale-list handling (initial list goes stale after collects) — reserved.
+
+### ADR-018: Three-step exit lookahead for column-blocking traps
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Depth-2 viability entered blocked columns early on T3 seeds 202/272 (target behind a column obstacle), costing +2 detours each; 200-299 scan found exactly these 2 traps.
+- **Decision**: Generalize _has_exit depth 2 -> 3 (one constant; branching still <= 2; deterministic). No new deps; visits ordering unchanged.
+- **Consequences**: 74 tests OK; aikit check 5/5; T3 202 9 -> 7 and 272 16 -> 14 (both optimal); T3 200-299 total 722 -> 718 with all other 98 seeds byte-identical; 0-29 totals 466/240/217, 0-99 totals 1581/800/683, and 100-199 fully optimal unchanged; fixed-rig syn 0.0541 phi 0.0 unchanged; depth-3 lookahead alone suffices on these traps (blind == intact, like seeds 15/65); visit-memory coupling still carried by seed-74 blind truncation.

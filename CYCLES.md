@@ -794,3 +794,62 @@ only integration scores, cross-module dependencies, and ablation differentials.
   0.05411532 syn_n 0.10814360 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; visit-oracle 5/5; hidden-transient 13/16;
   persistent-hidden 13/6; forced-5 ablation 200/0.0.
+
+## Cycle 18 — three-step exit lookahead for column-blocking traps
+- **Baseline** (cycle-17 pins re-verified):
+  - canonical: 71 OK; aikit 5/5.
+  - code: T1-71 16, T2-3 8, T3-15 13, T3-65 6, T3-74 9; 30-seed
+    466/240/217; 0-99 totals 1581/800/683.
+  - trace: fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0 n32;
+    hub0/m0 0.0; p0/s0 identical.
+  - seam: visit-oracle 5/5; hidden-transient 13/16;
+    persistent-hidden 13/6.
+  - headroom scan (new, seeds 200-299): T1 0 non-optimal; T2 0;
+    T3 2 traps: 202 9 vs 7, 272 16 vs 14 (both +2 column-entry
+    detours); current T3 200-299 total 722.
+  - dead ends: T1/T2 200-299 clean; mean_conf churn; hub no
+    behavior; persistent store zero headroom (reserved); phi/P/S
+    gaming refused; live fine-tuning blocked; T2 wait kept; energy
+    never binds; T1 items persistent-hidden stale-list reserved.
+- **Gap**: depth-2 viability enters blocked columns early.
+- **Target delta**: depth 3; 202 9->7, 272 16->14, 200-299 total
+  722->718, all other seeds identical.
+- **Falsifier**: traps stay, or any 0-29/0-99/100-199 seed moves.
+- **Change** (agent.py one constant; tests/test_column_traps.py
+  new): _has_exit depth 2->3; visits ordering unchanged. No new
+  deps.
+- **After**:
+  - code: 202 9->7/1.0, 272 16->14/1.0; 30-seed 466/240/217;
+    0-99 1581/800/683; 100-199 fully optimal; 200-299 722->718
+    with other 98 byte-identical; 3x repeats variance 0.
+  - trace: fixed-rig syn 0.05411532 phi 0.0 n32 unchanged; trap
+    traces carry behavior delta (steps 9->7/16->14, S errors -2
+    each, M counts -2 each).
+  - seam carried: visit/hidden/persistent oracles unchanged;
+    depth-3 lookahead alone suffices on these traps (blind ==
+    intact, like seeds 15/65); visit coupling still pinned by
+    seed-74 blind 200.
+- **Ablation** (depth revert 3->2 restores 9/16/722; memory-blind
+  still truncates seed 74 per carried suite):
+  - intact depth-3: 7/14 optimal.
+  - depth-2 cut: 9/16 detours (pre-change baseline).
+  - column-trap blind: 7/14 (lookahead suffices honestly
+    recorded); seed-74 blind: 200/0.0 (visits load-bearing where
+    lookahead cycles).
+- **Verdict**: efficiency win (-4 steps/100 seeds, 300/300 T3
+  seeds optimal across 0-299); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 74/74 OK (71 carried + 3 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_column_traps -v` -> 3 FAIL
+    (9 vs 7, 722 vs 718) before, 3 OK after (ablation corrected
+    to blind==intact with mechanism note).
+  - `python -m unittest discover -s tests -t .` -> 71 OK before,
+    74 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - 0-29 + 0-99 + 100-199 + 200-299 probes before/after.
+  - fixed-rig recompute identical.
+  - 2-seed 3x repeats + depth-revert + blind checks.
+- **Pinned regression baselines for cycle 19**: unittest 74 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 total
+  718; trap 16/8/13/6/9 plus column 7/14; fixed-rig syn 0.05411532
+  phi 0.0 n32; hub0/m0 0.0 p0/s0 identical.
