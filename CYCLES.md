@@ -389,3 +389,28 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Pinned regression baselines for cycle 10**: unittest 54 OK; aikit
   5/5; all cycle-7 pins carried; corrupt fixture recovers 1/1;
   healthy reopen unchanged.
+
+## Cycle 10 — corrupt-line log behavior: strictness stands (STOP)
+
+- **Baseline**: 54 tests OK; aikit 5/5.
+- **Measure**: appended a corrupt line to a 32-record T1 log and read
+  it back through every consumer: read_all raises JSONDecodeError,
+  bins raises (it reads via read_all), recompute skips the line and
+  returns identical numbers (syn 0.1246, n_records 32).
+- **Find**: no qualifying gap. The split is the correct contract, not
+  a bug: the evidence reader (read_all/bins) fails loud on corruption
+  so damaged evidence can never pass silently, while the measurement
+  path (recompute) tolerates line damage without moving a number.
+  Making read_all skip corrupt lines would trade loud failure for
+  silent evidence loss — the opposite of what an eval-evidence log
+  must do (dead end with rationale, one line).
+- **Verdict**: full cycle, zero verified improvements. Stop condition
+  met. No code change; no ADR (no decision taken). Verdict UNKNOWN.
+- **Gates re-verified on the committed tree**: unittest 54/54 OK;
+  aikit check 5/5 PASS.
+- **Commands run**:
+  - corrupt-line probe (read_all/bins/recompute): strict/strict/
+    tolerant-identical.
+  - `python -m unittest discover -s tests -t .` -> 54 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Final pins**: unittest 54 OK; aikit 5/5; all cycle-9 pins carried.
