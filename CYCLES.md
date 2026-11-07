@@ -232,3 +232,39 @@ only integration scores, cross-module dependencies, and ablation differentials.
   T3 100-seed total 683; T2 100-seed total 800; trap/tour pins carried;
   wiring SM errors T1=125 T2=70 T3=60; phi 0.0 x3;
   syn 0.1167/0.1000/0.1229.
+
+## Cycle 6 — extended audit seeds 100-199: zero verified improvements (STOP)
+
+- **Baseline**: cycle-5 pins carried (49 OK, 5/5, all totals).
+- **Measure**: optimality scan, seeds 100-199, identical rig:
+  - T1 vs optimal-tour+3: 100/100 optimal, zero non-optimal.
+  - T3 vs BFS-optimal: 100/100 optimal, zero detours.
+  - T2: 100/100 at 8 steps (structural optimum).
+  - Combined with cycles 2-4: 200/200 seeds optimal on T1/T3.
+- **Find**: remaining gap candidates reviewed, none qualifies:
+  - transfer gain: repeat runs deterministic-identical (gain 0.0, no
+    headroom) — dead.
+  - self-model mean_conf miscalibration (~0.42): consumed by nothing;
+    recalibrating moves no downstream number — rejected as churn.
+  - planner-tracker blind advancement / M[1] saturation: redefining
+    either moves estimator inputs without a falsifiable task gain —
+    rejected as metric churn.
+  - hub reads: planner reads hub last_action and discards it; no failing
+    behavior exists for hub-driven decisions to fix — dead.
+  - phi floor / S,P syn-independence: honest estimator floors on
+    step-collinear vectors; lifting them by estimator edits would be
+    gaming, not measurement — refused.
+  - dead branches: stuck removed in cycle 5; T2 wait rule kept as
+    task-contract semantics (unreachable at min distance 7, falsifiable
+    by layout change).
+- **Verdict**: full cycle, zero verified improvements. Stop condition met.
+  No code change; no ADR (no decision taken). Verdict UNKNOWN stands.
+- **Gates**: unittest 49/49 OK; aikit check 5/5 PASS (re-verified on the
+  committed tree before recording).
+- **Commands run**:
+  - 100-199 optimality scan (T1 tour / T3 BFS / T2 == 8): all clean.
+  - `python -m unittest discover -s tests -t .` -> 49 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Final pins**: unittest 49 OK; aikit 5/5; T1 100-seed 1581;
+  T2 100-seed 800; T3 100-seed 683 (0-99) with 100-199 fully optimal;
+  trap/tour/ablation pins carried; phi 0.0 x3; syn 0.1167/0.1000/0.1229.
