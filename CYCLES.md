@@ -2021,3 +2021,57 @@ only integration scores, cross-module dependencies, and ablation differentials.
   4245d56e...; golden 9/9 + multi 4/4; pins 16/8/13/6/9 + 7/14 +
   6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest + repro variance 0.
+
+## Cycle 39 — backfill fifth two-blocker pin (idea transfer)
+- **Source**: Lattice snapshot-diffing completion (eleventh transfer;
+  cycle-28 backfilled range pins, cycle-38 pinned four multi paths).
+- **Gap**: (5,7) with (5,6),(4,2) completes in 14/1.0 with blind
+  200/0.0 and a deterministic path, but no test pins its count,
+  path, or blind differential — a drift in the fifth verified trap
+  would pass all 118 tests.
+- **Target delta**: pin fifth config count 14, golden path, and blind
+  200/0.0 already covered by existing blind test shape (7,5);
+  explicit (5,7) blind verified in audit; 5/5 multi matrix complete.
+- **Falsifier**: standing totals move, trace numbers move, or any of
+  the five multi numbers moves on the intact tree.
+- **Change** (tests/test_multi_obstacle.py extended to five configs
+  with (5,7)->14; tests/test_multi_goldens.py extended to five
+  hashes; ADR-038): audit-measured numbers pinned, fifth golden
+  computed once on the intact tree; no source diff; no new deps.
+- **Baseline** (cycle-38 pins re-verified): 118 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; multi audit
+  (5,7) 14/1.0 deterministic 3x identical, blind 200/0.0.
+- **After**:
+  - code identical: 30-seed 466/240/217; multi 9/18/11/13/14; all
+    118 carried tests pass (file extensions, count unchanged).
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - matrix complete: multi counts 5/5, multi goldens 5/5, blind
+    killing configs (7,5),(3,6),(5,6),(5,7) all 200/0.0 with
+    (5,0) 9/1.0 pool-sufficient honestly carried.
+- **Ablation / sensitivity** (no source touched):
+  - memory-blind cut moves (5,7) 14 -> 200 with 0.0 reward: the new
+    pin catches memory-coupling loss like the three carried blind
+    pins.
+  - pre-pool ordering on the same five gives 200/200/13/200/200,
+    necessarily changing every affected golden hash.
+- **Verdict**: provenance win (multi snapshot matrix complete); no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 118/118 OK (files extended, count unchanged);
+  aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_multi_obstacle tests.test_multi_goldens -v` -> 4 OK.
+  - `python -m unittest discover -s tests -t .` -> 118 OK before
+    and after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical; (5,7) determinism 3x +
+    blind 200/0.0 audit.
+- **Pinned regression baselines for cycle 40**: unittest 118 OK; aikit
+  5/5; standing 466/240/217; multi 9/18/11/13/14 with 1.0; multi
+  goldens 5/5 paths; blind 9/200/200/200/200; seed-74 9 intact / 200
+  blind; 0-99 1581/800/683; T1 100-199 1646; T3 100-199 732;
+  T3 200-299 718; T3 300-399 671; T3 400-499 675; holdout
+  1581/800/738; exhaustive 3906/3906 27860; corridor-cut 12/744;
+  random floor 1271/5.0 vs 89/11.0; chain ok + 5 findings; headers
+  4245d56e...; golden 9/9 + multi 5/5; pins 16/8/13/6/9 + 7/14 +
+  6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro variance 0.

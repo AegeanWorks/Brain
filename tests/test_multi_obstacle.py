@@ -1,10 +1,10 @@
 """Multi-obstacle recovery: leaf viability alone truncates with two blockers.
 
 Failing-first harness: single-obstacle exhaustive proof (3906/3906)
-does not cover two-obstacle layouts. _ForcedMultiWorld pins four
+does not cover two-obstacle layouts. _ForcedMultiWorld pins five
 two-blocker configs where leaf viable-first routing truncates three
-times (200/0.0) and detours once (13 vs 11), while standing totals and
-the single-obstacle exhaustive battery stay optimal.
+times (200/0.0) and detours twice (13 vs 11, 14 vs 12), while standing
+totals and the single-obstacle exhaustive battery stay optimal.
 """
 
 import unittest
@@ -32,6 +32,7 @@ MULTI_CONFIGS = [
     ((7, 5), [(6, 1), (7, 2)], 18),
     ((3, 6), [(2, 2), (3, 2)], 11),
     ((5, 6), [(4, 4), (5, 5)], 13),
+    ((5, 7), [(5, 6), (4, 2)], 14),
 ]
 
 

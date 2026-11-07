@@ -1,11 +1,11 @@
 """Multi-obstacle golden paths: exact action sequences for two-blocker traps.
 
 Companion to test_golden_traces (nine pin seeds): step counts pin
-outcomes (9/18/11/13) but a behavior-neutral path swap at identical
+outcomes (9/18/11/13/14) but a behavior-neutral path swap at identical
 counts would drift silently. This pins the exact paths.
 
 Regeneration rule (deliberately manual, no auto-update flag): after a
-reviewed planner change, recompute the four hashes on the intact tree
+reviewed planner change, recompute the five hashes on the intact tree
 and replace the MULTI_GOLDEN map in one reviewed edit. Never update
 goldens to make a red tree green.
 """
@@ -21,6 +21,7 @@ MULTI_GOLDEN = {
     ((7, 5), ((6, 1), (7, 2))): "de1154e153cdf7c7944fabdcddf3dc40a805f97996a83ff6b20265fa9ff38e92",
     ((3, 6), ((2, 2), (3, 2))): "399f17fed3793f3961a116f7aa9ba66d650ca997d5c49de9f5eb59bac8c129fe",
     ((5, 6), ((4, 4), (5, 5))): "db4f17e35c8d1edabd904d772ff1ddebbeb3b9cc8265332dbff256537e61f20a",
+    ((5, 7), ((5, 6), (4, 2))): "f307bfc3014575f672d8965d928c0129e979ecae7b6c3eda85e2b19a3b42a5bf",
 }
 
 
@@ -30,8 +31,8 @@ def _fingerprint(trace):
 
 class TestMultiGoldens(unittest.TestCase):
     def test_multi_paths_match_golden_hashes(self):
-        self.assertEqual(len(MULTI_GOLDEN), 4)
-        self.assertEqual(len(MULTI_CONFIGS), 4)
+        self.assertEqual(len(MULTI_GOLDEN), 5)
+        self.assertEqual(len(MULTI_CONFIGS), 5)
         for target, obstacles, want_steps in MULTI_CONFIGS:
             key = (tuple(target), tuple(tuple(o) for o in obstacles))
             want = MULTI_GOLDEN[key]

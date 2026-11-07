@@ -261,3 +261,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Keystone pinned simulation hash (standing goldens in cycle 30): multi counts pin outcomes, but a behavior-neutral path swap at identical counts would drift silently.
 - **Decision**: tests/test_multi_goldens.py pins SHA-256 over canonical action sequences for the four multi configs (computed once on the intact tree); regeneration is deliberately manual (reviewed edit, no auto-update). No source change; no new deps.
 - **Consequences**: 118 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); any path change fails loudly — pre-pool ordering gives 200/200/13/200 counts, which necessarily changes every affected hash.
+
+### ADR-038: Backfill fifth two-blocker pin for the snapshot matrix
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Lattice snapshot-diffing completion: (5,7) with (5,6),(4,2) verified 14/1.0 deterministic with blind 200/0.0, but no test pinned it — the fifth trap could drift while all gates stay green.
+- **Decision**: Extend tests/test_multi_obstacle.py to five configs with (5,7)->14 and tests/test_multi_goldens.py to five hashes (fifth computed once on the intact tree). No source change; no new deps.
+- **Consequences**: 118 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); multi matrix 5/5 counts, 5/5 paths, blind 9/200/200/200/200.
