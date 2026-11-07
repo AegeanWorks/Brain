@@ -2898,3 +2898,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 186 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 62**: unittest 186 OK; aikit 5/5; anchor journal 2 anchors seq 11/16; intact 16/16 ok; truncated 13/16 `truncated-tail:13<16`; deleted first anchor prev error; tampered head hash error; backwards seq ValueError; missing journal; single anchor 4/4 ok; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 62 - optional HMAC-SHA256 telemetry signing (assay transfer)
+
+- **Baseline** (commit 31c394d, cycle 61; same record format):
+  - canonical gate: 186 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - the chain was unkeyed. An attacker who recomputes every `digest`/`prev` and rewrites the anchor/journal can produce a self-consistent log; there was no verifier-held secret.
+- **Gap**: hash chains prove internal consistency, not authorship. `assay/ledger.py:29 record_mac` signs the canonical payload with an HMAC key; without the key, an edited record cannot be re-signed.
+- **Target delta**: a keyed 8-record log carries 8 MACs and verifies with the key; the wrong key reports `bad-mac:0`; a stripped MAC reports `missing-mac:0`; a payload edit with a recomputed digest reports `bad-mac`; an unkeyed log stays 0-MAC and verifies unkeyed, while a keyed verifier reports missing MACs. No schema/policy/standing change.
+- **Falsifier**: the keyed log fails with the correct key; a wrong key or stripped MAC passes; a recomputed-digest tamper passes; an unkeyed log changes bytes or fails unkeyed verification; any standing/policy pin moves.
+- **Change**: telemetry/log.py adds an optional `hmac_key` to `Telemetry`, `_mac_of`, `mac` emission after the digest, `_digest_of` excluding `mac`, and `hmac_key` verification in `verify_chain` with `missing-mac`/`bad-mac` findings. Keys are non-empty bytes or `None`; unkeyed writes remain byte-identical. `tests/test_telemetry_mac.py` covers correct/wrong/missing/tampered keys, unkeyed parity and key validation; `evals/telemetry_mac.py` measures all six states. README and ADR-057 record the contract. No new dependencies beyond stdlib `hmac`.
+- **After** (same log builder and test keys):
+  - keyed: 8 records, 8 MACs, correct-key `ok=true`; unkeyed verifier also `ok=true` (chain-only).
+  - wrong key: `ok=false`, `bad-mac:0`; missing MAC: `ok=false`, `missing-mac:0`.
+  - tampered payload with recomputed digest: `ok=false`, `bad-mac:0` plus downstream `broken-link` findings.
+  - unkeyed: 0 MACs, `ok=true` unkeyed; with a key, `ok=false` with 8 `missing-mac` findings.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, anchor journal and 200k tail-read bound unchanged; 192 tests OK; policy unchanged.
+- **Ablation** (same log builder):
+  - key off / unkeyed verifier: the chain still passes, but the keyed forgery resistance and the MAC findings are absent. The property dies with the key.
+  - keyed verifier on an unkeyed log: 8 `missing-mac` findings, so a keyed run cannot silently accept an unsigned log.
+- **Verdict**: trace-integrity extension. Behavior is unchanged by design; the measured deltas are 8/8 MAC coverage, wrong-key/missing/tamper findings, and unkeyed parity. No action or emergence claim.
+- **Gates**: unittest 192/192 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_telemetry_mac.TestTelemetryMac.test_keyed_records_verify_with_key -v` -> before: TypeError (`hmac_key` missing); after: OK.
+  - `python -m unittest tests.test_telemetry_mac -v` -> 6 OK.
+  - `python -m evals.telemetry_mac` -> keyed 8/8 MAC ok; wrong-key bad-mac:0; missing-mac:0; tampered bad-mac:0; unkeyed 0 MAC ok; unkeyed-keyed 8 missing-mac.
+  - `python -m unittest discover -s tests -t .` -> 192 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 63**: unittest 192 OK; aikit 5/5; keyed 8/8 MACs ok; wrong key `bad-mac:0`; missing MAC `missing-mac:0`; tampered+recomputed digest `bad-mac:0`; unkeyed 0 MAC ok; unkeyed-keyed 8 missing-mac; anchor journal 2 anchors seq 11/16, truncated 13/16; single anchor 4/4; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

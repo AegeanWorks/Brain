@@ -43,6 +43,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.anchor_journal
   ```
+- **Keyed Telemetry Battery**:
+  ```bash
+  python -m evals.telemetry_mac
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -72,7 +76,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -172,6 +176,18 @@ truncated log is named; deleting tail anchors still yields a shorter
 valid journal unless the latest anchor is known externally. `python -m
 evals.anchor_journal` shows the intact and truncated cases. The journal
 is a separate, non-committed witness.
+
+## 🔐 Keyed Telemetry (HMAC)
+
+`Telemetry(path, hmac_key=bytes)` adds a per-record HMAC-SHA256 `mac`.
+The digest excludes `mac`; the MAC covers the canonical record including
+its digest, so a payload edit that recomputes the digest still fails the
+MAC. `verify_chain(path, hmac_key=...)` reports `missing-mac:<index>` or
+`bad-mac:<index>`. Without a key, records and bytes are unchanged; a
+keyed verifier rejects an unkeyed log, and an unkeyed verifier cannot
+check the MAC. Keys come from a secret store or environment, never from
+the repository. `python -m evals.telemetry_mac` shows correct key,
+wrong key, missing MAC, recomputed-digest tamper and unkeyed parity.
 
 ## 🧾 Verdict Facts
 

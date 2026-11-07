@@ -16,7 +16,11 @@ truncated tail, a mismatched witness, or a missing anchor. An optional
 anchor journal (``append_anchor``/``verify_anchor_journal``) chains
 each run's anchor to the previous anchor hash, so a deleted or rewound
 middle anchor is named; ``verify_chain(path, journal_path=...)``
-compares the log with the latest journal anchor.
+compares the log with the latest journal anchor. Optional HMAC-SHA256
+signing (``Telemetry(path, hmac_key=bytes)`` and
+``verify_chain(path, hmac_key=...)``) adds a keyed ``mac`` to every
+record; missing or bad MACs are named, and unkeyed logs stay
+byte-compatible. Keys come from outside the repository.
 
 Durability: each append writes one line, calls ``flush`` + ``os.fsync``
 on the file descriptor, then fsyncs the containing directory when the
@@ -33,6 +37,7 @@ atomic rename. This mirrors AIKit's ``file_lock`` discipline.
 
 import contextlib
 import hashlib
+import hmac
 import json
 import os
 import time
@@ -115,8 +120,14 @@ def _canonical(record):
 
 
 def _digest_of(record):
-    body = {k: v for k, v in record.items() if k != "digest"}
+    body = {k: v for k, v in record.items() if k not in ("digest", "mac")}
     return hashlib.sha256(_canonical(body)).hexdigest()
+
+
+def _mac_of(record, key):
+    """HMAC-SHA256 over the canonical record without its ``mac`` field."""
+    body = {k: v for k, v in record.items() if k != "mac"}
+    return hmac.new(key, _canonical(body), hashlib.sha256).hexdigest()
 
 
 def _last_nonempty_line(path, chunk_size=65536):
@@ -174,20 +185,30 @@ class Telemetry:
     ``lock_timeout`` bounds how long one append waits for another
     writer's advisory lock before raising ``TimeoutError``. A lock older
     than ``LOCK_STALE_SECONDS`` is treated as a crashed writer.
+    ``hmac_key`` (non-empty bytes) signs every record with HMAC-SHA256;
+    ``None`` keeps the unkeyed format and bytes unchanged.
     """
 
-    def __init__(self, path, lock_timeout=3.0):
+    def __init__(self, path, lock_timeout=3.0, hmac_key=None):
         if (isinstance(lock_timeout, bool)
                 or not isinstance(lock_timeout, (int, float))
                 or lock_timeout < 0):
             raise ValueError(
                 "Why: lock_timeout must be a non-negative number. "
                 "Fix: pass lock_timeout=3.0.")
+        if hmac_key is not None:
+            if (not isinstance(hmac_key, (bytes, bytearray))
+                    or not hmac_key):
+                raise ValueError(
+                    "Why: hmac_key must be non-empty bytes or None. "
+                    "Fix: pass a verifier-held bytes key, or omit it.")
+            hmac_key = bytes(hmac_key)
         self.path = Path(path)
         parent = self.path.parent
         if str(parent) and str(parent) not in ("", "."):
             parent.mkdir(parents=True, exist_ok=True)
         self.lock_timeout = float(lock_timeout)
+        self._hmac_key = hmac_key
         self._head = None
         self._head_size = None
 
@@ -232,6 +253,7 @@ class Telemetry:
 
     def _write_record(self, record):
         record = dict(record)
+        record.pop("mac", None)
         record.setdefault("schema", SCHEMA_VERSION)
         for key in ("seq", "type", "ts", "M", "P", "S", "hub"):
             record.setdefault(key, None)
@@ -244,6 +266,8 @@ class Telemetry:
                 self._head = None
             record["prev"] = self._head_digest()
             record["digest"] = _digest_of(record)
+            if self._hmac_key is not None:
+                record["mac"] = _mac_of(record, self._hmac_key)
             line = json.dumps(record, sort_keys=True) + "\n"
             self.path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.path, "a", encoding="utf-8") as f:
@@ -628,7 +652,7 @@ def verify_anchor_journal(journal_path):
             "latest": latest, "errors": errors}
 
 
-def verify_chain(path, anchor_path=None, journal_path=None):
+def verify_chain(path, anchor_path=None, journal_path=None, hmac_key=None):
     """Verify the hash chain of the JSONL log at ``path``.
 
     Returns ``{"ok": bool, "findings": [...], "records": n, "head": hex|None}``.
@@ -651,7 +675,18 @@ def verify_chain(path, anchor_path=None, journal_path=None):
     latest anchor: a shorter log is ``truncated-tail``, and a different
     head/count is ``anchor-mismatch``. Without an anchor or journal, a
     truncated prefix remains internally valid by design.
+
+    When ``hmac_key`` is given, every record must carry a matching
+    HMAC-SHA256 ``mac``; missing or bad MACs are ``missing-mac:<index>``
+    and ``bad-mac:<index>``. Without a key the MAC is not checked, so an
+    unkeyed log remains byte-compatible.
     """
+    if hmac_key is not None:
+        if not isinstance(hmac_key, (bytes, bytearray)) or not hmac_key:
+            raise ValueError(
+                "Why: hmac_key must be non-empty bytes or None. "
+                "Fix: pass a verifier-held bytes key, or omit it.")
+        hmac_key = bytes(hmac_key)
     findings = []
     digests = []
     head = None
@@ -674,6 +709,12 @@ def verify_chain(path, anchor_path=None, journal_path=None):
         if record["digest"] != _digest_of(record):
             findings.append("edited-record:%d" % index)
             continue
+        if hmac_key is not None:
+            mac = record.get("mac")
+            if not isinstance(mac, str):
+                findings.append("missing-mac:%d" % index)
+            elif not hmac.compare_digest(mac, _mac_of(record, hmac_key)):
+                findings.append("bad-mac:%d" % index)
         want = digests[-1] if digests else GENESIS
         if record["prev"] != want and not (
                 not digests and isinstance(record["prev"], str)

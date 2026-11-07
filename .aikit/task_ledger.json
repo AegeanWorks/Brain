@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle61-anchor-journal",
+    "task_id": "brain-cycle62-hmac-telemetry",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794072895.6717563,
-    "owner": "opencode:cycle61",
-    "started_by": "opencode:cycle61",
+    "updated_at": 1794073289.3510077,
+    "owner": "opencode:cycle62",
+    "started_by": "opencode:cycle62",
     "continuations": [],
-    "completed_at": 1794072895.9704502
+    "completed_at": 1794073289.5594754
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle57-dead-pool",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit dead-pool guard, probe, eval, tests, ADR-053, cycle 57",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794069439.3030457,
-      "timestamp_str": "2026-11-07 19:37:19",
-      "agent": "opencode:cycle57"
-    },
-    {
-      "task_id": "brain-cycle57-dead-pool",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle57-dead-pool' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794069443.2279735,
-      "timestamp_str": "2026-11-07 19:37:23",
-      "agent": "opencode:cycle57"
-    },
-    {
-      "task_id": "brain-cycle58-chain-anchor",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: anchor the telemetry head/count so a truncated tail is detectable",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794069498.6064258,
-      "timestamp_str": "2026-11-07 19:38:18",
-      "agent": "opencode:cycle58",
-      "impact_assessment": {
-        "why": "verify_chain validates internal links only; deleting trailing records leaves a valid prefix, so a log can hide its last actions and verdict while still returning ok=true. The run has no terminal head/count witness.",
-        "benefits": "Telemetry.write_anchor writes head+count; verify_chain(path, anchor_path=...) reports truncated-tail; the intact log still passes; the anchor-off control leaves the truncation undetected. Trace-integrity only, no action change.",
-        "risks": "contract: verify_chain gains an optional anchor argument and Telemetry a write_anchor method; dependency: stdlib only; concurrency: anchor write is atomic replace; state: new sidecar file, not committed.",
-        "mitigation": "Keep the anchor separate from the chain, write it atomically, compare both head and count, and test intact/truncated/anchored/missing-anchor cases; re-run the 170-test gate and standing pins."
-      },
-      "plan_digest": "bc99b4f987dc16d876a5081140fc81531e0e6666f97ec060d0342d908211c925"
-    },
-    {
-      "task_id": "brain-cycle58-chain-anchor",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first anchor import; atomic write_anchor/read_anchor, verify_chain anchor_path, Telemetry.write_anchor, chain-anchor battery, tests, README/ADR-054",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794069723.6617095,
-      "timestamp_str": "2026-11-07 19:42:03",
-      "agent": "opencode:cycle58"
-    },
-    {
-      "task_id": "brain-cycle58-chain-anchor",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: intact 8/8 ok, truncated 8->6 truncated-tail:6<8, unanchored 8->6 ok; missing/mismatch fail; 177 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794069797.9438858,
-      "timestamp_str": "2026-11-07 19:43:17",
-      "agent": "opencode:cycle58"
-    },
     {
       "task_id": "brain-cycle58-chain-anchor",
       "phase": "in_progress",
@@ -254,6 +193,67 @@
       "timestamp": 1794072895.9704528,
       "timestamp_str": "2026-11-07 20:34:55",
       "agent": "opencode:cycle61"
+    },
+    {
+      "task_id": "brain-cycle62-hmac-telemetry",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: optional HMAC-SHA256 telemetry records (assay record_mac pattern)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072990.5123177,
+      "timestamp_str": "2026-11-07 20:36:30",
+      "agent": "opencode:cycle62",
+      "impact_assessment": {
+        "why": "Brain's chain is unkeyed: an attacker who recomputes every digest and prev can rewrite the log undetected. assay/ledger.py:29 record_mac signs the canonical payload with a verifier-held key.",
+        "benefits": "Telemetry(path, hmac_key=...) writes a mac per record; verify_chain(hmac_key=...) reports missing-mac/bad-mac; unkeyed logs and bytes remain unchanged; wrong keys and tampered payloads are named.",
+        "risks": "contract: optional mac field and constructor/verifier keyword; dependency: stdlib hmac only; concurrency: MAC computed under the existing append lock; state: key material stays outside the repo.",
+        "mitigation": "Keep hmac_key optional and bytes-only; exclude mac from the digest; compute mac over the canonical record including digest; test correct/wrong/missing/tampered keys and unkeyed parity; full 186-test and AIKit gates."
+      },
+      "plan_digest": "c5031020411b6517456b7e99b94aa6f2dd010c78ad184ae6a81edd981fb87080"
+    },
+    {
+      "task_id": "brain-cycle62-hmac-telemetry",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first hmac_key TypeError; Telemetry hmac_key, _mac_of, mac field, verify_chain hmac_key findings, eval, tests, README/ADR-057",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794073278.2214785,
+      "timestamp_str": "2026-11-07 20:41:18",
+      "agent": "opencode:cycle62"
+    },
+    {
+      "task_id": "brain-cycle62-hmac-telemetry",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: keyed 8/8 MAC ok; wrong key bad-mac:0; missing-mac:0; tampered bad-mac:0; unkeyed 0 MAC ok; unkeyed-keyed 8 missing; 192 tests OK; aikit 5/5; standing unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794073278.2550087,
+      "timestamp_str": "2026-11-07 20:41:18",
+      "agent": "opencode:cycle62"
+    },
+    {
+      "task_id": "brain-cycle62-hmac-telemetry",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit HMAC signing, eval, tests, ADR-057, cycle 62",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794073289.3510077,
+      "timestamp_str": "2026-11-07 20:41:29",
+      "agent": "opencode:cycle62"
+    },
+    {
+      "task_id": "brain-cycle62-hmac-telemetry",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle62-hmac-telemetry' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794073289.559477,
+      "timestamp_str": "2026-11-07 20:41:29",
+      "agent": "opencode:cycle62"
     }
   ]
 }
