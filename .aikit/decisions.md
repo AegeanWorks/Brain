@@ -86,3 +86,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Running a small model against Brain must not fuse the repo to one runtime: llama.cpp now, other providers later. The rule planner stays the default and the measured baseline.
 - **Decision**: New models/ package with ModelBackend.generate(observation) interface; Planner accepts an optional backend and falls back to the rule policy (counted in fallbacks) on missing, invalid, or raising proposals. LlamaCppBackend lands separately once the binary and GGUF weights are fetched; providers never enter the repo (user-local cache only).
 - **Consequences**: Seam + StubBackend + 3 protocol tests pinned; backend None path byte-identical to the rule tree.
+
+### ADR-013: llama.cpp provider runs SmolLM2-135M-Q8 against the rule baseline
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: User-approved fetch: llama.cpp b12110 win-cpu server plus bartowski SmolLM2-135M-Instruct-Q8_0 GGUF, both in user-local cache outside the repo. Raw /completion skips the chat template so an instruct model rambles; the chat-completions endpoint applies it.
+- **Decision**: LlamaCppBackend drives llama-server over /v1/chat/completions (temperature 0, fixed seed, n_predict 24, 60s timeout) with first-legal-token parsing. No weights, binaries, or network clients in the repo.
+- **Consequences**: 60 tests OK; aikit check 5/5. Rule-vs-model on identical seeds: task success 5/5 -> 1/5, model contributes nothing measurable (T2 identical via 8/8 fallbacks); valid-but-useless tokens bypass fallback and truncate the rest at 200 steps with 0.0 reward. Determinism repeat identical (variance 0). Negative result kept: no tuning, no prompt search beyond endpoint/template fix.

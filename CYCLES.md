@@ -450,3 +450,58 @@ only integration scores, cross-module dependencies, and ablation differentials.
     SmolLM2 Q8 GGUF to user-local cache (outside repo).
 - **Pinned regression baselines for cycle 12**: unittest 57 OK; aikit
   5/5; stub replay 13/13 zero-fallback; invalid/raise fallback == steps.
+
+## Cycle 12 — small model before/after: SmolLM2-135M-Q8 vs rule baseline
+
+- **Baseline** (rule planner, pinned): T1-71 16 steps/3.0 reward;
+  T2-3 8/1.0; T3-15 13/1.0; T3-65 6/1.0; T3-74 9/1.0. Same rig, same
+  seeds, max_steps 200 for the after runs.
+- **Gap**: the user asked for a small model run with before/after
+  measurement. Approved fetch: llama-server b12110 win-cpu +
+  bartowski SmolLM2-135M-Instruct-Q8_0 GGUF (user-local cache, never
+  in repo). Raw /completion skips the chat template so the instruct
+  model rambles; /v1/chat/completions applies it (locked config:
+  temp 0, seed 0, n_predict 24, 60s timeout, port 8174/8175).
+- **Target delta**: measure steps/success/reward/fallbacks with the
+  model in the loop on 5 trap seeds; determinism repeat on one seed.
+- **Falsifier**: any rule pin moves, or model-run numbers irreproducible.
+- **Change** (models/llamacpp.py + tests/test_llamacpp.py new; README
+  models line; ADR-013): chat-endpoint backend with first-legal-token
+  parsing; 3 protocol tests (prompt determinism/content, first-token
+  wins, garbage rejected). Failing-first: tests error pre-implem
+  (ModuleNotFound), green after.
+- **After** (model in loop, temperature 0, fixed seed):
+  - T1-71: 200 steps (cap) / 0.0 reward / 13 fallbacks (rule: 16/3.0).
+  - T2-3: 8 / 1.0 / 8 fallbacks — identical to rule, model
+    contributed zero valid tokens.
+  - T3-15: 200 / 0.0 / 1 fallback (rule: 13/1.0).
+  - T3-65: 200 / 0.0 / 1 fallback (rule: 6/1.0).
+  - T3-74: 200 / 0.0 / 5 fallbacks (rule: 9/1.0).
+  - Task success 5/5 -> 1/5; repeat of T3-15 byte-identical
+    (variance 0). ~0.12s per call; 21-26s per 200-step run.
+- **Ablation**: sever the backend (None) and every rule pin restores
+  (tour/trap/total suites green); T2 shows the cut directly —
+  fallbacks == steps, so model-present and model-absent are the same
+  run. Valid-but-useless model tokens (collect-spam, wait-stands,
+  list-echo "up") bypass fallback and cause the truncations.
+- **Verdict**: negative result with mechanism: untuned 135M instruct
+  emits echo/ramble whose first legal token is state-independent, so
+  it cannot steer. No tuning or prompt search performed — recorded
+  boundary, not a model verdict. No emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 60/60 OK; aikit check 5/5 PASS (one hygiene
+  finding on the way: popen-wait-timeout at the server Popen — fixed
+  with a bounded terminate-wait(10)-kill in close() plus a scoped
+  allow marker documenting the long-lived-server rationale).
+- **Commands run**:
+  - background fetches (approved): llama.cpp zip 23.56MB +
+    GGUF 138.1MB to user-local cache; extracted, llama-server.exe up
+    in 1.6s.
+  - raw-output probes (/completion ramble; chat template echo/ramble).
+  - `python -m unittest tests.test_llamacpp -v` -> ModuleNotFound
+    pre-implem, 3 OK post.
+  - rule-vs-model battery (5 seeds) + determinism repeat.
+  - `python -m unittest discover -s tests -t .` -> 60 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 13**: unittest 60 OK; aikit
+  5/5; model battery numbers above; rule pins unchanged; parse/build
+  protocol pinned.
