@@ -1,121 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle76-calibration-store",
+    "task_id": "brain-cycle77-calibration-bridge",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794083847.5013256,
-    "owner": "opencode:cycle76",
-    "started_by": "opencode:cycle76",
+    "updated_at": 1794084786.8905184,
+    "owner": "opencode:cycle77",
+    "started_by": "opencode:cycle77",
     "continuations": [],
-    "completed_at": 1794083848.2009602
+    "completed_at": 1794084787.3299108
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle73-merkle-journal",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle73-merkle-journal' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794080897.2156556,
-      "timestamp_str": "2026-11-07 22:48:17",
-      "agent": "opencode:cycle73"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first calls 13!=4; progress_skip_after/streak/distrusted, skipped-progress branch, reset, policy key, tests, eval, README/ADR-068",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794081668.7067378,
-      "timestamp_str": "2026-11-07 23:01:08",
-      "agent": "opencode:cycle74"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: skip-on T3:15 13/4/3, T3:65 6/4/3, T2:3 8/3/3, T1 36/22/0; guard-on 13/6/8 calls; guard-off 21; alternating 13/6; two episodes 8; 282 tests OK; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794081669.2519882,
-      "timestamp_str": "2026-11-07 23:01:09",
-      "agent": "opencode:cycle74"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit progress skip, eval, tests, ADR-068, cycle 74",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794081669.6730385,
-      "timestamp_str": "2026-11-07 23:01:09",
-      "agent": "opencode:cycle74"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle74-progress-skip' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794081670.0928388,
-      "timestamp_str": "2026-11-07 23:01:10",
-      "agent": "opencode:cycle74"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: skip backend calls after 3 consecutive progress rejections",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794081746.0619497,
-      "timestamp_str": "2026-11-07 23:02:26",
-      "agent": "opencode:cycle74",
-      "impact_assessment": {
-        "why": "The cycle-72 progress guard still calls the backend every step: a wrong-way backend costs 13/6/8 calls on T3:15/T3:65/T2:3 for 12/5/8 rejections, so repeated wrong-way proposals keep spending model budget.",
-        "benefits": "After three consecutive progress rejections the planner returns the rule action without calling the backend (reason skipped-progress); calls fall 13/6/8 -> 4/4/3 while steps/rewards stay 13/6/8 and 1.0; T1 stays 36/22.",
-        "risks": "contract: Planner progress_skip_after keyword and policy key (policy digest changes); dependency: stdlib only; concurrency: none; state: no schema change.",
-        "mitigation": "Count only consecutive progress rejections, reset the streak on every non-progress outcome and per episode; keep progress_skip_after=None for the guard-only ablation; test skip-on/None/alternating/reset/invalid and rerun 282 tests plus AIKit."
-      },
-      "plan_digest": "0a003e3d32d94458d593910a5c1d08ab8536aed1a96ba0f0a26db429f4f44eed"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first calls 13!=4; progress_skip_after/streak/distrusted, skipped-progress branch, reset, policy key, tests, eval, README/ADR-068",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794081754.424592,
-      "timestamp_str": "2026-11-07 23:02:34",
-      "agent": "opencode:cycle74"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: skip-on T3:15 13/4/3, T3:65 6/4/3, T2:3 8/3/3, T1 36/22/0; guard-on 13/6/8 calls; guard-off 21; alternating 13/6; two episodes 8; 282 tests OK; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794081754.8027694,
-      "timestamp_str": "2026-11-07 23:02:34",
-      "agent": "opencode:cycle74"
-    },
-    {
-      "task_id": "brain-cycle74-progress-skip",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit progress skip, eval, tests, ADR-068, cycle 74",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794081755.2071066,
-      "timestamp_str": "2026-11-07 23:02:35",
-      "agent": "opencode:cycle74"
-    },
     {
       "task_id": "brain-cycle74-progress-skip",
       "phase": "completed",
@@ -247,6 +143,110 @@
       "timestamp": 1794083848.2009628,
       "timestamp_str": "2026-11-07 23:37:28",
       "agent": "opencode:cycle76"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first forecast_count AttributeError; SelfModel forecasts/slice, run_task_logged calibration_path, fail-fast, header-prefix append, tests/eval, README/ADR-071",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794084768.1290593,
+      "timestamp_str": "2026-11-07 23:52:48",
+      "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: default 13 in-memory/no file; logged 13/13 Brier 0.230769; two runs 19/19 0.223684 two prefixes; missing/corrupt errors; actions match; 314 tests OK; aikit 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794084768.519613,
+      "timestamp_str": "2026-11-07 23:52:48",
+      "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit bridge, eval, tests, ADR-071, cycle 77",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794084768.8055785,
+      "timestamp_str": "2026-11-07 23:52:48",
+      "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle77-calibration-bridge' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794084769.067971,
+      "timestamp_str": "2026-11-07 23:52:49",
+      "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: opt-in SelfModel forecast bridge into the calibration journal",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794084785.5812254,
+      "timestamp_str": "2026-11-07 23:53:05",
+      "agent": "opencode:cycle77",
+      "impact_assessment": {
+        "why": "The persistent SelfModel records confidence/outcome pairs and the calibration journal can store them, but no logged run connects the two: real-run forecasts stay in memory and vanish on exit, so cross-run calibration needs hand-built records.",
+        "benefits": "run_task_logged(calibration_path=...) appends only the current run's forecasts after the verdict, under a header-digest prefix; a default T3:15 run stays 13 in-memory forecasts with no file, the logged run persists 13/13 with the same Brier 0.230769, and a second run appends only 6 new records (19 total, two prefixes).",
+        "risks": "contract: SelfModel forecast_count/forecasts and run_task_logged calibration_path; dependency: stdlib only; concurrency: calibration_store lock; state: new local journal append after the verdict, opt-in.",
+        "mitigation": "Fail fast without a persistent SelfModel/forecast API; capture the pre-run count and slice only that run; prefix ids with the header digest; test default/logged/two-runs/missing/corrupt/actions; rerun 314 tests and AIKit."
+      },
+      "plan_digest": "665c30c6abe971e5516e17fd9630ecfb05be1c5115d7394e938cdb959750c23a"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] SelfModel forecasts/slice, run_task_logged calibration_path, fail-fast, header-prefix append, tests/eval, README/ADR-071",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794084786.0220315,
+      "timestamp_str": "2026-11-07 23:53:06",
+      "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: default 13 in-memory/no file; logged 13/13 Brier 0.230769; two runs 19/19 0.223684 two prefixes; missing/corrupt errors; actions match; 314 tests OK; aikit 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794084786.4454165,
+      "timestamp_str": "2026-11-07 23:53:06",
+      "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit bridge, eval, tests, ADR-071, cycle 77",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794084786.8905184,
+      "timestamp_str": "2026-11-07 23:53:06",
+      "agent": "opencode:cycle77"
+    },
+    {
+      "task_id": "brain-cycle77-calibration-bridge",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle77-calibration-bridge' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794084787.3299131,
+      "timestamp_str": "2026-11-07 23:53:07",
+      "agent": "opencode:cycle77"
     }
   ]
 }

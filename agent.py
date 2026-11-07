@@ -1281,15 +1281,32 @@ class Agent:
         return verdict, "steps=%d reward=%.1f" % (steps, reward)
 
     def run_task_logged(self, task_id, seed, max_steps=200, log_path=None,
-                        budget=None, workspace_root=None):
+                        budget=None, workspace_root=None,
+                        calibration_path=None):
         """Run task with header, per-step actions+results, and verdict.
 
         Writes header (seq 0), one kind "step" action plus one result
         per grid step with numeric M/P/S/hub vectors, then a verdict.
         The verdict is done only for a pre-cap completion; a full-budget
         run is truncated. Returns the in-memory trace list with
-        unchanged shape.
+        unchanged shape. When ``calibration_path`` is given, the
+        persistent self-model's forecasts for this run are appended to
+        the calibration journal after the verdict, under a prefix taken
+        from the header digest. The bridge is opt-in and does not change
+        actions; a calibration-store failure raises after the verdict.
         """
+        if calibration_path is not None:
+            if self.self_model is None:
+                raise ValueError(
+                    "Why: calibration_path needs a persistent self_model. "
+                    "Fix: pass Agent(self_model=SelfModel()) or omit "
+                    "calibration_path.")
+            for method in ("forecast_count", "forecasts"):
+                if not callable(getattr(self.self_model, method, None)):
+                    raise ValueError(
+                        "Why: calibration_path needs a self_model with "
+                        "forecast_count/forecasts. Fix: use "
+                        "self_model.model.SelfModel.")
         if log_path is not None:
             from telemetry.log import Telemetry as _FileTelemetry
 
@@ -1309,18 +1326,29 @@ class Agent:
                          if workspace_root is not None else None)
         self.last_episode_sha256 = identity_sha
         self.last_workspace_sha256 = workspace_sha
-        self.telemetry_log.write_header(task_id, max_steps,
-                                          policy=PLANNER_POLICY["name"],
-                                          policy_sha256=policy_digest(),
-                                          model=model_label(self.planner.backend),
-                                          episode_sha256=identity_sha,
-                                          workspace_sha256=workspace_sha)
+        header = self.telemetry_log.write_header(
+            task_id, max_steps,
+            policy=PLANNER_POLICY["name"],
+            policy_sha256=policy_digest(),
+            model=model_label(self.planner.backend),
+            episode_sha256=identity_sha,
+            workspace_sha256=workspace_sha)
+        forecast_start = (self.self_model.forecast_count()
+                          if calibration_path is not None else 0)
         trace = self.run(max_steps=max_steps, budget=budget)
         verdict, reason = self._episode_verdict(trace, max_steps)
         try:
             self.telemetry_log.write_verdict(verdict, reason)
         except Exception:
             self._substrate_errors["verdict"] += 1
+        if calibration_path is not None:
+            from calibration_store import append_forecasts
+
+            digest = header.get("digest") if isinstance(header, dict) else None
+            prefix = str(digest or identity_sha)[:12]
+            forecasts = self.self_model.forecasts(
+                prefix, start=forecast_start)
+            append_forecasts(forecasts, calibration_path)
         return trace
 
     def substrate_errors(self):

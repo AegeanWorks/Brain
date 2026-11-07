@@ -58,3 +58,29 @@ class SelfModel:
                 zip(self._confs, self._outcomes))
         ]
         return summary(forecasts, min_resolved=min_resolved)
+
+    def forecast_count(self):
+        """Return the number of recorded confidence/outcome pairs."""
+        return len(self._confs)
+
+    def forecasts(self, prefix="run", start=0):
+        """Return recorded pairs as forecast records with ids ``prefix:index``.
+
+        ``start`` selects the first absolute index, so a caller can
+        append only the pairs recorded during the current run.
+        """
+        if not isinstance(prefix, str) or not prefix.strip():
+            raise ValueError(
+                "Why: prefix must be a non-empty string. "
+                "Fix: pass a run prefix.")
+        if (isinstance(start, bool) or not isinstance(start, int)
+                or start < 0 or start > len(self._confs)):
+            raise ValueError(
+                "Why: start must be an integer in [0, forecast_count()]. "
+                "Fix: pass start=0 or the count captured before the run.")
+        pairs = list(zip(self._confs, self._outcomes))[start:]
+        return [
+            {"id": "%s:%d" % (prefix, start + index),
+             "probability": probability, "outcome": outcome}
+            for index, (probability, outcome) in enumerate(pairs)
+        ]

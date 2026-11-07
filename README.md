@@ -91,6 +91,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.calibration_store
   ```
+- **Calibration-Bridge Battery**:
+  ```bash
+  python -m evals.calibration_bridge
+  ```
 - **Claim-Verdict Battery**:
   ```bash
   python -m evals.claims
@@ -136,7 +140,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/claims/claims-store batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/claims/claims-store batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -396,6 +400,19 @@ resolved (Brier 0.129, skill 0.484), duplicate refusal, tamper/corrupt
 findings, missing, stale-lock steal and fresh-lock timeout. Keep the
 journal under `.aikit/` or outside the source tree; it is local
 evidence, not committed.
+
+`run_task_logged(..., calibration_path=...)` is the opt-in bridge from a
+real run to the journal. It requires a persistent `SelfModel` (the
+`self_model.model` class) and captures the pre-run `forecast_count()`;
+after the verdict it appends only that run's confidence/outcome pairs,
+with ids prefixed by the run header digest (first 12 hex). A default
+run keeps the 13 T3:15 forecasts in memory and writes no file; the
+logged run persists 13 with the same Brier 0.230769; a second run on the
+same self-model appends only its 6 new forecasts (19 total, two
+prefixes). Actions and rewards are unchanged. A missing self-model or a
+corrupt journal raises; the verdict is already written when the journal
+append fails. `python -m evals.calibration_bridge` shows
+default/logged/two-runs/missing-self-model/corrupt-store/actions.
 
 ## 🧾 Claim & Verdict Register
 
