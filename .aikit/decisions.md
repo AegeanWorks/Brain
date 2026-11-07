@@ -149,3 +149,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from ModelDuck (generation-manifest fingerprints, benchmark test-hash discipline) and Crucible (frozen versioning): Brain's gates require same-prompts proof across before/after batteries, but prompt identity was textual with no fingerprint.
 - **Decision**: New stdlib-only models/manifest.py: canonical JSON (sorted keys, compact separators) SHA-256 over {model_id, checkpoint label, prompt, observation, sampling}; prompt_set_manifest order-independent battery digest. LlamaCppBackend records self.last_manifest per generate() call (None-safe); StubBackend unchanged. Checkpoint is a caller-supplied label (basename/hash recorded outside the repo); no weights in repo.
 - **Consequences**: 86 tests OK; aikit check 5/5; standing behavior byte-identical (466/240/217, all pins); standing trace identical (syn 0.0541 phi 0.0); manifest determinism 4x repeat variance 0; prompt/visits sensitivity proven (enriched vs minimal differ); manifest removal breaks the 6-test probe (ablation).
+
+### ADR-022: Frozen probe/holdout seed split (500-599)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Crucible (frozen splits, train/holdout separation): probe seeds 0-499 drove every planner fix, but nothing pinned the verified-optimal wider ranges, so a future change could silently move them while all probe tests stay green.
+- **Decision**: Freeze seeds 500-599 as holdout with exact totals (T1 1581 / T2 800 / T3 738) in tests/test_holdout_500s.py; probe work continues on 0-499. No source change; no new deps.
+- **Consequences**: 87 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); corridor-cut ablation moves holdout T3 738 -> 742 (+4 across 11 blocked-corridor layouts incl. 560, a 307-twin) and kills 479/400-499 pins, proving the holdout is load-bearing for shipped integrations.

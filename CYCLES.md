@@ -1033,6 +1033,58 @@ only integration scores, cross-module dependencies, and ablation differentials.
   fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest determinism 4x variance 0.
 
+## Cycle 23 — frozen holdout split 500-599 (idea transfer)
+- **Source**: Crucible frozen splits + train/holdout separation (second
+  transfer after cycle-22 ModelDuck manifests; other surveyed ideas
+  remain backlog: ModelDuck tune gate/quota ladder, Lattice
+  token-frugal context + snapshot diffing, Lacon budgets).
+- **Gap**: probe seeds 0-499 drove every fix, but verified-optimal
+  wider ranges had no pins; a future change could move holdout seeds
+  while all probe tests stay green.
+- **Target delta**: freeze 500-599 with exact totals (T1 1581 / T2 800
+  / T3 738); no source change; standing behavior and trace
+  byte-identical.
+- **Falsifier**: standing totals move, trace numbers move, or the
+  holdout pin fails on the intact tree.
+- **Change** (tests/test_holdout_500s.py new only; ADR-022): exact
+  totals over 300 holdout episodes. No source diff; no new deps.
+- **Baseline** (cycle-22 pins re-verified): 86 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; holdout audit
+  totals computed T1 1581 / T2 800 / T3 738 (500-599 all optimal,
+  11 blocked-corridor layouts present incl. 560, a 307-twin).
+- **After**:
+  - code identical: 30-seed 466/240/217; all 86 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - holdout pinned: 87/87 with T1 1581 / T2 800 / T3 738 (300
+    episodes, 0.345s).
+- **Ablation** (corridor-cut = visits-only ordering, source
+  temporarily reverted then restored byte-identical):
+  - intact: holdout T3 738; 479 10/1.0; 400-499 total 675.
+  - cut: holdout T3 742 (+4 across holdout corridor layouts);
+    479 12/1.0; 400-499 total 677.
+  - Behavior AND trace-relevant totals die with the cut, return
+    with the restore: the holdout pin is load-bearing for shipped
+    corridor/depth integrations, not vacuous.
+- **Verdict**: provenance win (frozen split regress-proofs 600
+  episodes of verified optimality); no emergent claim. Verdict
+  UNKNOWN.
+- **Gates**: unittest 87/87 OK (86 carried + 1 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_holdout_500s -v` -> 1 OK
+    (pin computed from intact-tree audit).
+  - corridor-cut: holdout + corridor tests 4 FAIL (742 vs 738,
+    12 vs 10, 677 vs 675); restore -> all OK.
+  - `python -m unittest discover -s tests -t .` -> 86 OK before,
+    87 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical; git status shows test
+    file only (no source diff).
+- **Pinned regression baselines for cycle 24**: unittest 87 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; T3 400-499 675; holdout 500-599 1581/800/738;
+  pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0
+  n32; hub0/m0 0.0 p0/s0 identical; manifest determinism variance 0.
+
 ## Cycle 21 — full audit, zero verified improvements (STOP)
 - **Baseline** (cycle-20 pins re-verified):
   - canonical: 80 OK; aikit 5/5.
