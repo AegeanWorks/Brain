@@ -1451,3 +1451,54 @@ only integration scores, cross-module dependencies, and ablation differentials.
   any ceiling); Atlas quality scores (no gap to move one).
   Blocked: anything needing torch/TRL (fine-tuning) or live-model
   server runs as gates.
+
+## Cycle 30 — golden trace hashes (idea transfer)
+- **Source**: Keystone --simulate --expect-hash (pinned simulation
+  hash). Ninth transfer; second sweep also covered noesis (state
+  machines already deterministic/headless here), PNN (domain drug
+  work, no transfer), foundry (generator+validator gatekeeper —
+  subsumed by exhaustive coverage), harness (provider-by-config,
+  no behavioral delta), meridian/tessera/weft (browser games),
+  keystone 3D (needs GPU/numpy).
+- **Gap**: step counts and rewards pin outcomes, but a
+  behavior-neutral path swap at identical counts would drift
+  silently past all 100 tests.
+- **Target delta**: SHA-256 over canonical action sequences for the
+  9 pin seeds, computed once on the intact tree; 0.014s.
+- **Falsifier**: standing totals move, trace numbers move, or any
+  pin path differs.
+- **Change** (tests/test_golden_traces.py new only; ADR-029):
+  GOLDEN map + one equality test per seed; regeneration rule is
+  deliberately manual (reviewed edit, no auto-update flag) so
+  goldens can never rebaseline a red tree green. No source diff;
+  no new deps.
+- **Baseline** (cycle-29 pins re-verified): 100 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32.
+- **After**:
+  - code identical: 30-seed 466/240/217; all 100 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - paths pinned: 101/101 with 9/9 golden hashes exact.
+- **Ablation / sensitivity** (no source touched):
+  - single-action flip changes the fingerprint (proven cycle 24:
+    99aa6b.. vs 21dcfa.., differ True).
+  - corridor-cut moves 479 10->12 steps, which necessarily changes
+    its hash (different-length list) — the golden gate inherits
+    every routing cut's sensitivity on top of count pins.
+- **Verdict**: provenance win (paths now pinned, not just counts);
+  no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 101/101 OK (100 carried + 1 new); aikit 5/5.
+- **Commands run**:
+  - `python -m unittest tests.test_golden_traces -v` -> 1 OK.
+  - `python -m unittest discover -s tests -t .` -> 100 OK before,
+    101 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical.
+- **Pinned regression baselines for cycle 31**: unittest 101 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T1 100-199 1646;
+  T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499 675;
+  holdout 500-599 1581/800/738; exhaustive T3 3906/3906 total
+  27860; corridor-cut control 12/742; random floor best 1271/5.0
+  vs rule 89/11.0 (margins x10/+5); chain intact ok + 5 named
+  tamper findings; golden 9/9 paths; pins 16/8/13/6/9 + 7/14 +
+  6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro determinism variance 0.

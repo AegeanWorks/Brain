@@ -198,3 +198,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Assay (hash-chained evidence ledger + retrospective review): telemetry records were tamper-silent — a hand-edited log read back without complaint, so evidence integrity was asserted, not checked.
 - **Decision**: Every record carries prev (previous digest, GENESIS for a new log, LEGACY-anchored continuation onto old tails) and digest (SHA-256 over canonical JSON without digest); verify_chain(path) returns ok/findings/records/head with first-defect naming (corrupt-line, unchained-record, edited-record, reordered-record, broken-link). Additive keys on schema 2; existing strict/corrupt-line/bin behavior unchanged. No new deps.
 - **Consequences**: 100 tests OK (6 new, 0.1s); aikit check 5/5; standing behavior and trace byte-identical (94 carried tests green incl. roundtrip/bins/strictness); real 32-record run verifies clean with head digest; all 5 tamper classes fail loudly with named findings.
+
+### ADR-029: Golden trace hashes for pin seeds (pinned simulation)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Keystone --simulate --expect-hash: step counts and rewards pin outcomes, but a behavior-neutral path swap at identical counts would drift silently past all pins.
+- **Decision**: tests/test_golden_traces.py pins SHA-256 over canonical action sequences for the 9 pin seeds (computed once on the intact tree); regeneration is deliberately manual (reviewed edit, no auto-update) so goldens can never be rebaselined to green a red tree. No source change; no new deps.
+- **Consequences**: 101 tests OK (0.014s); aikit check 5/5; standing behavior and trace byte-identical (no source diff); any path change fails loudly — corridor-cut moves 479 10->12 steps, which necessarily changes its hash (different length list).
