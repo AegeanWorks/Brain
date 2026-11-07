@@ -41,6 +41,7 @@ PLANNER_POLICY = {
     "recovery_recall": "persistent-layout",
     "backend_trust": "stall>=20->match-only",
     "backend_noop_guard": "on",
+    "backend_distrust_skip": "on",
     "detour_pooling": "visits",
     "pool_corridor": ">=2",
     "cycle_escape": "repeat>=2->bfs",
@@ -320,11 +321,14 @@ class Planner:
     stall gate and ``noop_guard=False`` disables the no-op guard so raw
     backend controls can be measured. ``cycle_escape=False`` disables
     the repeated-position BFS escape so the loop can be measured as an
-    executable ablation.
+    executable ablation. Once the backend is distrusted, the planner
+    stops calling it: match-only means only the rule action can be
+    accepted, so the call is redundant. ``skip_after_distrust=False``
+    restores the calls for the cost ablation.
     """
 
     def __init__(self, backend=None, trust_window=20, noop_guard=True,
-                 cycle_escape=True):
+                 cycle_escape=True, skip_after_distrust=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -339,11 +343,16 @@ class Planner:
             raise ValueError(
                 "Why: cycle_escape must be a bool. "
                 "Fix: pass cycle_escape=True or False.")
+        if not isinstance(skip_after_distrust, bool):
+            raise ValueError(
+                "Why: skip_after_distrust must be a bool. "
+                "Fix: pass skip_after_distrust=True or False.")
         self._get_hub = None
         self.backend = backend
         self.trust_window = trust_window
         self.noop_guard = noop_guard
         self.cycle_escape = cycle_escape
+        self.skip_after_distrust = skip_after_distrust
         self._backend_distrusted = False
         self.fallbacks = 0
         self._recall_source = None
@@ -550,6 +559,20 @@ class Planner:
                     since = int(self.read_hub().get("steps_since_reward", 0))
                 except Exception:
                     since = 0
+            if self.skip_after_distrust and self._backend_distrusted:
+                probe["model_decision"] = {
+                    "proposed": None,
+                    "rule": rule_action,
+                    "steps_since_reward": since,
+                    "trust_window": self.trust_window,
+                    "noop_guard": self.noop_guard,
+                    "distrusted": True,
+                    "accepted": False,
+                    "reason": "skipped",
+                    "skipped": True,
+                }
+                self.last_probe = probe
+                return rule_action
             try:
                 proposed = self.backend.generate(obs)
             except Exception:
@@ -570,11 +593,11 @@ class Planner:
                 elif not self._backend_distrusted and since < self.trust_window:
                     accepted = True
                     reason = "accepted"
+                elif self._backend_distrusted:
+                    reason = "distrusted"
                 elif since >= self.trust_window:
                     self._backend_distrusted = True
                     reason = "stall"
-                else:
-                    reason = "distrusted"
             probe["model_decision"] = {
                 "proposed": proposed,
                 "rule": rule_action,
@@ -584,6 +607,7 @@ class Planner:
                 "distrusted": self._backend_distrusted,
                 "accepted": accepted,
                 "reason": reason,
+                "skipped": False,
             }
             self.last_probe = probe
             if accepted:

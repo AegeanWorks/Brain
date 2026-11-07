@@ -78,15 +78,18 @@ class TestModelBackendSeam(unittest.TestCase):
         self.assertTrue(trace[-1]["done"])
         self.assertEqual(len(trace), 33)
         self.assertEqual(sum(r["reward"] for r in trace), 1.0)
-        self.assertEqual(planner.fallbacks, 13)
-        self.assertEqual(backend.calls, 33)
+        self.assertLess(backend.calls, len(trace))
+        self.assertEqual(backend.calls, 21)
+        self.assertEqual(planner.fallbacks, 1)
         decision = planner.last_probe["model_decision"]
         self.assertFalse(decision["accepted"])
-        self.assertEqual(decision["proposed"], "wait")
-        self.assertEqual(decision["rule"], "down")
-        self.assertEqual(decision["reason"], "stall")
-        self.assertGreaterEqual(decision["steps_since_reward"], 20)
+        self.assertIsNone(decision["proposed"])
+        self.assertIn(decision["rule"],
+                      ("up", "down", "left", "right", "wait", "collect"))
+        self.assertEqual(decision["reason"], "skipped")
+        self.assertTrue(decision["skipped"])
         self.assertTrue(decision["distrusted"])
+        self.assertGreaterEqual(decision["steps_since_reward"], 20)
 
     def test_trust_window_none_restores_the_stall(self):
         backend = WaitingBackend()
@@ -135,9 +138,27 @@ class TestModelBackendSeam(unittest.TestCase):
         trace = Agent(planner=planner).run_task("T3_navigate", 15, max_steps=200)
         self.assertEqual(len(trace), 33)
         self.assertEqual(sum(r["reward"] for r in trace), 1.0)
-        self.assertEqual(planner.fallbacks, 13)
+        self.assertEqual(planner.fallbacks, 1)
+        self.assertEqual(backend.calls, 21)
         decision = planner.last_probe["model_decision"]
         self.assertFalse(decision["accepted"])
+        self.assertTrue(decision["distrusted"])
+        self.assertTrue(decision["skipped"])
+        self.assertEqual(decision["reason"], "skipped")
+
+    def test_distrust_skip_disabled_calls_after_window(self):
+        backend = WaitingBackend()
+        planner = RulePlanner(backend=backend, noop_guard=False,
+                              skip_after_distrust=False)
+        trace = Agent(planner=planner).run_task("T3_navigate", 15, max_steps=200)
+        self.assertEqual(len(trace), 33)
+        self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+        self.assertEqual(planner.fallbacks, 13)
+        self.assertEqual(backend.calls, 33)
+        decision = planner.last_probe["model_decision"]
+        self.assertEqual(decision["proposed"], "wait")
+        self.assertEqual(decision["reason"], "distrusted")
+        self.assertFalse(decision["skipped"])
         self.assertTrue(decision["distrusted"])
 
     def test_noop_guard_independent_of_trust_window(self):
@@ -164,12 +185,16 @@ class TestModelBackendSeam(unittest.TestCase):
         self.assertEqual(PLANNER_POLICY.get("backend_trust"),
                          "stall>=20->match-only")
         self.assertEqual(PLANNER_POLICY.get("backend_noop_guard"), "on")
+        self.assertEqual(PLANNER_POLICY.get("backend_distrust_skip"), "on")
         legacy_trust = dict(PLANNER_POLICY)
         legacy_trust.pop("backend_trust", None)
         self.assertNotEqual(policy_digest(), policy_digest(legacy_trust))
         legacy_noop = dict(PLANNER_POLICY)
         legacy_noop.pop("backend_noop_guard", None)
         self.assertNotEqual(policy_digest(), policy_digest(legacy_noop))
+        legacy_skip = dict(PLANNER_POLICY)
+        legacy_skip.pop("backend_distrust_skip", None)
+        self.assertNotEqual(policy_digest(), policy_digest(legacy_skip))
 
     def test_invalid_trust_window_rejected(self):
         with self.assertRaises(ValueError):
@@ -182,6 +207,10 @@ class TestModelBackendSeam(unittest.TestCase):
     def test_invalid_noop_guard_rejected(self):
         with self.assertRaises(ValueError):
             RulePlanner(noop_guard="yes")
+
+    def test_invalid_skip_after_distrust_rejected(self):
+        with self.assertRaises(ValueError):
+            RulePlanner(skip_after_distrust="yes")
 
 
 if __name__ == "__main__":

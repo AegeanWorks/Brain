@@ -5,10 +5,12 @@ step; ``noop`` returns a blocked boundary/obstacle direction whenever one
 exists. The no-op guard rejects both immediately whenever the rule has a
 productive action. The independent trust window remains for movement
 stalls; with ``noop_guard=False`` the proposal is accepted until 20
-unrewarded steps, then rejected and held match-only.
-``trust_window=None`` plus ``noop_guard=False`` is the raw control:
-every legal proposal is accepted and the run stalls at the cap. All
-variants use the same backend, seeds and prompts.
+unrewarded steps, then rejected and held match-only. Once distrusted the
+planner skips the backend call (match-only means only the rule action can
+be accepted); ``--no-skip`` restores the redundant calls for the cost
+ablation. ``trust_window=None`` plus ``noop_guard=False`` is the raw
+control: every legal proposal is accepted and the run stalls at the cap.
+All variants use the same backend, seeds and prompts.
 
 Reports behavior (success, steps, reward, transfer, recovery) and the
 model-seam trace (proposed/rule/steps_since_reward/accepted, fallback
@@ -101,10 +103,12 @@ def _prompt_sha256(observation, seed, model_id):
 
 
 def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
-                 noop_guard=True, backend_name="wait", max_steps=200):
+                 noop_guard=True, backend_name="wait", max_steps=200,
+                 skip_after_distrust=True):
     backend = BACKENDS[backend_name]()
     planner = Planner(backend=backend, trust_window=trust_window,
-                      noop_guard=noop_guard)
+                      noop_guard=noop_guard,
+                      skip_after_distrust=skip_after_distrust)
     agent = Agent(planner=planner, world=GridWorld(task, seed))
     log_path = os.path.join(directory, "%s-%d.jsonl" % (task, seed))
     tel = Telemetry(log_path)
@@ -137,7 +141,9 @@ def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
         "fallbacks": planner.fallbacks,
         "model_calls": backend.calls,
         "noop_guard": noop_guard,
+        "skip_after_distrust": skip_after_distrust,
         "rejected_steps": sum(1 for item in decisions if not item["accepted"]),
+        "skipped_steps": sum(1 for item in decisions if item.get("skipped")),
         "decision_first": decisions[0] if decisions else None,
         "decision_last": decisions[-1] if decisions else None,
         "action_sha256": _actions_digest(trace),
@@ -148,14 +154,16 @@ def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
 
 
 def run_battery(cases=CASES, trust_window=DEFAULT_TRUST_WINDOW,
-                noop_guard=True, backend_name="wait", max_steps=200):
+                noop_guard=True, backend_name="wait", max_steps=200,
+                skip_after_distrust=True):
     """Measure every case in one temporary directory."""
     with tempfile.TemporaryDirectory() as directory:
         results = [measure_case(task, seed, directory,
                                 trust_window=trust_window,
                                 noop_guard=noop_guard,
                                 backend_name=backend_name,
-                                max_steps=max_steps)
+                                max_steps=max_steps,
+                                skip_after_distrust=skip_after_distrust)
                    for task, seed in cases]
         return {
             "policy_sha256": policy_digest(),
@@ -163,6 +171,7 @@ def run_battery(cases=CASES, trust_window=DEFAULT_TRUST_WINDOW,
             "backend": backend_name,
             "trust_window": trust_window,
             "noop_guard": noop_guard,
+            "skip_after_distrust": skip_after_distrust,
             "max_steps": max_steps,
             "cases": results,
         }
@@ -188,6 +197,8 @@ def main():
                         help="disable the no-op guard only; stall trust remains")
     parser.add_argument("--ablate-trust", action="store_true",
                         help="disable the trust window only; no-op guard remains")
+    parser.add_argument("--no-skip", action="store_true",
+                        help="keep calling a distrusted backend (cost ablation)")
     parser.add_argument("--max-steps", type=int, default=200)
     args = parser.parse_args()
     cases = tuple(_parse_case(text) for text in args.case) if args.case else CASES
@@ -202,7 +213,8 @@ def main():
     print(json.dumps(run_battery(cases, trust_window=trust_window,
                                  noop_guard=noop_guard,
                                  backend_name=args.backend,
-                                 max_steps=args.max_steps),
+                                 max_steps=args.max_steps,
+                                 skip_after_distrust=not args.no_skip),
                      indent=2, sort_keys=True))
 
 

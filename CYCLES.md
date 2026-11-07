@@ -2689,3 +2689,35 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 55**: unittest 156 OK; aikit 5/5; cycle-a 19/1.0 action hash 9ed8486f..., prompt 398a93d3...; cycle-b 18/1.0 action hash 722c4c33..., prompt aa934aba...; escape-off 200/0 hashes 8baacf99.../c1ae3ac7...; blind 200/0 hashes cd16b302.../367ab500...; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy ea445074...; multi pins 9/18/11/13/14; three pins 15/12/10/13/19; exhaustive 3906/3906; trust 16/8/13/6; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 55 - skip redundant backend calls after the trust gate distrusts
+
+- **Baseline** (commit c762408, cycle 54; same WaitingBackend, seeds, prompts and probe code):
+  - canonical gate: 156 tests OK; aikit check 5/5; policy ea4450748ebd2c555e0017c7d346230c5366f72cd4dd16fd84bbf3f8f463cb73.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - stalled backend with `--ablate-noop` (trust window on, no-op guard off): steps 36/28/33/26; rewards 3/1/1/1; success 4/4; 36/28/33/26 model calls; fallbacks 16/8/13/6; rejected steps 16/8/13/6; skipped 0; last decision `proposed=wait`, `reason=stall`, `distrusted=true`; action hashes 90a61333/1736021f/33d9f09c/55e279bf; prompt hashes 6e19bc1d/78c208fb/816fa226/ae3c4f52; syn 0.11612872882479021/0.006591080505772978/0.015843139290281194/0.010002568849882792, phi 0.0.
+  - default no-op guard on: 16/8/13/6, calls 16/8/13/6; trust off: 16/8/13/6; both off: 200/200/200/200 with 0 reward, 200 calls.
+- **Gap**: after the 20-step stall window the planner is match-only, so only a proposal equal to the rule action could be accepted, and that returns the same rule action. Every later backend call is therefore redundant: 15/7/12/5 calls per stalled episode. The reason ladder also checks `since >= window` before `distrusted`, so every post-window rejection reports `stall` and the declared `distrusted` reason is unreachable.
+- **Target delta**: calls 36/28/33/26 -> 21/21/21/21; fallbacks 16/8/13/6 -> 1/1/1/1; skipped 0 -> 15/7/12/5; last reason `stall` -> `skipped`; actions, steps, rewards, success, M/P/S/hub vectors and syn/phi unchanged; `--no-skip` restores the calls, fallbacks and `reason=distrusted`.
+- **Falsifier**: any action hash, step count, reward or syn/phi moves; calls are not reduced; `--no-skip` does not restore the baseline calls/fallbacks; the default no-op-guard, trust-off, standing or cold-start pins move.
+- **Change**: agent.py adds `Planner(skip_after_distrust=True)` and skips `backend.generate` once `_backend_distrusted` is set, emitting `model_decision{proposed:null, skipped:true, reason:"skipped"}` without incrementing `fallbacks`; reorders the reason ladder so `stall` marks only the triggering step and `distrusted` is reachable; adds `PLANNER_POLICY["backend_distrust_skip"] = "on"`. evals/trust.py gains `--no-skip`, `skip_after_distrust` and `skipped_steps`; tests cover the skip, the cost ablation, the reason, the policy key and flag validation. README and ADR-051 record the contract. No new dependencies; no schema change.
+- **After** (same backend, seeds, prompts and probe code):
+  - steps 36/28/33/26, rewards 3/1/1/1, success 4/4 and action hashes 90a61333/1736021f/33d9f09c/55e279bf are byte-identical.
+  - model calls 21/21/21/21; fallbacks 1/1/1/1; skipped steps 15/7/12/5; rejected steps 16/8/13/6; last decision `proposed=null`, `skipped=true`, `distrusted=true`, `reason=skipped`.
+  - M/P/S/hub vectors are unchanged, so syn/phi are byte-identical: 0.11612872882479021/0.006591080505772978/0.015843139290281194/0.010002568849882792, phi 0.0. The probe readout is the delta, not the estimator.
+  - default no-op guard on 16/8/13/6 with calls 16/8/13/6; trust off 16/8/13/6; both off 200/0 with calls 200; standing 466/240/217, T1 seeds 0-99 1581, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0, cold-start 16/8/13/6, cycle-escape battery 19/18 with 1.0. `policy_digest` ea445074... -> 8c2c51bc964cbe74120131e0cd3dffeee0e1052c10a5f6869531b37654257c77.
+- **Ablation** (same backend, seeds and prompts):
+  - `--no-skip` (`skip_after_distrust=False`): calls 36/28/33/26, fallbacks 16/8/13/6, skipped 0, last reason `distrusted`; actions identical. The cost reduction and the `skipped` readout die with the cut.
+  - trust off (raw): 200/200/200/200 with 0 reward and 200 calls; never distrusted, so the skip gate cannot fire.
+- **Verdict**: model-seam cost and trace-integrity improvement. The action trace is unchanged; the measured deltas are calls (36/28/33/26 -> 21/21/21/21), fallbacks (16/8/13/6 -> 1/1/1/1), skipped steps (0 -> 15/7/12/5) and the honest `stall`/`distrusted`/`skipped` reasons. No action or emergence claim.
+- **Gates**: unittest 158/158 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_backend.TestModelBackendSeam.test_stalled_legal_backend_falls_back_after_window -v` -> before: FAIL (33 calls == 33 steps); after: OK.
+  - `python -m unittest tests.test_model_backend -v` -> 15 OK.
+  - `python -m unittest discover -s tests -t .` -> 158 OK.
+  - `python -m evals.trust` -> 16/8/13/6 with 16/8/13/6 calls, 0 skipped; `--ablate-noop` -> 36/28/33/26 with 21/21/21/21 calls, fallbacks 1/1/1/1, skipped 15/7/12/5; `--ablate-noop --no-skip` -> 36/28/33/26 with 36/28/33/26 calls, fallbacks 16/8/13/6, last reason distrusted; `--ablate` -> 200/0 with 200 calls.
+  - `python -m evals.escape --mode intact/ablate/blind` -> 19/18, 200/200, 200/200 as pinned.
+  - `python -m evals.coldstart --capture` -> 16/8/13/6 with store_reads 1.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 56**: unittest 158 OK; aikit 5/5; stalled `--ablate-noop` 36/28/33/26 with actions 90a61333/1736021f/33d9f09c/55e279bf, calls 21/21/21/21, fallbacks 1/1/1/1, skipped 15/7/12/5; `--no-skip` calls 36/28/33/26, fallbacks 16/8/13/6, last reason distrusted; default wait 16/8/13/6 calls 16/8/13/6; trust-off 16/8/13/6; both-off 200/0; escape 19/18; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 8c2c51bc...; multi pins 9/18/11/13/14; three pins 15/12/10/13/19; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

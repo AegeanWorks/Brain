@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle54-cycle-escape",
+    "task_id": "brain-cycle55-distrust-skip",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794067432.3276567,
-    "owner": "opencode:cycle54",
-    "started_by": "opencode:cycle54",
+    "updated_at": 1794068132.332934,
+    "owner": "opencode:cycle55",
+    "started_by": "opencode:cycle55",
     "continuations": [],
-    "completed_at": 1794067529.9877627
+    "completed_at": 1794068140.3730624
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle50-noop-guard",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit no-op guard, tests, trust battery ablations, ADR-047, cycle 50",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794064941.6046019,
-      "timestamp_str": "2026-11-07 18:22:21",
-      "agent": "opencode:cycle50"
-    },
-    {
-      "task_id": "brain-cycle50-noop-guard",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle50-noop-guard' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794064950.5816374,
-      "timestamp_str": "2026-11-07 18:22:30",
-      "agent": "opencode:cycle50"
-    },
-    {
-      "task_id": "brain-cycle51-movement-noop",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: extend the no-op guard to blocked movement proposals",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794065023.1818647,
-      "timestamp_str": "2026-11-07 18:23:43",
-      "agent": "opencode:cycle51",
-      "impact_assessment": {
-        "why": "A backend proposing a blocked direction is legal but cannot change position; the current guard only catches wait/premature collect, so it still burns the 20-step trust window.",
-        "benefits": "Blocked-movement backend completes in rule-optimal steps; reason=no-op; trust window remains for real movement stalls.",
-        "risks": "contract: no-op predicate gains boundary/obstacle check; dependency: stdlib only; concurrency: none; state: no schema change.",
-        "mitigation": "Use the current pos and obstacle set; accept if the rule chooses the same action; measure before/after with NoopBackend; all goldens re-run."
-      },
-      "plan_digest": "c42b1480eaf19e84bbbc12e0e83508889c05690c1bfc6dab7b125aff3eda1939"
-    },
-    {
-      "task_id": "brain-cycle51-movement-noop",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first blocked-movement tests; _movement_noop boundary/obstacle check under the existing noop_guard; trust battery --backend noop",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794065235.8851109,
-      "timestamp_str": "2026-11-07 18:27:15",
-      "agent": "opencode:cycle51"
-    },
-    {
-      "task_id": "brain-cycle51-movement-noop",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: blocked-movement backend 36/28/33/26 -> 16/8/13/6 with 3/1/1/1; ablate-noop restores 36/28/33/26; both off 200/0; prompts unchanged; 145 tests OK; aikit 5/5; standing unchanged; ADR-048 and cycle 51 recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794065241.293568,
-      "timestamp_str": "2026-11-07 18:27:21",
-      "agent": "opencode:cycle51"
-    },
     {
       "task_id": "brain-cycle51-movement-noop",
       "phase": "verification",
@@ -254,6 +193,67 @@
       "timestamp": 1794067529.9877648,
       "timestamp_str": "2026-11-07 19:05:29",
       "agent": "opencode:cycle54"
+    },
+    {
+      "task_id": "brain-cycle55-distrust-skip",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: stop redundant backend calls after the trust gate distrusts, and make the decision reason honest",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068039.3578405,
+      "timestamp_str": "2026-11-07 19:13:59",
+      "agent": "opencode:cycle55",
+      "impact_assessment": {
+        "why": "After the 20-step stall window the planner is match-only, so only a rule-matching proposal could be accepted and that returns the rule action; later calls are redundant (15/7/12/5 per stalled episode), and the reason ladder shadows the declared distrusted reason.",
+        "benefits": "Calls 36/28/33/26 -> 21/21/21/21, fallbacks 16/8/13/6 -> 1/1/1/1, skipped readout 0 -> 15/7/12/5, honest stall/distrusted/skipped reasons; actions, steps, rewards and vectors unchanged.",
+        "risks": "contract: model_decision gains skipped and reason order changes; dependency: stdlib only; concurrency: none; state: no schema change.",
+        "mitigation": "Skip only after _backend_distrusted is already true; return the rule action without incrementing fallbacks; keep --no-skip as the cost ablation; re-run all trust modes, escape, cold-start and standing pins."
+      },
+      "plan_digest": "d8639ae5a6f5badde7aaf45d6558eb216aadf578756e2d071ac5018724ca8900"
+    },
+    {
+      "task_id": "brain-cycle55-distrust-skip",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first 33-call assertion; skip after distrust, skipped probe, reason order fix, policy key, trust --no-skip and skipped_steps, tests, README/ADR-051",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068039.5035608,
+      "timestamp_str": "2026-11-07 19:13:59",
+      "agent": "opencode:cycle55"
+    },
+    {
+      "task_id": "brain-cycle55-distrust-skip",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit distrust-skip, skipped probe, reason order, trust --no-skip, ADR-051, cycle 55",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068132.3187041,
+      "timestamp_str": "2026-11-07 19:15:32",
+      "agent": "opencode:cycle55"
+    },
+    {
+      "task_id": "brain-cycle55-distrust-skip",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: stalled --ablate-noop steps/actions/rewards unchanged; calls 36/28/33/26 -> 21/21/21/21, fallbacks 16/8/13/6 -> 1/1/1/1, skipped 15/7/12/5; --no-skip restores calls/fallbacks; vectors and syn/phi unchanged; 158 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy 8c2c51bc",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068132.332934,
+      "timestamp_str": "2026-11-07 19:15:32",
+      "agent": "opencode:cycle55"
+    },
+    {
+      "task_id": "brain-cycle55-distrust-skip",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle55-distrust-skip' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794068140.3730655,
+      "timestamp_str": "2026-11-07 19:15:40",
+      "agent": "opencode:cycle55"
     }
   ]
 }
