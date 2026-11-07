@@ -2814,3 +2814,34 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.trust` / `--ablate-noop` -> 16/8/13/6 and 36/28/33/26 with 21 calls; `python -m evals.escape` -> 19/18 intact, 200/200 ablate/blind; `python -m evals.coldstart --capture` -> 16/8/13/6.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 59**: unittest 177 OK; aikit 5/5; chain intact 8/8 ok, truncated 8->6 `truncated-tail:6<8`, unanchored 8->6 ok, missing/mismatch fail; multi (7,5) 16/1.0 with probe; dead-pool ablate 18; other multi 9/11/13/14; three 15/12/10/13/19; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; manifest intact coverage 1.0, ablate 0.0; trust 16/8/13/6, ablate-noop 36/28/33/26 with 21 calls; both-off 200/0; escape 19/18; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 59 - full audit of the remaining two-blocker detours, zero verified safe improvements (STOP)
+
+- **Baseline** (commit eace8a7, cycle 58; no code change in this cycle):
+  - canonical gate: 177 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - multi intact 9/16/11/13/14 with 1.0; blind 9/200/200/200/200 (the four killing configs truncate at 0.0). three intact 15/12/10/13/19 with 1.0; blind 200/200/10/200/200.
+  - chain anchor: intact 8/8 ok; truncated 8->6 `truncated-tail:6<8`; unanchored 8->6 ok.
+- **Gap**: the remaining two-blocker detours are (3,6) 11 vs BFS 9, (5,6) 13 vs 11, (5,7) 14 vs 12 (and (7,5) is 16 vs BFS 12 after cycle 57). A BFS-distance-first ordering of the live candidates is the obvious candidate.
+- **Target delta**: none qualifies. Candidate results, one line each:
+  - BFS-distance live ordering (exactly 2 obstacles): intact becomes 9/12/9/11/12 (BFS-optimal), but the memory-blind cut also becomes 9/12/9/11/12; the four multi blind kills (7,5),(3,6),(5,6),(5,7) die, `test_blind_kills_multi_recovery` would fail, and the property no longer dies with the memory cut. Rejected; a 300-config scan showed 1 improved (3,0 11->9), 0 regressed, 0 other changes, but the coupling loss blocks it.
+  - Extending the dead-pool guard to 3 blockers: counts stay 15/12/10/13/19 but the (6,7) golden path changes at the same 15 steps; path drift with no count gain. Rejected.
+  - Global BFS policy (not just the first move): same blind-coupling loss as the live ordering; rejected.
+  - 3-blocker BFS/order changes: no count target that survives the memory ablation; would only rewrite goldens. Rejected.
+  - `mean_conf` consumer: still no failing eval; inventing a confidence policy is not a measured gap.
+  - removing/batching per-step memory-store writes: no behavior gap; M vector and fixed-rig trace would move without a failing eval.
+  - prompt visits cap: speculative prompt change with no behavior target.
+  - llama.cpp retry/backoff: no local server or weights; untestable in this battery.
+  - telemetry readers unlocked / anchor rewriteable with the log: documented boundaries (cycles 53/58); no new measured gap.
+- **Change**: none. No code, no harness, no ADR (audit result, not a design decision). The BFS-live prototype was runtime-only and was not committed.
+- **After**: identical battery re-verified: 177 tests OK; aikit 5/5; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; standing 466/240/217; holdout 1581/800/738; fixed syn 0.05411532 phi 0.0; policy d097b97b unchanged. No deltas, variance not applicable.
+- **Ablation**: none (no integration claim).
+- **Verdict**: full cycle with zero verified safe improvements. Stopping per the goal rule (allowed stop: zero-findings cycle). STOP.
+- **Gates**: unittest 177/177 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest discover -s tests -t .` -> 177 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - audit script -> multi intact 9/16/11/13/14, blind 9/200/200/200/200; three 15/12/10/13/19, blind 200/200/10/200/200; standing 466/240/217; policy d097b97b.
+  - runtime BFS-live prototype -> intact 9/12/9/11/12, blind 9/12/9/11/12; 300-config scan 1 improved, 0 regressed.
+  - `python -m evals.chain_anchor` -> intact 8/8, truncated 8->6 detected, unanchored 8->6 ok.
+- **Pinned regression baselines carried (no new pins)**: unittest 177 OK; aikit 5/5; chain intact 8/8, truncated 8->6 `truncated-tail:6<8`, unanchored 8->6 ok; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; manifest coverage 1.0/0.0; trust 16/8/13/6, ablate-noop 36/28/33/26 with 21 calls; both-off 200/0; escape 19/18; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

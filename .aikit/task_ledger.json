@@ -1,57 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle58-chain-anchor",
+    "task_id": "brain-cycle59-zero-audit",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794069798.0119846,
-    "owner": "opencode:cycle58",
-    "started_by": "opencode:cycle58",
+    "updated_at": 1794070075.8402953,
+    "owner": "opencode:cycle59",
+    "started_by": "opencode:cycle59",
     "continuations": [],
-    "completed_at": 1794069806.2028403
+    "completed_at": 1794070157.0242903
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle55-distrust-skip",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: stop redundant backend calls after the trust gate distrusts, and make the decision reason honest",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068039.3578405,
-      "timestamp_str": "2026-11-07 19:13:59",
-      "agent": "opencode:cycle55",
-      "impact_assessment": {
-        "why": "After the 20-step stall window the planner is match-only, so only a rule-matching proposal could be accepted and that returns the rule action; later calls are redundant (15/7/12/5 per stalled episode), and the reason ladder shadows the declared distrusted reason.",
-        "benefits": "Calls 36/28/33/26 -> 21/21/21/21, fallbacks 16/8/13/6 -> 1/1/1/1, skipped readout 0 -> 15/7/12/5, honest stall/distrusted/skipped reasons; actions, steps, rewards and vectors unchanged.",
-        "risks": "contract: model_decision gains skipped and reason order changes; dependency: stdlib only; concurrency: none; state: no schema change.",
-        "mitigation": "Skip only after _backend_distrusted is already true; return the rule action without incrementing fallbacks; keep --no-skip as the cost ablation; re-run all trust modes, escape, cold-start and standing pins."
-      },
-      "plan_digest": "d8639ae5a6f5badde7aaf45d6558eb216aadf578756e2d071ac5018724ca8900"
-    },
-    {
-      "task_id": "brain-cycle55-distrust-skip",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first 33-call assertion; skip after distrust, skipped probe, reason order fix, policy key, trust --no-skip and skipped_steps, tests, README/ADR-051",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068039.5035608,
-      "timestamp_str": "2026-11-07 19:13:59",
-      "agent": "opencode:cycle55"
-    },
-    {
-      "task_id": "brain-cycle55-distrust-skip",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit distrust-skip, skipped probe, reason order, trust --no-skip, ADR-051, cycle 55",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068132.3187041,
-      "timestamp_str": "2026-11-07 19:15:32",
-      "agent": "opencode:cycle55"
-    },
     {
       "task_id": "brain-cycle55-distrust-skip",
       "phase": "in_progress",
@@ -255,6 +215,45 @@
       "timestamp": 1794069806.2028418,
       "timestamp_str": "2026-11-07 19:43:26",
       "agent": "opencode:cycle58"
+    },
+    {
+      "task_id": "brain-cycle59-zero-audit",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Audit plan: test BFS-distance live ordering on the remaining two-blocker detours against the blind-coupling pins; if unsafe, record zero-finding audit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794070040.8288844,
+      "timestamp_str": "2026-11-07 19:47:20",
+      "agent": "opencode:cycle59",
+      "impact_assessment": {
+        "why": "The remaining two-blocker detours (3,6) 11 vs BFS 9, (5,6) 13 vs 11, (5,7) 14 vs 12 could potentially be removed by a BFS-distance live ordering; the audit must check whether that preserves the blind memory-cut kills.",
+        "benefits": "Either a safe optimal routing change with an ablation, or a recorded zero-finding stop with the unsafe candidate documented.",
+        "risks": "contract: no code change in the audit; dependency: none; concurrency: none; state: none. The runtime prototype is not committed.",
+        "mitigation": "Run the prototype only in-process; compare intact and blind pins plus a 300-config scan; if the blind kills die, reject and stop without editing code."
+      },
+      "plan_digest": "68f7186ed2c3f54ff8910517571319c65d4401eff1534923ef605b0541ed9be8"
+    },
+    {
+      "task_id": "brain-cycle59-zero-audit",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/3] Full audit: BFS-live ordering makes intact multi 9/12/9/11/12 but also makes blind 9/12/9/11/12, killing four blind kills; 3-blocker dead-pool extension changes the (6,7) golden at 15 steps; no safe gap; 177 tests OK; aikit 5/5; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794070075.8402953,
+      "timestamp_str": "2026-11-07 19:47:55",
+      "agent": "opencode:cycle59"
+    },
+    {
+      "task_id": "brain-cycle59-zero-audit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle59-zero-audit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794070157.0242915,
+      "timestamp_str": "2026-11-07 19:49:17",
+      "agent": "opencode:cycle59"
     }
   ]
 }
