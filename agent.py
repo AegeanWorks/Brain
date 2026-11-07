@@ -80,24 +80,30 @@ def _step_toward(pos, goal, obstacles, visits=None):
     def _free(cell):
         return 0 <= cell[0] < SIZE and 0 <= cell[1] < SIZE and tuple(cell) not in blocked
 
-    def _has_exit(cell):
-        # One-step lookahead: a candidate cell is viable when stepping onto
-        # it leaves at least one free distance-reducing exit toward the goal.
-        # The goal cell itself is trivially viable.
-        if list(cell) == list(goal):
-            return True
+    def _exits(cell):
         ddx = goal[0] - cell[0]
         ddy = goal[1] - cell[1]
-        exits = []
+        out = []
         if ddx > 0:
-            exits.append([cell[0] + 1, cell[1]])
+            out.append([cell[0] + 1, cell[1]])
         elif ddx < 0:
-            exits.append([cell[0] - 1, cell[1]])
+            out.append([cell[0] - 1, cell[1]])
         if ddy > 0:
-            exits.append([cell[0], cell[1] + 1])
+            out.append([cell[0], cell[1] + 1])
         elif ddy < 0:
-            exits.append([cell[0], cell[1] - 1])
-        return any(_free(e) for e in exits)
+            out.append([cell[0], cell[1] - 1])
+        return out
+
+    def _has_exit(cell, depth=2):
+        # Two-step lookahead: a candidate cell is viable when stepping onto
+        # it leaves a free distance-reducing exit that itself still has a
+        # free exit (or is the goal). The goal cell is trivially viable.
+        # Depth bounds the recursion; branching is at most 2.
+        if list(cell) == list(goal):
+            return True
+        if depth <= 1:
+            return any(_free(e) for e in _exits(cell))
+        return any(_free(e) and _has_exit(e, depth - 1) for e in _exits(cell))
 
     free_ordered = [(name, nxt) for name, nxt in ordered if _free(nxt)]
     # Prefer viable exits, then least-visited cells; the x-first axis order

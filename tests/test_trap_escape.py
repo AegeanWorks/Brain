@@ -26,16 +26,25 @@ class TestTrapEscape(unittest.TestCase):
         self.assertEqual(sum(r["reward"] for r in trace), 1.0)
         self.assertEqual(len(trace), 13)
 
-    def test_ablation_blind_memory_truncates_trap(self):
-        # Intact planner (lookahead + visit counts from memory) completes
-        # seed 65 in 8 steps; severing memory leaves lookahead-only routing
-        # that cycles until the step cap, proving the memory coupling.
-        intact = Agent()
-        trace = intact.run_task("T3_navigate", 65, max_steps=200)
+    def test_seed65_takes_optimal_6(self):
+        trace = _steps("T3_navigate", 65)
+        self.assertGreater(len(trace), 0)
         self.assertTrue(trace[-1]["done"])
-        self.assertEqual(len(trace), 8)
+        self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+        self.assertEqual(len(trace), 6)
+
+    def test_ablation_blind_memory_truncates_trap(self):
+        # Intact planner (2-ply lookahead + visit counts from memory)
+        # completes seed 74 in 9 steps; severing memory leaves
+        # lookahead-only routing that cycles until the step cap with zero
+        # reward, proving the memory coupling.
+        intact = Agent()
+        trace = intact.run_task("T3_navigate", 74, max_steps=200)
+        self.assertTrue(trace[-1]["done"])
+        self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+        self.assertEqual(len(trace), 9)
         blind = Agent(planner=BlindPlanner())
-        cut = blind.run_task("T3_navigate", 65, max_steps=200)
+        cut = blind.run_task("T3_navigate", 74, max_steps=200)
         self.assertEqual(len(cut), 200)
         self.assertEqual(sum(r["reward"] for r in cut), 0.0)
 

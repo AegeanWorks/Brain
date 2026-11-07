@@ -101,3 +101,50 @@ only integration scores, cross-module dependencies, and ablation differentials.
   step totals T1=466 T2=240 T3=217 (30 seeds); T3 seed 15 = 13;
   T3 seed 65 = 8 intact / 200 blind; wiring SM errors T1=125 T2=70 T3=60;
   phi 0.0 x3; syn 0.1167/0.1000/0.1229.
+
+## Cycle 3 — two-step exit lookahead
+
+- **Baseline** (cycle 2 pins): 46 tests OK; aikit 5/5; T3 seed 65 = 8
+  (BFS-optimal 6); T3 30-seed total 217.
+- **Gap**: T3 seed 65 (target [3,3], obstacle [3,2]): 1-step lookahead
+  routed (2,0)->(3,0)->(3,1), a cul-de-sac whose only distance-reducing
+  exit (3,2) is blocked, costing +2 steps (8 vs 6). A 2-ply trap the
+  depth-1 rule cannot see.
+- **Target delta**: T3 seed 65 8->6 (optimal); 30-seed totals unchanged
+  (seed 65 is outside the 0-29 pin range); no other seed changes.
+- **Falsifier**: seed 65 stays 8, or any 0-29 seed changes steps.
+- **Change** (agent.py only: _has_exit generalized to depth 2;
+  tests/test_trap_escape.py: new seed-65 pin, ablation moved to seed 74):
+  a candidate is viable when it has a free exit that itself still has a
+  free exit or is the goal. Depth bounds recursion; branching <= 2.
+  Deterministic, stdlib only.
+- **After** (identical battery, same seeds):
+  - T3 seed 65: 8 -> 6 (optimal, matches BFS).
+  - 30-seed totals: T1=466, T2=240, T3=217 — all unchanged.
+  - 100-seed T3 scan (seeds 0-99): zero detours vs BFS (total 683);
+    memory-blind same scan: 1 truncation (seed 74, 200 vs 9) totaling
+    874 — a +191-step memory-coupling gap.
+- **Ablation** (integration cut: BlindPlanner severs memory, same rules):
+  - intact seed 74 completes in 9 steps with reward 1.0;
+  - blind seed 74 cycles to the 200-step cap with zero reward.
+  - Gain dies with the cut, returns with the restore. Mechanism note,
+    honestly recorded: on seeds 15/65 the 2-ply lookahead alone suffices
+    (blind scores 13/6 there); the visit-count memory input carries the
+    differential on tie-trap seeds (74), where lookahead-only cycling
+    would otherwise run to cap.
+- **Verdict**: efficiency win (seed 65 optimal, 100-seed T3 clean) with
+  proven memory coupling; no emergence claim. Verdict UNKNOWN.
+- **Gates**: unittest 47/47 OK; aikit check 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_trap_escape -v` -> 2 FAIL (8 vs 6,
+    217 vs 215-pin error) before; corrected pin (seed 65 outside 0-29
+    range: T3 stays 217) then 4 OK after.
+  - `python -m unittest discover -s tests -t .` -> 47 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - probes: depth-2 intact-vs-blind, 100-seed detour scans intact and
+    memory-blind.
+- **Pinned regression baselines for cycle 4**: unittest 47 OK; aikit 5/5;
+  step totals T1=466 T2=240 T3=217 (30 seeds); T3 seed 15 = 13;
+  T3 seed 65 = 6; T3 seed 74 = 9 intact / 200 blind zero-reward;
+  T3 seeds 0-99 zero detours (total 683); wiring SM errors T1=125 T2=70
+  T3=60; phi 0.0 x3; syn 0.1167/0.1000/0.1229.
