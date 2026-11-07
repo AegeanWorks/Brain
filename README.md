@@ -471,15 +471,22 @@ skill 0.255114, a 19-record backup, a second rotation to 15 archived/25
 total, and conflict/missing/lock cases.
 
 `run_task_logged(..., calibration_keep_recent=10)` applies the same
-rotation automatically after the run's forecast append. The threshold is
-validated before the run; a missing `calibration_path` or an invalid
-threshold fails without creating the log or store. T3:15 leaves 10
-live/3 archived/13 total with the same Brier 0.230769; a second run
-reaches 10/9/19; `calibration_keep_recent=None` keeps all 13 live. A
-rotation failure (for example a corrupt archive) raises after the done
-verdict with all 13 forecasts still live. `python -m
-evals.calibration_autoretention` shows retained, two-run, unretained,
-missing-path, invalid, corrupt-archive and action-parity modes.
+rotation automatically after the run's forecast append. `append_forecasts(...,
+keep_recent=N)` now performs the append and the archive rotation under
+one store lock, so no other writer interleaves between them; it reports
+`rotated/live/archived/backup/metadata`, and `keep_recent=None` keeps
+every record live. The manual `rotate_forecast_journal` remains for
+custom archive paths. The bridge passes its threshold through to
+`append_forecasts`. The threshold is validated before the run; a missing
+`calibration_path` or an invalid threshold fails without creating the
+log or store. T3:15 leaves 10 live/3 archived/13 total with the same
+Brier 0.230769; a second run reaches 10/9/19;
+`calibration_keep_recent=None` keeps all 13 live. A rotation failure (for
+example a corrupt archive) raises after the done verdict with all 13
+forecasts still live. `python -m evals.calibration_autoretention` shows
+retained, two-run, unretained, missing-path, invalid, corrupt-archive and
+action-parity modes; `python -m evals.calibration_retention` adds the
+store-level `append`/`append-noop` modes.
 
 ## 🧾 Claim & Verdict Register
 

@@ -272,8 +272,14 @@ def _backup_file(source, backup):
     _fsync_dir(backup.parent)
 
 
-def append_forecasts(forecasts, path, at=None, lock_timeout=3.0):
-    """Append validated, checksummed forecasts under the writer lock."""
+def append_forecasts(forecasts, path, at=None, lock_timeout=3.0,
+                     keep_recent=None):
+    """Append validated, checksummed forecasts under the writer lock.
+
+    With ``keep_recent`` the append and the archive rotation run under
+    the same lock, so no other writer interleaves between them. The
+    rotation keeps the newest N live; ``None`` leaves every record live.
+    """
     if not isinstance(forecasts, (list, tuple)):
         raise ValueError(
             "Why: forecasts must be a list or tuple. Fix: pass a list of "
@@ -286,6 +292,13 @@ def append_forecasts(forecasts, path, at=None, lock_timeout=3.0):
         raise ValueError(
             "Why: lock_timeout must be a non-negative number. "
             "Fix: pass lock_timeout=3.0.")
+    if keep_recent is not None:
+        if (isinstance(keep_recent, bool)
+                or not isinstance(keep_recent, int)
+                or keep_recent < 1):
+            raise ValueError(
+                "Why: keep_recent must be a positive int or None. "
+                "Fix: pass keep_recent=100 or None.")
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     _check_free_space(target.parent)
@@ -295,6 +308,7 @@ def append_forecasts(forecasts, path, at=None, lock_timeout=3.0):
     identifiers = [record["id"] for record in sealed]
     if len(set(identifiers)) != len(identifiers):
         raise ValueError("duplicate forecast id in the batch")
+    rotation = None
     with _locked(target, lock_timeout):
         existing, findings = _read_records(target)
         if findings:
@@ -314,13 +328,33 @@ def append_forecasts(forecasts, path, at=None, lock_timeout=3.0):
                 handle.flush()
                 os.fsync(handle.fileno())
             _fsync_dir(target.parent)
+        if keep_recent is not None:
+            rotation = _rotate_locked(
+                target, Path(str(target) + ".archive"), keep_recent)
     combined = existing + sealed
+    if rotation is None:
+        rotated = False
+        live_count = len(combined)
+        archived = 0
+        backup = None
+        metadata = None
+    else:
+        rotated = rotation["rotated"]
+        live_count = rotation["kept"]
+        archived = rotation["archived"]
+        backup = rotation["backup"]
+        metadata = rotation["metadata"]
     return {
         "path": str(target),
         "appended": len(sealed),
         "records": len(combined),
         "resolved": sum(1 for record in combined
                         if record["outcome"] is not None),
+        "rotated": rotated,
+        "live": live_count,
+        "archived": archived,
+        "backup": backup,
+        "metadata": metadata,
     }
 
 
@@ -369,6 +403,74 @@ def verify_forecast_file(path):
     }
 
 
+def _rotate_locked(target, archive, keep_recent):
+    """Rotate ``target`` into ``archive``; the caller holds the lock."""
+    live, findings = _read_records(target)
+    if findings:
+        raise ValueError("calibration store is invalid: %s" % findings[0])
+    if len(live) <= keep_recent:
+        return {
+            "rotated": False,
+            "source_records": len(live),
+            "archived": 0,
+            "kept": len(live),
+            "live": str(target),
+            "archive": str(archive),
+            "archive_records": None,
+            "backup": None,
+            "metadata": None,
+        }
+    archived, archive_findings = _read_records(archive)
+    if archive_findings:
+        raise ValueError("calibration archive is invalid: %s"
+                         % archive_findings[0])
+    archived_ids = {record["id"]: record for record in archived}
+    older = live[:-keep_recent]
+    recent = live[-keep_recent:]
+    additions = []
+    for record in older:
+        existing = archived_ids.get(record["id"])
+        if existing is not None:
+            if existing != record:
+                raise ValueError(
+                    "archive id %r conflicts with a different record"
+                    % record["id"])
+            continue
+        additions.append(record)
+    combined = archived + additions
+    _check_free_space(archive.parent)
+    _write_records_atomic(archive, combined)
+    backup = Path(str(target) + ".bak")
+    _backup_file(target, backup)
+    _write_records_atomic(target, recent)
+    metadata = {
+        "schema": RECORD_SCHEMA,
+        "source": target.name,
+        "source_records": len(live),
+        "archived": len(older),
+        "kept": len(recent),
+        "archive": archive.name,
+        "archive_records": len(combined),
+        "source_last_sha256": live[-1]["sha256"],
+        "archive_last_sha256": (combined[-1]["sha256"]
+                                if combined else None),
+        "created_at": _now(),
+    }
+    metadata_path = Path(str(target) + ".rotation")
+    _write_json_atomic(metadata_path, metadata)
+    return {
+        "rotated": True,
+        "source_records": len(live),
+        "archived": len(older),
+        "kept": len(recent),
+        "live": str(target),
+        "archive": str(archive),
+        "archive_records": len(combined),
+        "backup": str(backup),
+        "metadata": str(metadata_path),
+    }
+
+
 def rotate_forecast_journal(path, keep_recent=100, archive_path=None,
                             lock_timeout=3.0):
     """Archive older forecasts and keep the newest ``keep_recent`` live.
@@ -401,68 +503,4 @@ def rotate_forecast_journal(path, keep_recent=100, archive_path=None,
     archive.parent.mkdir(parents=True, exist_ok=True)
     _check_free_space(target.parent)
     with _locked(target, lock_timeout):
-        live, findings = _read_records(target)
-        if findings:
-            raise ValueError("calibration store is invalid: %s"
-                             % findings[0])
-        if len(live) <= keep_recent:
-            return {
-                "rotated": False,
-                "source_records": len(live),
-                "archived": 0,
-                "kept": len(live),
-                "live": str(target),
-                "archive": str(archive),
-                "archive_records": None,
-                "backup": None,
-                "metadata": None,
-            }
-        archived, archive_findings = _read_records(archive)
-        if archive_findings:
-            raise ValueError("calibration archive is invalid: %s"
-                             % archive_findings[0])
-        archived_ids = {record["id"]: record for record in archived}
-        older = live[:-keep_recent]
-        recent = live[-keep_recent:]
-        additions = []
-        for record in older:
-            existing = archived_ids.get(record["id"])
-            if existing is not None:
-                if existing != record:
-                    raise ValueError(
-                        "archive id %r conflicts with a different record"
-                        % record["id"])
-                continue
-            additions.append(record)
-        combined = archived + additions
-        _check_free_space(archive.parent)
-        _write_records_atomic(archive, combined)
-        backup = Path(str(target) + ".bak")
-        _backup_file(target, backup)
-        _write_records_atomic(target, recent)
-        metadata = {
-            "schema": RECORD_SCHEMA,
-            "source": target.name,
-            "source_records": len(live),
-            "archived": len(older),
-            "kept": len(recent),
-            "archive": archive.name,
-            "archive_records": len(combined),
-            "source_last_sha256": live[-1]["sha256"],
-            "archive_last_sha256": (combined[-1]["sha256"]
-                                    if combined else None),
-            "created_at": _now(),
-        }
-        metadata_path = Path(str(target) + ".rotation")
-        _write_json_atomic(metadata_path, metadata)
-    return {
-        "rotated": True,
-        "source_records": len(live),
-        "archived": len(older),
-        "kept": len(recent),
-        "live": str(target),
-        "archive": str(archive),
-        "archive_records": len(combined),
-        "backup": str(backup),
-        "metadata": str(metadata_path),
-    }
+        return _rotate_locked(target, archive, keep_recent)

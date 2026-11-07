@@ -1443,17 +1443,14 @@ class Agent:
         except Exception:
             self._substrate_errors["verdict"] += 1
         if calibration_path is not None:
-            from calibration_store import append_forecasts, rotate_forecast_journal
+            from calibration_store import append_forecasts
 
             digest = header.get("digest") if isinstance(header, dict) else None
             prefix = str(digest or identity_sha)[:12]
             forecasts = self.self_model.forecasts(
                 prefix, start=forecast_start)
-            append_forecasts(forecasts, calibration_path)
-            if calibration_keep_recent is not None:
-                rotate_forecast_journal(
-                    calibration_path,
-                    keep_recent=calibration_keep_recent)
+            append_forecasts(forecasts, calibration_path,
+                             keep_recent=calibration_keep_recent)
         return trace
 
     def substrate_errors(self):

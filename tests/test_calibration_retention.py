@@ -98,6 +98,91 @@ class TestCalibrationRetention(unittest.TestCase):
         self.assertEqual(len(combined), 25)
         self.assertEqual(len({r["id"] for r in combined}), 25)
 
+    def test_append_with_threshold_rotates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            before = summary(_forecasts(ALL), min_resolved=10)
+            report = append_forecasts(_forecasts(ALL), path, at=AT,
+                                      keep_recent=10)
+            live = load_forecasts(path)
+            archive = load_forecasts(path + ".archive")
+            combined = load_all_forecasts(path)
+            after = summary(combined, min_resolved=10)
+            backup = load_forecasts(path + ".bak")
+            meta = json.loads(Path(path + ".rotation").read_text(
+                encoding="utf-8"))
+        self.assertTrue(report["rotated"])
+        self.assertEqual(report["records"], 19)
+        self.assertEqual(report["live"], 10)
+        self.assertEqual(report["archived"], 9)
+        self.assertEqual(len(live), 10)
+        self.assertEqual(len(archive), 9)
+        self.assertEqual(len(combined), 19)
+        self.assertEqual(before["counts"], after["counts"])
+        self.assertAlmostEqual(before["brier"], after["brier"], places=6)
+        self.assertAlmostEqual(before["skill"], after["skill"], places=6)
+        self.assertEqual(len(backup), 19)
+        self.assertEqual(meta["archived"], 9)
+
+    def test_append_threshold_is_incremental(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            append_forecasts(_forecasts(ALL[:10]), path, at=AT,
+                             keep_recent=10)
+            first_live = load_forecasts(path)
+            archive_exists = Path(path + ".archive").exists()
+            append_forecasts(_forecasts(ALL[10:]), path, at=AT,
+                             keep_recent=10)
+            live = load_forecasts(path)
+            archive = load_forecasts(path + ".archive")
+            combined = load_all_forecasts(path)
+        self.assertEqual(len(first_live), 10)
+        self.assertFalse(archive_exists)
+        self.assertEqual(len(live), 10)
+        self.assertEqual(len(archive), 9)
+        self.assertEqual(len(combined), 19)
+        self.assertEqual(len({r["id"] for r in combined}), 19)
+
+    def test_append_threshold_noop_under_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            report = append_forecasts(_forecasts(FIRST[:5]), path, at=AT,
+                                      keep_recent=10)
+            live = load_forecasts(path)
+            archive_exists = Path(path + ".archive").exists()
+            backup_exists = Path(path + ".bak").exists()
+            meta_exists = Path(path + ".rotation").exists()
+        self.assertFalse(report["rotated"])
+        self.assertEqual(report["records"], 5)
+        self.assertEqual(report["live"], 5)
+        self.assertEqual(len(live), 5)
+        self.assertFalse(archive_exists)
+        self.assertFalse(backup_exists)
+        self.assertFalse(meta_exists)
+
+    def test_append_threshold_corrupt_archive_keeps_records(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            Path(path + ".archive").write_text("{bad json\n",
+                                               encoding="utf-8", newline="")
+            with self.assertRaises(ValueError):
+                append_forecasts(_forecasts(ALL), path, at=AT,
+                                 keep_recent=10)
+            live = load_forecasts(path)
+            archive_bytes = Path(path + ".archive").read_bytes()
+        self.assertEqual(len(live), 19)
+        self.assertEqual(archive_bytes, b"{bad json\n")
+
+    def test_append_invalid_threshold_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            for value in (0, -1, True, 1.5, "10"):
+                with self.assertRaises(ValueError):
+                    append_forecasts(_forecasts(FIRST[:2]), path, at=AT,
+                                     keep_recent=value)
+            exists = Path(path).exists()
+        self.assertFalse(exists)
+
     def test_short_journal_is_a_noop(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "forecasts.jsonl")

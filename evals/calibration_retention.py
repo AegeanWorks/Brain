@@ -19,8 +19,8 @@ from calibration_store import (append_forecasts, load_all_forecasts,
                                load_forecasts, rotate_forecast_journal,
                                verify_forecast_file)
 
-MODES = ("before", "rotate", "all", "second", "noop", "conflict",
-         "missing", "lock")
+MODES = ("before", "append", "append-noop", "rotate", "all", "second",
+         "noop", "conflict", "missing", "lock")
 AT = "2026-11-07T00:00:00Z"
 FIRST = (
     ("run1:0", 0.9, 1), ("run1:1", 0.8, 1), ("run1:2", 0.7, 0),
@@ -60,6 +60,32 @@ def measure_case(mode="rotate", directory=None):
               "after_brier": None, "after_skill": None,
               "resolved": 0, "backup": None, "metadata": False,
               "unique": None, "findings": [], "error": None}
+    if mode in ("append", "append-noop"):
+        rows = ALL if mode == "append" else FIRST[:5]
+        before = _stats(_forecasts(rows))
+        report = append_forecasts(_forecasts(rows), path, at=AT,
+                                  keep_recent=10)
+        live = load_forecasts(path)
+        archived = (load_forecasts(archive)
+                    if Path(archive).exists() else [])
+        combined = load_all_forecasts(path)
+        after = _stats(combined)
+        result.update({
+            "rotated": report["rotated"],
+            "source_records": report["records"],
+            "live": len(live), "archive": len(archived),
+            "total": len(combined),
+            "before_brier": before["brier"],
+            "before_skill": before["skill"],
+            "after_brier": after["brier"],
+            "after_skill": after["skill"],
+            "resolved": after["resolved"],
+            "backup": (len(load_forecasts(path + ".bak"))
+                       if Path(path + ".bak").exists() else None),
+            "metadata": Path(path + ".rotation").exists(),
+            "unique": len({r["id"] for r in combined}) == len(combined),
+        })
+        return result
     if mode == "missing":
         report = rotate_forecast_journal(path, keep_recent=10)
         result.update({"rotated": report["rotated"],

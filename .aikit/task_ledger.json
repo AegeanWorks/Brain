@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle81-auto-retention",
+    "task_id": "brain-cycle82-atomic-retention",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794087856.915791,
-    "owner": "opencode:cycle81",
-    "started_by": "opencode:cycle81",
+    "updated_at": 1794088577.533082,
+    "owner": "opencode:cycle82",
+    "started_by": "opencode:cycle82",
     "continuations": [],
-    "completed_at": 1794087857.7308109
+    "completed_at": 1794088578.1388419
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle78-merkle-compaction",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: non-destructive Merkle journal compaction into one union-root anchor with optional backed-up replace",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794085082.5317428,
-      "timestamp_str": "2026-11-07 23:58:02",
-      "agent": "opencode:cycle78",
-      "impact_assessment": {
-        "why": "The .merkle.journal appends one anchor per batch and grows without bound. A compacted journal can keep one root over the union of all anchored ranges, preserving every record proof while bounding the journal to one line, with the original kept as .bak on opt-in replace.",
-        "benefits": "compact_merkle_journal writes a one-anchor compact journal, records source anchors/head in a .compaction sidecar, keeps the original untouched by default, and with replace=True backs the original up as .bak; proofs for first/middle/last records still verify, and verification names missing/truncated/invalid journals.",
-        "risks": "contract: new merkle compaction function only, existing append/verify/proof APIs unchanged; dependency: stdlib shutil added; concurrency: offline single-writer rewrite (no live-append lock); state: new .compact/.compaction/.bak files, opt-in replace.",
-        "mitigation": "Require a valid journal and log ranges; compute the union root from log digests; write atomically; keep the original by default; back it up before replace; test copy/replace/proofs/metadata/missing/truncated/same-output/invalid flags and no temp leftovers; rerun 314 tests and AIKit."
-      },
-      "plan_digest": "35d4131f1c0baa2a673bbaf9fa228b641837fe0e049d100bf1c138fa81361cf0"
-    },
-    {
-      "task_id": "brain-cycle78-merkle-compaction",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first compact import; union-root compaction, atomic copy/replace, .bak, .compaction metadata, tests/eval, README/ADR-072",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794085550.8248813,
-      "timestamp_str": "2026-11-08 00:05:50",
-      "agent": "opencode:cycle78"
-    },
-    {
-      "task_id": "brain-cycle78-merkle-compaction",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: copy 3->1 0-24 with 3/3 proofs; replace live 1 + backup 3; outside 8-24 rejects record 0; missing/truncated errors; 322 tests OK; aikit 5/5; behavior/policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794085551.180446,
-      "timestamp_str": "2026-11-08 00:05:51",
-      "agent": "opencode:cycle78"
-    },
-    {
-      "task_id": "brain-cycle78-merkle-compaction",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit compaction, eval, tests, ADR-072, cycle 78",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794085551.5506454,
-      "timestamp_str": "2026-11-08 00:05:51",
-      "agent": "opencode:cycle78"
-    },
-    {
-      "task_id": "brain-cycle78-merkle-compaction",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle78-merkle-compaction' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794085551.9518135,
-      "timestamp_str": "2026-11-08 00:05:51",
-      "agent": "opencode:cycle78"
-    },
     {
       "task_id": "brain-cycle79-rule-confidence",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794087857.730813,
       "timestamp_str": "2026-11-08 00:44:17",
       "agent": "opencode:cycle81"
+    },
+    {
+      "task_id": "brain-cycle82-atomic-retention",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: atomic append+retention threshold in the calibration store",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794088137.7274187,
+      "timestamp_str": "2026-11-08 00:48:57",
+      "agent": "opencode:cycle82",
+      "impact_assessment": {
+        "why": "The cycle-81 bridge appends forecasts and then calls rotate_forecast_journal as two lock acquisitions. append_forecasts(keep_recent=...) can append and rotate under one store lock, closing the ADR-075 atomicity boundary and making retention available to every caller.",
+        "benefits": "One append call with keep_recent rotates to live N/archive rest/total unchanged, preserves Brier/skill, creates the backup/rotation metadata, and reports rotated/live/archived; the bridge passes its threshold through instead of a second lock; None keeps all live; a corrupt archive fails after the append with every new forecast live.",
+        "risks": "contract: append_forecasts gains keep_recent only, rotate/load APIs unchanged; dependency: stdlib only; concurrency: one lock covers append+rotation; state: automatic .archive/.bak/.rotation files, opt-in.",
+        "mitigation": "Extract the locked rotation core, keep rotate_forecast_journal as the manual wrapper, validate the threshold before writing, test store-level single/second/corrupt/invalid/noop cases plus the bridge suite, and rerun 351 tests and AIKit."
+      },
+      "plan_digest": "116ff613425d4ebdf094d5b6e9624467c6c72f5d5a1c324b8edcfe0b7fbd10ed"
+    },
+    {
+      "task_id": "brain-cycle82-atomic-retention",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first keep_recent TypeError; _rotate_locked extraction, append keep_recent under one lock, bridge pass-through, store tests/eval, README/ADR-076",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794088575.4706857,
+      "timestamp_str": "2026-11-08 00:56:15",
+      "agent": "opencode:cycle82"
+    },
+    {
+      "task_id": "brain-cycle82-atomic-retention",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: append 10/9/19 same 0.181579/0.255114, backup 19; incremental 10+9; noop 5; corrupt keeps 19; bridge 10/3/13 and 10/9/19; 356 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794088576.2472465,
+      "timestamp_str": "2026-11-08 00:56:16",
+      "agent": "opencode:cycle82"
+    },
+    {
+      "task_id": "brain-cycle82-atomic-retention",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit atomic retention, tests/eval, ADR-076, cycle 82",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794088577.533082,
+      "timestamp_str": "2026-11-08 00:56:17",
+      "agent": "opencode:cycle82"
+    },
+    {
+      "task_id": "brain-cycle82-atomic-retention",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle82-atomic-retention' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794088578.1388445,
+      "timestamp_str": "2026-11-08 00:56:18",
+      "agent": "opencode:cycle82"
     }
   ]
 }
