@@ -1,57 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle48-honest-verdict",
+    "task_id": "brain-cycle49-zero-audit",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794063945.113347,
-    "owner": "opencode:cycle48",
-    "started_by": "opencode:cycle48",
+    "updated_at": 1794064167.3862193,
+    "owner": "opencode:cycle49",
+    "started_by": "opencode:cycle49",
     "continuations": [],
-    "completed_at": 1794063954.4548302
+    "completed_at": 1794064242.360386
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle45-layout-recovery",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: cold-start persistent-layout recovery cycle",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794061844.4198742,
-      "timestamp_str": "2026-11-07 17:30:44",
-      "agent": "opencode:cycle45",
-      "impact_assessment": {
-        "why": "Persistent MemoryStore is written every step but never read by Planner; a restart with hidden goal fields truncates (200 steps, 0 reward).",
-        "benefits": "Recovery behavior from persistent substrate; planner probe trace shows state/memory/persistent source; ablation kills both.",
-        "risks": "contract: Planner gains an optional recall source and probe field; dependency: stdlib only; concurrency: none (single-thread); state: separate layouts table preserves memories count and standing traces.",
-        "mitigation": "Separate layouts table with INSERT OR IGNORE; source optional; cache episode-scoped; all standing pins and goldens re-run; failing-first test."
-      },
-      "plan_digest": "a60db1ead79abe1ca24e87fe8faae2e13cb0bf918e7ac6ca3c3b88530a780f03"
-    },
-    {
-      "task_id": "brain-cycle45-layout-recovery",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first cold-start tests; layouts table, planner recall source, source probe; battery measured",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794062595.944763,
-      "timestamp_str": "2026-11-07 17:43:15",
-      "agent": "opencode:cycle45"
-    },
-    {
-      "task_id": "brain-cycle45-layout-recovery",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: cold 200/0 -> 16/8/13/6 with rewards 3/1/1/1; ablation 200/0; 129 tests OK; aikit 5/5; ADR-043 and cycle 45 recorded; standing pins 466/240/217 and syn 0.05411532 unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794062599.5532446,
-      "timestamp_str": "2026-11-07 17:43:19",
-      "agent": "opencode:cycle45"
-    },
     {
       "task_id": "brain-cycle45-layout-recovery",
       "phase": "verification",
@@ -255,6 +215,45 @@
       "timestamp": 1794063954.4548316,
       "timestamp_str": "2026-11-07 18:05:54",
       "agent": "opencode:cycle48"
+    },
+    {
+      "task_id": "brain-cycle49-zero-audit",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Full audit: gates, cold-start, cold-first, trust, verdict, standing pins, dead-channel scan",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794064146.7414956,
+      "timestamp_str": "2026-11-07 18:09:06",
+      "agent": "opencode:cycle49",
+      "impact_assessment": {
+        "why": "After cycles 45-48, audit whether any remaining candidate moves a measured number without breaking pins or adding a speculative task family.",
+        "benefits": "Zero-finding stop decision backed by the complete four-track battery and a named dead-end list.",
+        "risks": "contract: none (no code change); dependency: none; concurrency: none; state: ledger and cycle log only.",
+        "mitigation": "Re-run gates and all harnesses; list each candidate with the reason it does not qualify; no code edits."
+      },
+      "plan_digest": "81efd7d11c13f2cfdfb888c5c680e539cb13df68aab0908351a3b251531c4558"
+    },
+    {
+      "task_id": "brain-cycle49-zero-audit",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] Zero qualifying findings; identical battery re-verified (140 tests, aikit 5/5, cold-start 16/8/13/6, cold-first 200->16/8/13/6, trust 36/28/33/26); STOP per zero-finding rule; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794064167.3862193,
+      "timestamp_str": "2026-11-07 18:09:27",
+      "agent": "opencode:cycle49"
+    },
+    {
+      "task_id": "brain-cycle49-zero-audit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle49-zero-audit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794064242.3603876,
+      "timestamp_str": "2026-11-07 18:10:42",
+      "agent": "opencode:cycle49"
     }
   ]
 }

@@ -2503,3 +2503,39 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - verdict baseline/after script -> cap done/steps=200 -> truncated/steps=200 reward=0.0; success done/steps=33 -> done/steps=33 reward=1.0.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
 - **Pinned regression baselines for cycle 49**: unittest 140 OK; aikit 5/5; cap verdict truncated with reward 0.0; success verdict done with reward 1.0; record counts 402/68; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy e400adcd...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 49 - full audit, zero verified safe improvements (STOP)
+
+- **Baseline** (commit bebfb50, cycle 48; no code change in this cycle):
+  - canonical gate: 140 tests OK; aikit check 5/5; policy e400adcd...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - cold-start warm-cold: 16/8/13/6 steps with 3/1/1/1, success 4/4, probe persistent fields.
+  - cold-first: cold1 200/200/200/200 with 0, layout absent; cold2 16/8/13/6 with 3/1/1/1, success 4/4.
+  - model trust: stalled legal backend 36/28/33/26 with 3/1/1/1, fallbacks 16/8/13/6; `trust_window=None` 200/200/200/200 with 0.
+  - verdict facts: cap 200/0 -> `truncated` with `reward=0.0`; success 33/1 -> `done` with `reward=1.0`.
+- **Gap**: none qualifies. Candidates audited and rejected, one line each:
+  - cumulative `planner.fallbacks` across reused planner episodes: no current harness reuses an episode; the per-step `model_decision` probe carries acceptance, so no claim moves.
+  - trust window hard-coded at 20: declared in `PLANNER_POLICY` and the constructor; no failing eval.
+  - harnesses duplicate success-verdict logic: consistent with `_episode_verdict` on current runs; cleanup only, no number moves.
+  - moving `steps_since_reward` into the persistent SelfModel/S vector: same value, same behavior, refactor only.
+  - layout schema version / world fingerprint: no current failing eval; version or custom-world scenarios are a new task family, not a gap fix.
+  - llama.cpp retry/backoff: no local server or weights; untestable in this battery, speculative.
+  - `mean_conf` still has no consumer: inventing a confidence policy is not a measured gap.
+  - `planner_tracker` remains unit-only: no behavior gap in the grid loop.
+  - custom-world layout key collision: built-in task/seed layouts are deterministic; exercising it needs a new world family.
+- **Target delta**: none. Falsifier is moot: any change would need a failing eval first, and none exists that survives the four-slot battery without regressing the 140-test pin set or adding a speculative family.
+- **Change**: none. No code, no harness, no ADR (audit result, not a design decision).
+- **After**: identical battery re-verified: 140 OK, 5/5, 466/240/217, cold-start 16/8/13/6, cold-first 200 -> 16/8/13/6, trust 36/28/33/26, verdict facts unchanged. No deltas, variance not applicable.
+- **Ablation**: none (no integration claim).
+- **Verdict**: full cycle with zero verified safe improvements. Stopping per the goal rule (allowed stop: zero-findings cycle). STOP.
+- **Gates**: unittest 140/140 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest discover -s tests -t .` -> 140 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - `python -m evals.coldstart --capture` -> warm-cold 16/8/13/6.
+  - `python -m evals.coldstart --scenario cold-first --capture` -> cold1 200, cold2 16/8/13/6.
+  - `python -m evals.trust` -> 36/28/33/26 with fallbacks 16/8/13/6.
+  - `python -m evals.trust --ablate` -> 200/0 x4.
+  - `git -C projects/brain grep -n "steps_since_reward|model_decision|save_layout|get_layout|_layout_complete|fallbacks" -- "*.py"` -> all channels have live consumers.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
+- **Pinned regression baselines carried (no new pins)**: unittest 140 OK; aikit 5/5; cold-start 16/8/13/6; cold-first 200 then 16/8/13/6; trust 36/28/33/26 with fallbacks 16/8/13/6; trust ablate 200/0; verdict cap truncated/reward 0.0; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy e400adcd...; goldens 9/9 + multi 5/5 + three 5/5.
