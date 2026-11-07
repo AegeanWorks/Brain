@@ -23,6 +23,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.progress_guard
   ```
+- **Rule-Confidence Battery**:
+  ```bash
+  python -m evals.rule_confidence
+  ```
 - **Telemetry Lock Battery**:
   ```bash
   python -m evals.telemetry_lock
@@ -144,7 +148,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/claims/claims-store batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/claims/claims-store batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -197,6 +201,19 @@ carries
 `reason` is `stall` only on the triggering step, then `distrusted` (call
 kept) or `skipped` (call omitted). Rule-only runs and good-backend
 replays keep their exact actions and zero fallbacks.
+
+## 🧭 Rule Confidence Readout
+
+`Planner(rule_readout=True)` adds `probe.rule` to every step where the
+rule has a goal: `goal`, the best post-move BFS `distance`, `ties` (free
+moves at that distance), `confidence` (`1/ties`), `rule_distance`, and
+`optimal` (the rule action is at the minimum). Unique moves read 1.0,
+two-way ties 0.5; `collect`/`wait` at the goal read distance 0 and 1.0.
+`rule_readout=False` removes the field for the ablation; it never
+selects an action. The policy key is `rule_readout: bfs-move-ties`.
+`python -m evals.rule_confidence` shows 89/89 readouts and 28 two-way
+ties across the nine pin seeds, with identical on/off 89-step/11.0
+traces, plus unique/tie/collect fixtures.
 
 ## 🔗 Model-Manifest Binding
 

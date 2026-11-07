@@ -53,6 +53,7 @@ PLANNER_POLICY = {
     "pool_corridor": ">=2",
     "cycle_escape": "repeat>=2->bfs",
     "dead_pool_filter": "2-blockers:live<=dead-bfs",
+    "rule_readout": "bfs-move-ties",
 }
 
 
@@ -251,6 +252,66 @@ def _bfs_distance(pos, goal, obstacles):
     return None
 
 
+def _rule_confidence(pos, goal, obstacles, action):
+    """Return BFS move-tie facts for one rule action and its goal.
+
+    ``ties`` counts free moves with the minimum post-move BFS distance;
+    ``confidence`` is ``1/ties``. A collect/wait at the goal reads
+    distance 0 and confidence 1.0. Pure function; returns None when the
+    goal/geometry is unusable. The readout never selects an action.
+    """
+    if goal is None:
+        return None
+    try:
+        x, y = int(pos[0]), int(pos[1])
+        gx, gy = int(goal[0]), int(goal[1])
+        blocked = {(int(o[0]), int(o[1])) for o in (obstacles or [])}
+    except (TypeError, ValueError, IndexError):
+        return None
+    if not (0 <= x < SIZE and 0 <= y < SIZE):
+        return None
+    if not (0 <= gx < SIZE and 0 <= gy < SIZE):
+        return None
+    if action not in ("up", "down", "left", "right"):
+        current = _bfs_distance([x, y], [gx, gy], obstacles)
+        if current is None:
+            return None
+        return {
+            "goal": [gx, gy],
+            "distance": current,
+            "ties": 1,
+            "confidence": 1.0 if current == 0 else 0.0,
+            "rule_distance": current,
+            "optimal": current == 0,
+        }
+    distances = {}
+    for name, dx, dy in (("up", 0, -1), ("down", 0, 1),
+                         ("left", -1, 0), ("right", 1, 0)):
+        nx, ny = x + dx, y + dy
+        if not (0 <= nx < SIZE and 0 <= ny < SIZE):
+            continue
+        if (nx, ny) in blocked:
+            continue
+        distance = _bfs_distance([nx, ny], [gx, gy], obstacles)
+        if distance is not None:
+            distances[name] = distance
+    if not distances:
+        return None
+    best = min(distances.values())
+    ties = sum(1 for distance in distances.values() if distance == best)
+    rule_distance = distances.get(action)
+    if rule_distance is None:
+        return None
+    return {
+        "goal": [gx, gy],
+        "distance": best,
+        "ties": ties,
+        "confidence": round(1.0 / ties, 4),
+        "rule_distance": rule_distance,
+        "optimal": rule_distance == best,
+    }
+
+
 def _step_toward(pos, goal, obstacles, visits=None, probe=None,
                  dead_pool_filter=True):
     dx = goal[0] - pos[0]
@@ -407,13 +468,18 @@ class Planner:
     copies the backend's ``last_manifest.sha256`` into the decision
     record; ``probe_manifest=False`` removes that readout.
     ``dead_pool_filter=False`` restores the old pool ordering for the
-    dead-step ablation.
+    dead-step ablation. ``rule_readout=True`` records ``probe.rule``
+    with the rule goal, best post-move BFS distance, tie count,
+    confidence (1/ties), the rule action's distance and whether it is
+    optimal; ``rule_readout=False`` removes the field for the readout
+    ablation. It never selects an action.
     """
 
     def __init__(self, backend=None, trust_window=20, noop_guard=True,
                  progress_guard=True, progress_skip_after=3,
                  cycle_escape=True, skip_after_distrust=True,
-                 probe_manifest=True, dead_pool_filter=True):
+                 probe_manifest=True, dead_pool_filter=True,
+                 rule_readout=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -451,6 +517,10 @@ class Planner:
             raise ValueError(
                 "Why: dead_pool_filter must be a bool. "
                 "Fix: pass dead_pool_filter=True or False.")
+        if not isinstance(rule_readout, bool):
+            raise ValueError(
+                "Why: rule_readout must be a bool. "
+                "Fix: pass rule_readout=True or False.")
         self._get_hub = None
         self.backend = backend
         self.trust_window = trust_window
@@ -461,6 +531,7 @@ class Planner:
         self.skip_after_distrust = skip_after_distrust
         self.probe_manifest = probe_manifest
         self.dead_pool_filter = dead_pool_filter
+        self.rule_readout = rule_readout
         self._backend_distrusted = False
         self._progress_distrusted = False
         self._progress_streak = 0
@@ -686,6 +757,20 @@ class Planner:
             return _bfs_distance([nx, ny], recalled_target, obstacles)
 
         rule_action = _rule_action()
+        if self.rule_readout:
+            rule_goal = None
+            if remaining:
+                cells = [list(cell) for cell in remaining]
+                if pos in cells:
+                    rule_goal = list(pos)
+                else:
+                    rule_goal = _first_of_best_tour(pos, cells)
+            elif recalled_target is not None:
+                rule_goal = list(recalled_target)
+            readout = _rule_confidence(pos, rule_goal, obstacles, rule_action)
+            if readout is not None:
+                probe["rule"] = readout
+                self.last_probe = probe
         if self.backend is not None:
             since = 0
             if self.trust_window is not None:

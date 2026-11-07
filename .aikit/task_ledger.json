@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle78-merkle-compaction",
+    "task_id": "brain-cycle79-rule-confidence",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794085551.5506454,
-    "owner": "opencode:cycle78",
-    "started_by": "opencode:cycle78",
+    "updated_at": 1794086376.3416133,
+    "owner": "opencode:cycle79",
+    "started_by": "opencode:cycle79",
     "continuations": [],
-    "completed_at": 1794085551.9518113
+    "completed_at": 1794086378.0062797
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle75-claim-store",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle75-claim-store' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794082829.1284485,
-      "timestamp_str": "2026-11-07 23:20:29",
-      "agent": "opencode:cycle75"
-    },
-    {
-      "task_id": "brain-cycle76-calibration-store",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: append-only checksummed calibration forecast journal for cross-run scoring",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794083232.478182,
-      "timestamp_str": "2026-11-07 23:27:12",
-      "agent": "opencode:cycle76",
-      "impact_assessment": {
-        "why": "calibration.summary scores only the forecasts present in one process; SelfModel.calibration() reads the current episode lists. Forecasts are immutable observations but vanish on exit, so cross-run Brier/skill cannot be computed.",
-        "benefits": "append_forecasts validates and appends one checksummed JSONL record per forecast under a writer lock; load_forecasts restores them; verify_forecast_file names corrupt/duplicate records; two runs aggregate to 10 resolved forecasts and a stable Brier/skill.",
-        "risks": "contract: new calibration_store.py module only, no agent API change; dependency: stdlib only; concurrency: O_CREAT|O_EXCL lock with 30s stale steal and bounded timeout; state: new local JSONL/.lock files, not committed.",
-        "mitigation": "Keep scoring in calibration.summary; enforce unique ids and schema/checksum per line; append under the lock with fsync and dir fsync; test roundtrip, two-run aggregation, duplicates, tamper, corrupt line, missing, stale/fresh lock and invalid inputs; rerun 293 tests and AIKit."
-      },
-      "plan_digest": "da8e67a2c8477668b66f3d453898fd8f02d004f7631f4175b91a3164a444c67e"
-    },
-    {
-      "task_id": "brain-cycle76-calibration-store",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first calibration_store ImportError; append/load/verify, per-record checksum, duplicate refusal, lock, tests/eval, README/ADR-070",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794083843.9730117,
-      "timestamp_str": "2026-11-07 23:37:23",
-      "agent": "opencode:cycle76"
-    },
-    {
-      "task_id": "brain-cycle76-calibration-store",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: first 6 0.185/0.26; aggregated 10 0.129/0.484; duplicate refused; tamper/corrupt/missing/stale/fresh lock; 306 tests OK; aikit 5/5; behavior/policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794083845.6435874,
-      "timestamp_str": "2026-11-07 23:37:25",
-      "agent": "opencode:cycle76"
-    },
-    {
-      "task_id": "brain-cycle76-calibration-store",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit calibration journal, eval, tests, ADR-070, cycle 76",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794083847.5013256,
-      "timestamp_str": "2026-11-07 23:37:27",
-      "agent": "opencode:cycle76"
-    },
     {
       "task_id": "brain-cycle76-calibration-store",
       "phase": "completed",
@@ -247,6 +186,67 @@
       "timestamp": 1794085551.9518135,
       "timestamp_str": "2026-11-08 00:05:51",
       "agent": "opencode:cycle78"
+    },
+    {
+      "task_id": "brain-cycle79-rule-confidence",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: pure rule-path confidence/uncertainty readout from BFS move ties",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794085881.479869,
+      "timestamp_str": "2026-11-08 00:11:21",
+      "agent": "opencode:cycle79",
+      "impact_assessment": {
+        "why": "The probe carries dead-pool/cycle facts but no statement of how ambiguous the rule action is. A pure readout of the number of equally best free moves gives per-step planning confidence without changing the action.",
+        "benefits": "probe.rule carries goal/distance/ties/confidence/rule_distance/optimal; unique moves score 1.0, two-way ties 0.5; rule_readout=False removes the field; actions/steps/rewards are identical; the readout is auditable in telemetry and can be aggregated across seeds.",
+        "risks": "contract: Planner rule_readout keyword and policy key (digest changes); dependency: stdlib only; concurrency: none; state: no schema change; telemetry probe grows by one field.",
+        "mitigation": "Compute the readout only for a resolved goal; keep it pure and side-effect-free; compare on/off actions across unit states and pin seeds; test unique/tie/collect/off/no-goal/invalid/policy; rerun 322 tests and AIKit."
+      },
+      "plan_digest": "2014d65d059264b1254405d8a32799c6e1a388f73651286acfc0f8ec1d1a1522"
+    },
+    {
+      "task_id": "brain-cycle79-rule-confidence",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first KeyError rule; _rule_confidence, rule_readout flag, probe.rule, policy key, tests/eval, README/ADR-073",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794086372.790399,
+      "timestamp_str": "2026-11-08 00:19:32",
+      "agent": "opencode:cycle79"
+    },
+    {
+      "task_id": "brain-cycle79-rule-confidence",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: on 89/89 readouts, 28 ambiguous, 0 non-optimal; off 0 with identical 89/11.0 actions; unique 1.0/tie 0.5/collect 1.0; 334 tests OK; aikit 5/5; policy decbfce3",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794086374.943833,
+      "timestamp_str": "2026-11-08 00:19:34",
+      "agent": "opencode:cycle79"
+    },
+    {
+      "task_id": "brain-cycle79-rule-confidence",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit readout, eval, tests, ADR-073, cycle 79",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794086376.3416133,
+      "timestamp_str": "2026-11-08 00:19:36",
+      "agent": "opencode:cycle79"
+    },
+    {
+      "task_id": "brain-cycle79-rule-confidence",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle79-rule-confidence' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794086378.0062823,
+      "timestamp_str": "2026-11-08 00:19:38",
+      "agent": "opencode:cycle79"
     }
   ]
 }

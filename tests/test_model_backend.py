@@ -379,9 +379,11 @@ class TestModelBackendSeam(unittest.TestCase):
                          "single-target-bfs")
         self.assertEqual(PLANNER_POLICY.get("backend_progress_skip"),
                          "streak>=3->match-only")
+        self.assertEqual(PLANNER_POLICY.get("rule_readout"),
+                         "bfs-move-ties")
         for key in ("backend_trust", "backend_noop_guard",
                     "backend_distrust_skip", "backend_progress_guard",
-                    "backend_progress_skip"):
+                    "backend_progress_skip", "rule_readout"):
             legacy = dict(PLANNER_POLICY)
             legacy.pop(key, None)
             self.assertNotEqual(policy_digest(), policy_digest(legacy), key)
