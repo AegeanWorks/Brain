@@ -3112,3 +3112,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 247 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 70**: unittest 247 OK; aikit 5/5; recapture graph-changed/content-stable; changed both; meta intact/tampered/missing; T3:15/65 13/6 both 1.0; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 70 - calibration scoring and SelfModel readout (research-engine transfer)
+
+- **Baseline** (commit 9c5f0fa, cycle 69; same T3:15):
+  - canonical gate: 247 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - `SelfModel` recorded confidence and outcomes but never scored whether the confidence was calibrated; there was no Brier/log-loss/skill or reliability-bin readout.
+- **Gap**: confidence was an uncalibrated number with no proper scoring rule. `research-engine/engine/calibration.py:38-159` provides Brier, log loss, base rate, skill, reliability bins and small-sample warnings.
+- **Target delta**: perfect forecasts -> Brier 0, skill 1; inverted -> Brier 1, log loss 27.631, skill -3; calibrated fixture between; small/ignored warnings; a real T3:15 persistent SelfModel keeps 13/1.0 and reports 13 resolved forecasts with Brier 0.230769.
+- **Falsifier**: perfect and inverted score the same; a real change does not move Brier; unresolved outcomes are counted as resolved; invalid inputs pass; behavior/pins move.
+- **Change**: calibration.py adds `MIN_RESOLVED`, `BIN_EDGES`, probability clipping, validation and `summary(forecasts, min_resolved=10)` with counts/coverage/Brier/log loss/base rate/skill/five bins/warnings. SelfModel records `_outcomes` alongside `_confs`, exposes `calibration()`, and clears both on reset; `snapshot()` is unchanged. Tests cover perfect/inverted/calibrated/empty/small/ignored/invalid and the SelfModel readout; the eval adds the real T3 run. README and ADR-064 record the contract. No new dependencies beyond stdlib `math`.
+- **After** (same fixtures and run):
+  - perfect: Brier 0, log_loss 0, skill 1, 10 resolved; calibrated: Brier 0.166, skill 0.308; inverted: Brier 1, log_loss 27.631021, skill -3; small: 3 resolved with warning; ignored: coverage 0.6667, 1 ignored.
+  - T3:15 persistent SelfModel: 13 steps, 1.0 reward, 13 resolved forecasts, Brier 0.230769; the 0.5-confidence bin is flagged overconfident.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, keyed telemetry, prompt budget, Merkle, execution budget, resume identity, workspace binding, snapshot diff/digest and the 200k tail-read bound are unchanged; 254 tests OK; policy unchanged.
+- **Ablation** (same fixtures):
+  - without the scorer, confidence is an unlabeled number; with it, perfect/inverted/calibrated separate by Brier/log loss/skill. The property and its bins die with the scorer cut.
+  - unresolved outcomes are ignored by the projection; small sets warn rather than pretending to be decisive.
+- **Verdict**: measurement extension. Behavior is unchanged; the measured deltas are Brier/log loss/skill/bin warnings for fixtures and the persisted SelfModel confidence/outcome pairs. No action or emergence claim; confidence values are reward proxies, not learned probabilities.
+- **Gates**: unittest 254/254 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_calibration.TestCalibration.test_perfect_forecast -v` -> before: ModuleNotFoundError (`calibration`); after: OK.
+  - `python -m unittest tests.test_calibration -v` -> 7 OK.
+  - `python -m evals.calibration` -> perfect 0/1, calibrated 0.166, inverted 1/-3, small/ignored warnings, T3 13/1.0 Brier 0.230769.
+  - `python -m unittest discover -s tests -t .` -> 254 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 71**: unittest 254 OK; aikit 5/5; calibration perfect 0/1, calibrated 0.166, inverted 1/-3, small/ignored, T3 Brier 0.230769; recapture graph/content stable vs changed; meta intact/tampered/missing; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

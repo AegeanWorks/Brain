@@ -13,6 +13,7 @@ class SelfModel:
         self._steps = 0
         self._errors = 0
         self._confs = []
+        self._outcomes = []
 
     def record(self, cost, ok, conf):
         """Log one step: add cost, count ok/error, append confidence.
@@ -24,6 +25,7 @@ class SelfModel:
         if not ok:
             self._errors += 1
         self._confs.append(float(conf))
+        self._outcomes.append(1 if ok else 0)
         return self.snapshot()
 
     def snapshot(self):
@@ -45,3 +47,14 @@ class SelfModel:
         self._steps = 0
         self._errors = 0
         self._confs = []
+        self._outcomes = []
+
+    def calibration(self, min_resolved=10):
+        """Score recorded confidence/outcome pairs with Brier/log loss."""
+        from calibration import summary
+        forecasts = [
+            {"id": str(index), "probability": conf, "outcome": outcome}
+            for index, (conf, outcome) in enumerate(
+                zip(self._confs, self._outcomes))
+        ]
+        return summary(forecasts, min_resolved=min_resolved)

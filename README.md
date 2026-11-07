@@ -75,6 +75,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.snapshot_digest
   ```
+- **Calibration Battery**:
+  ```bash
+  python -m evals.calibration
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -102,13 +106,14 @@ brain/
 ├── identity.py               <- canonical episode digest + resume policy
 ├── workspace.py              <- deterministic source-tree hash for run evidence
 ├── snapshot.py               <- portable run snapshots + deterministic diff
+├── calibration.py            <- Brier/log-loss/reliability scoring for forecasts
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -309,6 +314,18 @@ meta_path=...)` writes a `.meta` sidecar atomically;
 digest but not content; a changed steps/action/syn field moves both.
 `python -m evals.snapshot_digest` shows recapture, real change, and
 intact/tampered/missing meta over the 13/6-step T3:15/65 battery.
+
+## 📐 Calibration Scoring
+
+`calibration.summary(forecasts, min_resolved=10)` scores `{id,
+probability, outcome}` records with Brier and log loss, base rate,
+skill, five reliability bins and small-sample / over-confidence
+warnings. `outcome=None` is ignored and reflected in coverage.
+`SelfModel.calibration()` scores the confidence/outcome pairs the
+persistent self-model already records, without changing actions.
+`python -m evals.calibration` shows perfect (Brier 0, skill 1),
+calibrated (0.166), inverted (1.0, skill −3), small/ignored warnings
+and the real 13-step/1.0 T3:15 readout.
 
 ## 🧾 Verdict Facts
 
