@@ -191,6 +191,103 @@ class TestClaimRefVerifier(unittest.TestCase):
             membership = verify_claim_store(store, log1, verify_logs=False)
         self.assertTrue(membership["ok"], membership["findings"])
 
+    def test_anchored_journal_verifies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "journal")
+            Telemetry(log1).write_anchor_journal()
+            ledger = _ledger(episode)
+            result = verify_claim_refs(
+                ledger, log1, journal_paths=log1 + ".anchors")
+        self.assertTrue(result["ok"], result["findings"])
+        self.assertEqual(result["verified"], 1)
+        self.assertEqual(len(result["journals"]), 1)
+
+    def test_truncated_log_passes_chain_but_fails_journal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "truncated")
+            Telemetry(log1).write_anchor_journal()
+            lines = Path(log1).read_text(encoding="utf-8").splitlines(True)
+            Path(log1).write_text("".join(lines[:-2]), encoding="utf-8")
+            ledger = _ledger(episode)
+            chain_only = verify_claim_refs(ledger, log1)
+            with self.assertRaises(ValueError) as context:
+                verify_claim_refs(ledger, log1,
+                                  journal_paths=log1 + ".anchors")
+        self.assertTrue(chain_only["ok"], chain_only["findings"])
+        self.assertEqual(chain_only["verified"], 1)
+        self.assertIn("truncated-tail", str(context.exception))
+
+    def test_missing_journal_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "missing-journal")
+            with self.assertRaises(ValueError):
+                verify_claim_refs(_ledger(episode), log1,
+                                  journal_paths=log1 + ".missing")
+
+    def test_journal_requires_verify_logs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "journal-off")
+            Telemetry(log1).write_anchor_journal()
+            with self.assertRaises(ValueError):
+                verify_claim_refs(_ledger(episode), log1,
+                                  journal_paths=log1 + ".anchors",
+                                  verify_logs=False)
+
+    def test_two_logs_two_journals(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, first, log1 = _run(tmp, "T3_navigate", 15, "jfirst")
+            _, second, log2 = _run(tmp, "T3_navigate", 65, "jsecond")
+            Telemetry(log1).write_anchor_journal()
+            Telemetry(log2).write_anchor_journal()
+            result = verify_claim_refs(
+                _ledger(first, second), [log1, log2],
+                journal_paths={log1: log1 + ".anchors",
+                               log2: log2 + ".anchors"})
+        self.assertTrue(result["ok"], result["findings"])
+        self.assertEqual(result["verified"], 2)
+        self.assertEqual(len(result["journals"]), 2)
+
+    def test_single_journal_path_requires_one_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, first, log1 = _run(tmp, "T3_navigate", 15, "single-j")
+            _, second, log2 = _run(tmp, "T3_navigate", 65, "single-j2")
+            Telemetry(log1).write_anchor_journal()
+            with self.assertRaises(ValueError):
+                verify_claim_refs(_ledger(first, second), [log1, log2],
+                                  journal_paths=log1 + ".anchors")
+
+    def test_unknown_journal_key_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "unknown-j")
+            Telemetry(log1).write_anchor_journal()
+            with self.assertRaises(ValueError):
+                verify_claim_refs(
+                    _ledger(episode), log1,
+                    journal_paths={"not-this-log": log1 + ".anchors"})
+
+    def test_tampered_journal_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "tamper-j")
+            Telemetry(log1).write_anchor_journal()
+            journal = Path(log1 + ".anchors")
+            record = json.loads(journal.read_text(encoding="utf-8"))
+            record["head"] = "0" * 64
+            journal.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                verify_claim_refs(_ledger(episode), log1,
+                                  journal_paths=str(journal))
+
+    def test_store_verifier_passes_journal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "store-j")
+            Telemetry(log1).write_anchor_journal()
+            store = os.path.join(tmp, "claims.json")
+            save_ledger(_ledger(episode), store, saved_at=STAMP)
+            result = verify_claim_store(
+                store, log1, journal_paths=log1 + ".anchors")
+        self.assertTrue(result["ok"], result["findings"])
+        self.assertEqual(result["verified"], 1)
+
     def test_invalid_inputs_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, episode, log1 = _run(tmp, "T3_navigate", 15, "first")

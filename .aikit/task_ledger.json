@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle87-ref-integrity",
+    "task_id": "brain-cycle88-ref-journal",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794092502.493875,
-    "owner": "opencode:cycle87",
-    "started_by": "opencode:cycle87",
+    "updated_at": 1794093374.7432792,
+    "owner": "opencode:cycle88",
+    "started_by": "opencode:cycle88",
     "continuations": [],
-    "completed_at": 1794092503.2660928
+    "completed_at": 1794093375.1993253
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle84-tour-audit",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: readout-only multi-item tour-order audit via exhaustive first-item ties",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794089661.6451428,
-      "timestamp_str": "2026-11-08 01:14:21",
-      "agent": "opencode:cycle84",
-      "impact_assessment": {
-        "why": "The rule picks the lexicographically first shortest tour, but the probe does not show whether multiple first items achieve the same tour length. A readout-only audit can measure the current ordering choice without changing actions.",
-        "benefits": "probe.tour lists items/chosen/best_length/chosen_length/tied_firsts/tie_count/optimal on T1 movement steps; the eval counts tour steps, tie steps, extra tied firsts and optimal choices; rule_readout=False removes the field; actions/steps/rewards stay identical.",
-        "risks": "contract: readout-only probe.tour addition, no new policy key; dependency: stdlib itertools already imported; concurrency: none; state: telemetry probe grows by one dict on T1 moves.",
-        "mitigation": "Reuse the existing exhaustive tour semantics; compute the audit only for T1 movement (not collect); test single/tie/no-tie/three-item/off/T3-no-tour/collect/action parity/JSON; run the seed battery and 361 tests plus AIKit."
-      },
-      "plan_digest": "0fcf383a2f385666957eafa41fc40d89a050603d65caa25bef7129bf7ae971c6"
-    },
-    {
-      "task_id": "brain-cycle84-tour-audit",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first KeyError tour; _tour_audit alternatives/ties, probe.tour on T1 moves, tests/eval, README/ADR-078",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794090101.3449953,
-      "timestamp_str": "2026-11-08 01:21:41",
-      "agent": "opencode:cycle84"
-    },
-    {
-      "task_id": "brain-cycle84-tour-audit",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: T1:71 13 tour steps/0 ties/13 optimal; synthetic tie 2; off 0; actions match; 369 tests OK; aikit 5/5; policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794090102.022748,
-      "timestamp_str": "2026-11-08 01:21:42",
-      "agent": "opencode:cycle84"
-    },
-    {
-      "task_id": "brain-cycle84-tour-audit",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit tour audit, tests/eval, ADR-078, cycle 84",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794090102.8280056,
-      "timestamp_str": "2026-11-08 01:21:42",
-      "agent": "opencode:cycle84"
-    },
-    {
-      "task_id": "brain-cycle84-tour-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle84-tour-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794090103.4343677,
-      "timestamp_str": "2026-11-08 01:21:43",
-      "agent": "opencode:cycle84"
-    },
     {
       "task_id": "brain-cycle85-claim-evidence",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794092503.2660947,
       "timestamp_str": "2026-11-08 02:01:43",
       "agent": "opencode:cycle87"
+    },
+    {
+      "task_id": "brain-cycle88-ref-journal",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: optional anchor-journal witness in claim-ref verification",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794092880.6076226,
+      "timestamp_str": "2026-11-08 02:08:00",
+      "agent": "opencode:cycle88",
+      "impact_assessment": {
+        "why": "The cycle-87 verifier checks the log hash chain, but a valid truncated prefix or a fully rewritten chain still passes. The existing anchor journal is an external witness with a sequence/head; verify_chain(path, journal_path=...) can compare the log to it.",
+        "benefits": "verify_claim_refs/verify_claim_store accept journal_paths (one path for one log or a per-log mapping); the journal is verified first and the log head/count must match; a truncated prefix passes chain-only but raises with the journal; missing/tampered journals and unknown mappings are named; read-only.",
+        "risks": "contract: verifier kwarg only, claim/store schema unchanged; dependency: telemetry.log verify_chain; concurrency: none; state: read-only.",
+        "mitigation": "Normalize and validate journal mappings, require verify_logs=True, default None keeps old behavior, test anchored/truncated/missing/tampered/two-log/store/unknown cases, and rerun 393 tests plus AIKit."
+      },
+      "plan_digest": "03b1136327b499688dd31dce6487702563ef2375fab901f7de2659ce50f8e4da"
+    },
+    {
+      "task_id": "brain-cycle88-ref-journal",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first journal_paths TypeError; per-log journal mapping, verify_chain witness, options validation, tests/eval, README/ADR-082",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794093373.9894779,
+      "timestamp_str": "2026-11-08 02:16:13",
+      "agent": "opencode:cycle88"
+    },
+    {
+      "task_id": "brain-cycle88-ref-journal",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: journaled 2/2, truncated chain-only 1/journal 26<28, missing/tampered journals, existing cases; 402 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794093374.330076,
+      "timestamp_str": "2026-11-08 02:16:14",
+      "agent": "opencode:cycle88"
+    },
+    {
+      "task_id": "brain-cycle88-ref-journal",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit journal witness, tests/eval, ADR-082, cycle 88",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794093374.7432792,
+      "timestamp_str": "2026-11-08 02:16:14",
+      "agent": "opencode:cycle88"
+    },
+    {
+      "task_id": "brain-cycle88-ref-journal",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle88-ref-journal' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794093375.199328,
+      "timestamp_str": "2026-11-08 02:16:15",
+      "agent": "opencode:cycle88"
     }
   ]
 }

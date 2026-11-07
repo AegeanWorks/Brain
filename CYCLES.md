@@ -3608,3 +3608,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 88**: unittest 393 OK; aikit 5/5; ref verify intact 2/2, tampered rejected/membership 1, keyed 1/ok, wrong key bad-mac, missing-log 1/1, fabricated 0/1, unreferenced 1, store 2/2; policy decbfce3...; claim ref T3:15 f9343058... match, two runs 3622529a... distinct; tour audit 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration journal 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins unchanged; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 88 - optional anchor-journal witness in claim-ref verification (fresh gap audit)
+
+- **Baseline** (commit 5e09fef, cycle 87; same T3:15/65 logs):
+  - canonical gate: 393 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the verifier checked the log hash chain but not an external witness; a valid truncated prefix or a fully rewritten chain still passed.
+- **Gap**: no anchor-journal comparison in claim verification. `verify_chain(path, journal_path=...)` can compare the log count/head with the latest journal anchor.
+- **Target delta**: two anchored logs verify 2/2 with two journals; a 28->26 truncated log passes chain-only 1/1 but fails journaled with `truncated-tail:26<28`; missing/tampered journals and bad mappings are named; the store path passes journals.
+- **Falsifier**: a journaled intact log fails; a truncated prefix passes with the journal; a missing/tampered journal is ignored; a wrong mapping is accepted; behavior/pins move.
+- **Change**: claims_verify.py adds `journal_paths=None` to `verify_claim_refs`/`verify_claim_store`, normalizes one path for one log or a per-log mapping, rejects unknown keys/non-path values, requires `verify_logs=True`, and passes the journal to `verify_chain`. Results gain `journals`. tests/test_claim_ref_verify.py adds nine journal tests; evals/claim_ref_verify.py adds journaled/truncated/journal-missing/journal-tampered. README and ADR-082 record the contract. No new dependencies; no claim/store schema or policy change.
+- **After** (same runs):
+  - journaled: 2 claims/2 verdicts, 2 verified, 2 journals, ok true; truncated: chain-only ok 1, journaled ValueError `truncated-tail:26<28`; journal-missing: `anchor-journal:missing-journal`; journal-tampered: `anchor 1 hash does not match its payload`.
+  - existing intact/tampered/keyed/missing-log/fabricated/unreferenced/store/no-header/missing-file cases unchanged.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0, rule readout/tie/tour audits, progress guard/skip, Merkle journal/compaction, claim store, calibration journal/bridge/retention, keyed telemetry, prompt budget, execution budget, resume identity, workspace binding, snapshot diff/digest, calibration and the 200k tail-read bound unchanged; 402 tests OK; policy unchanged.
+- **Ablation** (same truncated log):
+  - chain-only: 1/1 verified (valid prefix); with the journal: `truncated-tail:26<28`. The external-witness property dies with the journal cut.
+  - the journal can itself be rewritten; it is a witness, not a signature, and an unanchored tail fails.
+- **Verdict**: evidence-integrity extension. Behavior is unchanged; the measured delta is chain-only vs journaled truncation detection plus named journal failures. No action or emergence claim.
+- **Gates**: unittest 402/402 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_claim_ref_verify.TestClaimRefVerifier.test_anchored_journal_verifies -v` -> before: TypeError (`journal_paths`); after: OK.
+  - `python -m unittest tests.test_claim_ref_verify -v` -> 23 OK.
+  - `python -m evals.claim_ref_verify` -> journaled 2/2, truncated chain-only 1 / journal error, missing/tampered journal errors, existing modes unchanged.
+  - `python -m unittest discover -s tests -t .` -> 402 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 89**: unittest 402 OK; aikit 5/5; ref verify journaled 2/2, truncated chain-only 1/journal `26<28`, missing/tampered journals; intact 2/2, tampered rejected, keyed 1/ok, wrong bad-mac, missing-log 1/1, fabricated 0/1, store 2/2; policy decbfce3...; claim refs T3:15 f9343058..., T3:65 3622529a...; tour 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+

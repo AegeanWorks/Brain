@@ -20,7 +20,8 @@ from claims_verify import verify_claim_refs, verify_claim_store
 from telemetry.log import Telemetry
 
 MODES = ("verified", "missing-log", "fabricated", "unreferenced", "store",
-         "tampered", "tampered-off", "keyed", "keyed-wrong", "no-header",
+         "tampered", "tampered-off", "keyed", "keyed-wrong", "journaled",
+         "truncated", "journal-missing", "journal-tampered", "no-header",
          "missing-file")
 STAMP = 1700000000.0
 AT = "2026-11-07T00:00:00Z"
@@ -55,7 +56,64 @@ def measure_case(mode="verified", directory=None):
               "unverified": 0, "unreferenced": 0, "episodes": 0,
               "ok": None, "findings": [], "error": None,
               "verify_logs": None, "hmac": None,
-              "membership_verified": None}
+              "membership_verified": None, "journals": 0,
+              "chain_only_ok": None, "chain_only_verified": None}
+    if mode == "journaled":
+        first, log1 = _run(directory, "T3_navigate", 15, "journal-first")
+        second, log2 = _run(directory, "T3_navigate", 65, "journal-second")
+        Telemetry(log1).write_anchor_journal()
+        Telemetry(log2).write_anchor_journal()
+        ledger = _ledger(first, second)
+        verified = verify_claim_refs(
+            ledger, [log1, log2],
+            journal_paths={log1: log1 + ".anchors",
+                           log2: log2 + ".anchors"})
+        result.update(_summary(ledger))
+        result.update({"verified": verified["verified"],
+                       "unverified": verified["unverified"],
+                       "unreferenced": verified["unreferenced"],
+                       "episodes": len(verified["episodes"]),
+                       "ok": verified["ok"],
+                       "findings": verified["findings"],
+                       "verify_logs": verified["verify_logs"],
+                       "hmac": verified["hmac"],
+                       "journals": len(verified["journals"])})
+        return result
+    if mode in ("journal-missing", "journal-tampered"):
+        episode, log1 = _run(directory, "T3_navigate", 15,
+                             mode + "-run")
+        ledger = _ledger(episode)
+        journal = log1 + ".anchors"
+        if mode == "journal-missing":
+            journal = log1 + ".missing"
+        else:
+            Telemetry(log1).write_anchor_journal()
+            path = Path(journal)
+            record = json.loads(path.read_text(encoding="utf-8"))
+            record["head"] = "0" * 64
+            path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+        try:
+            verify_claim_refs(ledger, log1, journal_paths=journal)
+        except ValueError as exc:
+            result["error"] = str(exc)
+        result.update(_summary(ledger))
+        return result
+    if mode == "truncated":
+        episode, log1 = _run(directory, "T3_navigate", 15, "truncated-run")
+        Telemetry(log1).write_anchor_journal()
+        lines = Path(log1).read_text(encoding="utf-8").splitlines(True)
+        Path(log1).write_text("".join(lines[:-2]), encoding="utf-8")
+        ledger = _ledger(episode)
+        chain_only = verify_claim_refs(ledger, log1)
+        try:
+            verify_claim_refs(ledger, log1,
+                              journal_paths=log1 + ".anchors")
+        except ValueError as exc:
+            result["error"] = str(exc)
+        result.update(_summary(ledger))
+        result.update({"chain_only_ok": chain_only["ok"],
+                       "chain_only_verified": chain_only["verified"]})
+        return result
     if mode in ("keyed", "keyed-wrong"):
         key = hashlib.sha256(b"claim-ref-eval-key").digest()
         wrong = hashlib.sha256(b"claim-ref-eval-wrong").digest()
@@ -154,7 +212,8 @@ def measure_case(mode="verified", directory=None):
                        "ok": verified["ok"],
                        "findings": verified["findings"],
                        "verify_logs": verified["verify_logs"],
-                       "hmac": verified["hmac"]})
+                       "hmac": verified["hmac"],
+                       "journals": len(verified["journals"])})
         return result
     else:
         ledger = _ledger(first, second)
@@ -168,7 +227,8 @@ def measure_case(mode="verified", directory=None):
                    "ok": verified["ok"],
                    "findings": verified["findings"],
                    "verify_logs": verified["verify_logs"],
-                   "hmac": verified["hmac"]})
+                   "hmac": verified["hmac"],
+                   "journals": len(verified["journals"])})
     return result
 
 

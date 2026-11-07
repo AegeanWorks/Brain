@@ -545,20 +545,24 @@ that the ref matches; two runs keep distinct refs; a legacy payload
 loads with `None`; an invalid ref leaves the history unchanged.
 
 `claims_verify.py` checks refs against live logs. `verify_claim_refs(ledger,
-log_paths, hmac_key=None, verify_logs=True)` reads every header
-`episode_sha256` (union across logs and multiple headers) and, by
-default, runs `verify_chain` on each log first; an optional `hmac_key`
-also verifies keyed records. A failed chain/MAC check raises instead of
+log_paths, hmac_key=None, verify_logs=True, journal_paths=None)` reads
+every header `episode_sha256` (union across logs and multiple headers)
+and, by default, runs `verify_chain` on each log first; an optional
+`hmac_key` also verifies keyed records, and `journal_paths` (one path
+for one log, or a per-log mapping) checks the log head/count against an
+anchor journal. A failed chain/MAC/journal check raises instead of
 trusting the header. It reports `verified/unverified/unreferenced` and
 names `unknown-episode` findings; `verify_claim_store` loads a snapshot
 first. `verify_logs=False` is the membership-only ablation and cannot
-take an `hmac_key`. `python -m evals.claim_ref_verify` shows a 2/2
-verified pair, missing-log 1/1, fabricated 0/1, an unreferenced verdict,
-the store path, a tampered log (rejected; membership-only still 1), a
-keyed log (correct key ok, wrong key `bad-mac`), and
-no-header/missing-file errors. The chain check detects edited/deleted/
-reordered records but not a fully rewritten self-consistent log; HMAC
-requires key custody, and anchors/journals are separate witnesses.
+take an `hmac_key` or journal. `python -m evals.claim_ref_verify` shows a
+2/2 verified pair, missing-log 1/1, fabricated 0/1, an unreferenced
+verdict, the store path, a tampered log (rejected; membership-only still
+1), a keyed log (correct key ok, wrong key `bad-mac`), journaled 2/2, a
+truncated log (chain-only 1, journal `truncated-tail:26<28`), and
+missing/tampered-journal/no-header/missing-file errors. The chain check
+detects edited/deleted/reordered records but not a fully rewritten
+self-consistent log; HMAC requires key custody; the anchor journal is a
+separate witness and can itself be rewritten.
 
 ## 🧾 Verdict Facts
 

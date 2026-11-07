@@ -50,12 +50,44 @@ def _normalise_paths(log_paths):
     return [Path(path) for path in paths]
 
 
-def _log_episodes(path, hmac_key=None, verify_logs=True):
+def _normalise_journals(paths, journal_paths):
+    if journal_paths is None:
+        return {str(path): None for path in paths}
+    if isinstance(journal_paths, (str, Path)):
+        if len(paths) != 1:
+            raise ValueError(
+                "Why: a single journal path needs exactly one log. "
+                "Fix: pass a mapping of log path to journal path.")
+        return {str(paths[0]): Path(journal_paths)}
+    if not isinstance(journal_paths, dict):
+        raise ValueError(
+            "Why: journal_paths must be a path or a mapping of log path to "
+            "journal path. Fix: pass one path or a per-log mapping.")
+    allowed = {str(path) for path in paths}
+    mapping = {}
+    for key, value in journal_paths.items():
+        if (not isinstance(key, (str, Path))
+                or not isinstance(value, (str, Path))):
+            raise ValueError(
+                "Why: journal mapping keys and values must be paths. "
+                "Fix: pass strings/paths only.")
+        key_text = str(Path(key))
+        if key_text not in allowed:
+            raise ValueError(
+                "Why: journal mapping key %r is not one of the logs. "
+                "Fix: key the mapping by the supplied log paths." % key_text)
+        mapping[key_text] = Path(value)
+    return {str(path): mapping.get(str(path)) for path in paths}
+
+
+def _log_episodes(path, hmac_key=None, verify_logs=True,
+                  journal_path=None):
     if not Path(path).exists():
         raise ValueError(
             "log %s does not exist. Fix: pass a logged run path." % path)
     if verify_logs:
-        chain = verify_chain(path, hmac_key=hmac_key)
+        chain = verify_chain(path, hmac_key=hmac_key,
+                             journal_path=journal_path)
         if not chain["ok"]:
             raise ValueError(
                 "log %s failed chain verification: %s. "
@@ -81,13 +113,17 @@ def _log_episodes(path, hmac_key=None, verify_logs=True):
     return episodes
 
 
-def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True):
+def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
+                      journal_paths=None):
     """Check every verdict ref against the episodes found in the logs.
 
     ``verify_logs=True`` (default) first verifies each log's hash chain;
-    an optional ``hmac_key`` also verifies keyed records. A failed check
-    raises instead of trusting the header. ``verify_logs=False`` is the
-    membership-only ablation and cannot take an ``hmac_key``.
+    an optional ``hmac_key`` also verifies keyed records and an optional
+    ``journal_paths`` witness (one path for one log, or a per-log
+    mapping) checks the log head/count against an anchor journal. A
+    failed check raises instead of trusting the header. ``verify_logs=False``
+    is the membership-only ablation and cannot take an hmac_key or a
+    journal.
     """
     if not isinstance(ledger, ClaimLedger):
         raise ValueError(
@@ -95,11 +131,18 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True):
             "Fix: build or load a ClaimLedger first.")
     _validate_options(hmac_key, verify_logs)
     paths = _normalise_paths(log_paths)
+    journals = _normalise_journals(paths, journal_paths)
+    if (any(journal is not None for journal in journals.values())
+            and not verify_logs):
+        raise ValueError(
+            "Why: journal_paths need verify_logs=True. "
+            "Fix: enable chain verification or omit journal_paths.")
     logs = {}
     episodes = set()
     for path in paths:
         found = _log_episodes(path, hmac_key=hmac_key,
-                              verify_logs=verify_logs)
+                              verify_logs=verify_logs,
+                              journal_path=journals.get(str(path)))
         logs[str(path)] = sorted(found)
         episodes.update(found)
     verified = 0
@@ -132,13 +175,17 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True):
         "findings": findings,
         "verify_logs": verify_logs,
         "hmac": hmac_key is not None,
+        "journals": {log: str(journal)
+                     for log, journal in journals.items()
+                     if journal is not None},
     }
 
 
 def verify_claim_store(store_path, log_paths, hmac_key=None,
-                       verify_logs=True):
+                       verify_logs=True, journal_paths=None):
     """Load a claim-store snapshot and verify its verdict refs."""
     from claims_store import load_ledger
 
     return verify_claim_refs(load_ledger(store_path), log_paths,
-                             hmac_key=hmac_key, verify_logs=verify_logs)
+                             hmac_key=hmac_key, verify_logs=verify_logs,
+                             journal_paths=journal_paths)
