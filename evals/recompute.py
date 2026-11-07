@@ -38,8 +38,12 @@ def _numbers(value):
 
 def _vec_row(rec):
     row = []
+    args = rec.get("args")
+    args_map = args if isinstance(args, dict) else {}
     for key in ("M", "P", "S", "hub"):
         val = rec.get(key)
+        if val is None and key in args_map:
+            val = args_map.get(key)
         if isinstance(val, (list, tuple)):
             row.extend(v for v in (_numbers(x) for x in val) if v is not None)
         elif isinstance(val, (int, float)) and not isinstance(val, bool):
@@ -106,7 +110,19 @@ def recompute(log_path):
     width = max((len(r) for r in phi_rows), default=0)
     if phi_rows and any(len(r) != width for r in phi_rows):
         phi_rows = [r + [0.0] * (width - len(r)) for r in phi_rows]
-    syn, syn_n = synergy(acc["syn_rows"], acc["syn_targets"]) if acc["syn_rows"] else (0.0, 0.0)
+    if acc["syn_rows"]:
+        syn, syn_n = synergy(acc["syn_rows"], acc["syn_targets"])
+    elif vec_rows and len(vec_rows) >= 2:
+        w2 = max(len(r) for r in vec_rows)
+        if w2 >= 2:
+            padded_v = [list(r) + [0.0] * (w2 - len(r)) for r in vec_rows]
+            fb_trace = [r[:-1] for r in padded_v]
+            fb_targets = [r[-1] for r in padded_v]
+            syn, syn_n = synergy(fb_trace, fb_targets)
+        else:
+            syn, syn_n = (0.0, 0.0)
+    else:
+        syn, syn_n = (0.0, 0.0)
     return {
         "syn": syn,
         "syn_n": syn_n,

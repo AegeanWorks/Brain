@@ -128,3 +128,67 @@ def shuffle_hub(trace, seed):
     if is_single:
         return out[0]
     return tuple(out) if isinstance(trace, tuple) else out
+
+
+def _zero_top_and_args(row, keys):
+    """Copy one logged row and zero ``keys`` top-level and in args."""
+    out = _copy_step(row) if isinstance(row, dict) else dict(row)
+    args = out.get("args")
+    args_copy = None
+    if isinstance(args, dict):
+        args_copy = dict(args)
+        for key in ("M", "P", "S", "hub"):
+            if key in args_copy and isinstance(args_copy[key], (list, tuple)):
+                args_copy[key] = list(args_copy[key]) if isinstance(args_copy[key], list) else tuple(args_copy[key])
+        out["args"] = args_copy
+    for key in keys:
+        if key not in out or out[key] is None:
+            pass
+        else:
+            value = out[key]
+            if isinstance(value, (list, tuple)):
+                out[key] = _zero_vector(value)
+            elif isinstance(value, (int, float, bool)):
+                out[key] = _zero_value(value)
+        if args_copy is not None and key in args_copy and args_copy[key] is not None:
+            aval = args_copy[key]
+            if isinstance(aval, (list, tuple)):
+                args_copy[key] = _zero_vector(aval)
+            elif isinstance(aval, (int, float, bool)):
+                args_copy[key] = _zero_value(aval)
+    return out
+
+
+def _map_rows(rows, keys):
+    if isinstance(rows, dict):
+        return _zero_top_and_args(rows, keys)
+    if isinstance(rows, (list, tuple)):
+        result = [_zero_top_and_args(r, keys) if isinstance(r, dict) else dict(r) for r in rows]
+        return tuple(result) if isinstance(rows, tuple) else result
+    raise TypeError("rows must be a mapping or a list/tuple of mappings")
+
+
+def hub_zero_rows(rows):
+    """Return logged rows copy with hub components zeroed.
+
+    Operates on JSONL row dicts carrying M/P/S/hub vectors top-level
+    and optionally inside ``args``. Both placements are zeroed when
+    present; length and container kind are preserved. Inputs pass
+    through unchanged when hub is missing or None.
+    """
+    return _map_rows(rows, ("hub",))
+
+
+def lesion_m(rows):
+    """Return logged rows copy with M components zeroed, others kept."""
+    return _map_rows(rows, ("M",))
+
+
+def lesion_p(rows):
+    """Return logged rows copy with P components zeroed, others kept."""
+    return _map_rows(rows, ("P",))
+
+
+def lesion_s(rows):
+    """Return logged rows copy with S components zeroed, others kept."""
+    return _map_rows(rows, ("S",))

@@ -207,19 +207,51 @@ class Agent:
         telemetry: Telemetry instance or None.
         world: GridWorld instance or None. run_task builds one when
             a task_id/seed pair is given.
+        memory_store: optional persistent store with count() and
+            save(key, content, conf). Reads as memory count.
+        planner_tracker: optional tracker with state() idx/status
+            plus next()/mark_ok(). Reads as planner idx/pending.
+        self_model: optional counters with record(cost, ok, conf)
+            and snapshot() errors/budget. Reads as S vector.
+        telemetry_log: optional file log (telemetry/log.py Telemetry)
+            receiving per-step kind "step" action+result records.
     """
 
-    def __init__(self, memory=None, planner=None, selfmodel=None, telemetry=None, world=None):
+    def __init__(self, memory=None, planner=None, selfmodel=None, telemetry=None, world=None,
+                 memory_store=None, planner_tracker=None, self_model=None, telemetry_log=None):
         self.memory = memory if memory is not None else Memory()
         self.planner = planner if planner is not None else Planner()
         self.selfmodel = selfmodel if selfmodel is not None else SelfModel()
         self.telemetry = telemetry if telemetry is not None else Telemetry()
         self.world = world
+        self.memory_store = memory_store
+        self.planner_tracker = planner_tracker
+        self.self_model = self_model
+        self.telemetry_log = telemetry_log
         self._hub = {}
-        for mod in (self.memory, self.planner, self.selfmodel, self.telemetry):
+        for mod in (self.memory, self.planner, self.selfmodel, self.telemetry,
+                    self.memory_store, self.planner_tracker, self.self_model,
+                    self.telemetry_log):
+            if mod is None:
+                continue
             bind = getattr(mod, "bind_hub", None)
             if callable(bind):
-                bind(self.get_hub)
+                try:
+                    bind(self.get_hub)
+                except Exception:
+                    pass
+
+    @property
+    def log_path(self):
+        """Return file path of telemetry_log when present, else None."""
+        tel = getattr(self, "telemetry_log", None)
+        p = getattr(tel, "path", None)
+        if p is None:
+            return None
+        try:
+            return str(p)
+        except Exception:
+            return None
 
     # -- hub ----------------------------------------------------------
 
@@ -243,6 +275,57 @@ class Agent:
 
     # -- loop ----------------------------------------------------------
 
+    def _step_vectors(self, idx, new_state, reward, memories):
+        """Build numeric M/P/S/hub vectors for one step.
+
+        M = [memory count, recall hits].
+        P = [planner idx, pending count].
+        S = [errors, budget].
+        hub = [x, y, reward].
+        Counts reflect state after persistent updates for this step.
+        """
+        if self.memory_store is not None:
+            try:
+                mem_count = int(self.memory_store.count())
+            except Exception:
+                mem_count = len(self.memory)
+        else:
+            mem_count = len(self.memory)
+        try:
+            recall_hits = len(memories) if isinstance(memories, list) else 0
+        except Exception:
+            recall_hits = 0
+        m_vec = [mem_count, recall_hits]
+        if self.planner_tracker is not None:
+            try:
+                st = self.planner_tracker.state()
+                p_idx = int(st.get("idx", 0))
+                pending = sum(1 for s in st.get("status", []) if s == "pending")
+            except Exception:
+                p_idx, pending = 0, 0
+            p_vec = [p_idx, pending]
+        else:
+            p_vec = [0, 0]
+        if self.self_model is not None:
+            try:
+                snap = self.self_model.snapshot()
+                s_vec = [int(snap.get("errors", 0)), float(snap.get("budget", 0.0))]
+            except Exception:
+                s_vec = [0, float(idx + 1)]
+        else:
+            try:
+                blen = len(self.selfmodel.history())
+            except Exception:
+                blen = idx + 1
+            s_vec = [0, float(blen)]
+        try:
+            hx = new_state.get("x", 0)
+            hy = new_state.get("y", 0)
+        except Exception:
+            hx, hy = 0, 0
+        hub_vec = [hx, hy, float(reward)]
+        return m_vec, p_vec, s_vec, hub_vec
+
     def run(self, max_steps=200):
         """Run perceive/plan/act/observe loop; return trace list."""
         if self.world is None:
@@ -259,6 +342,56 @@ class Agent:
             self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
             self.selfmodel.record(new_state, action, reward, done)
             self.hub_write({"last_step": i, "last_action": action, "last_reward": reward})
+            # -- persistent substrate update (stdlib only, deterministic) --
+            if self.memory_store is not None:
+                try:
+                    import json as _json
+                    try:
+                        _tid = getattr(self.world, "task_id", "task")
+                        _seed = getattr(self.world, "seed", 0)
+                        _key = "%s:%s:%d" % (_tid, _seed, i)
+                    except Exception:
+                        _key = "step-%d" % i
+                    _content = _json.dumps(new_state, sort_keys=True)
+                    _conf = 1.0 if float(reward) > 0.0 else 0.5
+                    self.memory_store.save(_key, _content, _conf)
+                except Exception:
+                    pass
+            if self.planner_tracker is not None:
+                try:
+                    nxt = self.planner_tracker.next()
+                    if nxt is not None:
+                        self.planner_tracker.mark_ok()
+                except Exception:
+                    pass
+            if self.self_model is not None:
+                try:
+                    _conf_sm = 1.0 if float(reward) > 0.0 else 0.5
+                    self.self_model.record(1.0, True, _conf_sm)
+                except Exception:
+                    pass
+            m_vec, p_vec, s_vec, hub_vec = self._step_vectors(i, new_state, reward, memories)
+            if self.telemetry_log is not None:
+                args = {
+                    "action": action,
+                    "reward": float(reward),
+                    "done": bool(done),
+                    "M": list(m_vec),
+                    "P": list(p_vec),
+                    "S": list(s_vec),
+                    "hub": list(hub_vec),
+                }
+                try:
+                    self.telemetry_log.append_action(
+                        i + 1, "step", args,
+                        M=list(m_vec), P=list(p_vec), S=list(s_vec), hub=list(hub_vec),
+                    )
+                    self.telemetry_log.append_result(
+                        i + 1, True, action, 1.0,
+                        M=list(m_vec), P=list(p_vec), S=list(s_vec), hub=list(hub_vec),
+                    )
+                except Exception:
+                    pass
             trace.append(
                 {"step": i, "state": copy.deepcopy(new_state), "action": action,
                  "reward": reward, "done": done}
@@ -275,3 +408,30 @@ class Agent:
         self.world = GridWorld(task_id, seed)
         self._reset_episode()
         return self.run(max_steps=max_steps)
+
+    def run_task_logged(self, task_id, seed, max_steps=200, log_path=None):
+        """Run task with header, per-step actions+results, and verdict.
+
+        Writes header (seq 0), one kind "step" action plus one result
+        per grid step with numeric M/P/S/hub vectors, then a verdict.
+        Returns the in-memory trace list with unchanged shape.
+        """
+        if log_path is not None:
+            from telemetry.log import Telemetry as _FileTelemetry
+
+            self.telemetry_log = _FileTelemetry(log_path)
+        if self.telemetry_log is None:
+            raise ValueError("telemetry_log or log_path is required")
+        self.telemetry_log.write_header(task_id, max_steps)
+        from worlds.grid import GridWorld
+
+        self.world = GridWorld(task_id, seed)
+        self._reset_episode()
+        trace = self.run(max_steps=max_steps)
+        verdict = "done" if (trace and trace[-1].get("done")) else "truncated"
+        reason = "steps=%d" % len(trace)
+        try:
+            self.telemetry_log.write_verdict(verdict, reason)
+        except Exception:
+            pass
+        return trace
