@@ -967,6 +967,72 @@ only integration scores, cross-module dependencies, and ablation differentials.
   fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical.
 
+## Cycle 22 — generation manifest fingerprints (idea transfer)
+- **Source survey** (neurocore, research-engine, Atlas, lattice,
+  modelduck, chatduck, crucible, lacon READMEs + modelduck idea
+  audit/implement lists + crucible/lacon/lattice design notes):
+  - modelduck: determinism lockdown (batch-1 + triple-run),
+    generation-manifest fingerprints, quant-aware memory-fit
+    preflight, GGUF preflight, per-model template registry, tune
+    gate (paired gain, early stop, unseen items), provenance
+    receipts, bench test-hash discipline.
+  - crucible: freeze split first (overlap 0 or exit 1),
+    train/holdout separation (never grade own homework),
+    train-only analyst API + audit, random-patch control, sanity
+    cap, frontier floor, WSP column-edit verdict (WIN needs >=10pp
+    vs base AND >=5pp vs best of 3 randoms).
+  - lacon: letter budget + cheapest thought, recursive
+    split/recurse/merge with cap, frozen alphabet, What/Why/Fix
+    exit codes.
+  - lattice: provenance-first claims (exact quote + locator),
+    token-frugal external context (index -> snippets w/ stable ref
+    -> full text on drill), snapshot diffing as gate (exit 1 when
+    differ), evidence matrix + consensus score.
+- **Gap**: Brain's same-prompts gate proof is textual; no
+  fingerprint binds a backend proposal to the exact bytes the
+  model saw, so prompt-set identity across batteries is asserted,
+  not hashed.
+- **Target delta**: manifest module + backend recorder + 6-test
+  probe; standing behavior and trace byte-identical; determinism
+  variance 0; sensitivity (prompt/visits change -> digest change).
+- **Falsifier**: standing totals move, trace numbers move, or
+  same-input manifests differ across repeats.
+- **Change** (models/manifest.py new; models/llamacpp.py recorder:
+  __init__ slot + per-generate fingerprint, None-safe;
+  tests/test_manifest.py new): canonical JSON SHA-256 over
+  {model_id, checkpoint label, prompt, observation, sampling};
+  prompt_set_manifest sorted battery digest. No new deps; no
+  weights in repo (labels only). No ADR beyond ADR-021.
+- **Baseline** (cycle-20 pins re-verified): 80 OK; 5/5; 9 pins;
+  30-seed 466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32;
+  probe gap: models/manifest absent (import error, no versioning).
+- **After**:
+  - code identical: 30-seed 466/240/217; all 80 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - seam versioned: determinism 4x repeat byte-identical
+    (variance 0); enriched-vs-minimal and visits-change digests
+    differ; planner obs->prompt->manifest chain stable;
+    prompt-set digest order-independent; backend slot present.
+- **Ablation** (remove models/manifest.py): test_manifest errors
+  on import (6/6 uncollectable); restore returns 6/6 OK. Probe AND
+  versioning die with the cut, return with the restore.
+- **Verdict**: provenance win (same-prompts proof is now hashed);
+  no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 86/86 OK (80 carried + 6 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_manifest -v` -> 6 OK (module
+    absent before = import error).
+  - `python -m unittest discover -s tests -t .` -> 80 OK before,
+    86 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig recompute identical.
+  - manifest removal/restore ablation.
+- **Pinned regression baselines for cycle 23**: unittest 86 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; T3 400-499 675; pins 16/8/13/6/9 + 7/14 + 6/10;
+  fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest determinism 4x variance 0.
+
 ## Cycle 21 — full audit, zero verified improvements (STOP)
 - **Baseline** (cycle-20 pins re-verified):
   - canonical: 80 OK; aikit 5/5.

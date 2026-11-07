@@ -142,3 +142,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Depth-only lookahead needs unbounded depth to see distant column/row blocks (seed 479: target [3,7] behind obstacle [3,6] at distance 6-7); a 400-499 scan found exactly this 1 trap (+2).
 - **Decision**: In _step_toward grouping, sort each of viable/dead by (enters_blocked, visits) with stable order: entering the goal's column/row while an obstacle lies strictly between the candidate cell and the goal sorts after staying out; visits still break ties; x-first survives ties; backup (no goal-directed free cell) unchanged. O(1), deterministic, no new deps.
 - **Consequences**: 80 tests OK; aikit check 5/5; T3 479 12 -> 10 (optimal); T3 400-499 total 677 -> 675 with all other 99 byte-identical; 500/500 T3 seeds optimal across 0-499; all prior totals unchanged; fixed-rig syn 0.0541 phi 0.0 unchanged; corridor+depth suffices here (blind == intact); visit-memory coupling still carried by seed-74 blind truncation.
+
+### ADR-021: Generation manifest fingerprints for the model seam
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from ModelDuck (generation-manifest fingerprints, benchmark test-hash discipline) and Crucible (frozen versioning): Brain's gates require same-prompts proof across before/after batteries, but prompt identity was textual with no fingerprint.
+- **Decision**: New stdlib-only models/manifest.py: canonical JSON (sorted keys, compact separators) SHA-256 over {model_id, checkpoint label, prompt, observation, sampling}; prompt_set_manifest order-independent battery digest. LlamaCppBackend records self.last_manifest per generate() call (None-safe); StubBackend unchanged. Checkpoint is a caller-supplied label (basename/hash recorded outside the repo); no weights in repo.
+- **Consequences**: 86 tests OK; aikit check 5/5; standing behavior byte-identical (466/240/217, all pins); standing trace identical (syn 0.0541 phi 0.0); manifest determinism 4x repeat variance 0; prompt/visits sensitivity proven (enriched vs minimal differ); manifest removal breaks the 6-test probe (ablation).

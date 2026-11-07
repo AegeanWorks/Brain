@@ -81,6 +81,7 @@ class LlamaCppBackend(ModelBackend):
         self.timeout = timeout
         self.n_predict = n_predict
         self._proc = None
+        self.last_manifest = None
 
     def base_url(self):
         return "http://127.0.0.1:%d" % self.port
@@ -113,11 +114,24 @@ class LlamaCppBackend(ModelBackend):
 
         The chat endpoint applies the model's own template, which the
         raw completion endpoint skips (an untuned instruct model
-        rambles without it).
+        rambles without it). Records self.last_manifest with the
+        generation manifest fingerprint for the call.
         """
+        prompt = build_prompt(observation)
+        try:
+            from .manifest import manifest_for as _manifest_for
+            import os as _os
+            _base = _os.path.basename(str(self.model_path))
+            self.last_manifest = _manifest_for(
+                prompt, observation, model_id=_base, checkpoint=_base,
+                sampling={"temperature": 0.0, "seed": self.seed,
+                          "n_predict": self.n_predict,
+                          "cache_prompt": True})
+        except Exception:
+            self.last_manifest = None
         payload = json.dumps({
             "messages": [{"role": "user",
-                          "content": build_prompt(observation)}],
+                          "content": prompt}],
             "n_predict": self.n_predict,
             "temperature": 0.0,
             "seed": self.seed,
