@@ -59,6 +59,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.merkle_anchor
   ```
+- **Merkle-Journal Battery**:
+  ```bash
+  python -m evals.merkle_journal
+  ```
 - **Execution-Budget Battery**:
   ```bash
   python -m evals.execution_budget
@@ -122,7 +126,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -272,6 +276,20 @@ batch membership; run `verify_chain` separately for order/authorship.
 `python -m evals.merkle_anchor` shows the intact 8-record batch
 (12–20), a 3-sibling proof for record 15, and truncation/tamper
 findings.
+
+`Telemetry.append_merkle_anchor(batch_size=...)` appends each batch to a
+`.merkle.journal` JSONL sidecar instead of overwriting `.merkle`. Each
+record has the same `start/end/count/root` plus `prev` (the previous
+record's `hash`) and `hash` (SHA-256 over the canonical payload); ranges
+must not move backwards. `verify_merkle_journal` names `prev`,
+`batch range rolls back`, `truncated-batch:<line>:<end>><count>`,
+`root-mismatch:<line>` and `missing-journal` findings, and can validate
+the links without a log. `merkle_proof_for_journal_record` proves a
+record against the latest batch that contains it, so an earlier batch
+stays provable after a newer anchor. `python -m
+evals.merkle_journal` shows two chained batches (16–24, 24–32), record
+20 still proving against batch 1, truncation/tamper/rollback findings,
+and the old single-anchor overwrite that loses the earlier proof.
 
 ## 🧮 Execution Budgets
 

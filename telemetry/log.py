@@ -24,7 +24,10 @@ byte-compatible. Keys come from outside the repository. A Merkle batch
 anchor (``Telemetry.write_merkle_anchor``) commits a contiguous batch
 of record digests to a separate root, and
 ``telemetry.merkle.merkle_proof_for_record`` returns a detached
-inclusion proof.
+inclusion proof. ``Telemetry.append_merkle_anchor`` chains successive
+batch anchors in a ``.merkle.journal`` sidecar, and
+``merkle_proof_for_journal_record`` proves membership in an earlier
+batch after a newer one is written.
 
 Durability: each append writes one line, calls ``flush`` + ``os.fsync``
 on the file descriptor, then fsyncs the containing directory when the
@@ -424,6 +427,14 @@ class Telemetry:
         return write_merkle_anchor(self.path, batch_size=batch_size,
                                    anchor_path=anchor_path,
                                    created_at=created_at)
+
+    def append_merkle_anchor(self, batch_size=64, journal_path=None,
+                             created_at=None):
+        """Append a Merkle batch anchor to the hash-chained journal."""
+        from telemetry.merkle import append_merkle_anchor
+        return append_merkle_anchor(self.path, batch_size=batch_size,
+                                    journal_path=journal_path,
+                                    created_at=created_at)
 
     def read_all(self):
         """Return list of decoded JSON objects in file order."""

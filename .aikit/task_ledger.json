@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle72-progress-guard",
+    "task_id": "brain-cycle73-merkle-journal",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794080045.7819645,
-    "owner": "opencode:cycle72",
-    "started_by": "opencode:cycle72",
+    "updated_at": 1794080896.8424413,
+    "owner": "opencode:cycle73",
+    "started_by": "opencode:cycle73",
     "continuations": [],
-    "completed_at": 1794080047.412479
+    "completed_at": 1794080897.2156537
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle69-content-digest",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: content-vs-graph snapshot digests and meta verification (research-engine transfer)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794077121.5175824,
-      "timestamp_str": "2026-11-07 21:45:21",
-      "agent": "opencode:cycle69",
-      "impact_assessment": {
-        "why": "Snapshots have no exact vs semantic digest, so a re-capture with a new timestamp is indistinguishable from a real evidence change. research-engine/engine/bundle.py:186-222 separates graph_sha256 (every record) from content_sha256 (semantic projection) and verifies an export against its meta.",
-        "benefits": "graph_sha256 changes on volatile capture fields; content_sha256 stays stable; a changed steps/action/syn field changes both; a .meta sidecar verifies record count, graph and content with named findings. Default export/read stays compatible.",
-        "risks": "contract: snapshot.py adds captured_at, digest and meta helpers; dependency: stdlib only; concurrency: atomic meta write; state: local sidecar only.",
-        "mitigation": "Add captured_at to VOLATILE_FIELDS, sort records deterministically, keep content projection recursive, test re-capture vs real change, meta tamper/missing, and run 241 tests plus AIKit gates."
-      },
-      "plan_digest": "7058b8dcb45f988e488cffa788a2b22217b7e984f5db1eb8f15dc16ced53ad5d"
-    },
-    {
-      "task_id": "brain-cycle69-content-digest",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first content digest import; graph/content digests, captured_at volatile, meta export/verify, tests/eval, README/ADR-063",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794077717.1132402,
-      "timestamp_str": "2026-11-07 21:55:17",
-      "agent": "opencode:cycle69"
-    },
-    {
-      "task_id": "brain-cycle69-content-digest",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: recapture graph-changed/content-stable; changed both; meta intact/tampered/missing; T3:15/65 13/6 1.0; 247 tests OK; aikit 5/5; standing unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794077717.6253226,
-      "timestamp_str": "2026-11-07 21:55:17",
-      "agent": "opencode:cycle69"
-    },
-    {
-      "task_id": "brain-cycle69-content-digest",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit content-vs-graph digests, meta verification, eval, tests, ADR-063, cycle 69",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794077730.56222,
-      "timestamp_str": "2026-11-07 21:55:30",
-      "agent": "opencode:cycle69"
-    },
-    {
-      "task_id": "brain-cycle69-content-digest",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle69-content-digest' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794077731.3088124,
-      "timestamp_str": "2026-11-07 21:55:31",
-      "agent": "opencode:cycle69"
-    },
     {
       "task_id": "brain-cycle70-calibration",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794080047.4124813,
       "timestamp_str": "2026-11-07 22:34:07",
       "agent": "opencode:cycle72"
+    },
+    {
+      "task_id": "brain-cycle73-merkle-journal",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: append-only hash-chained Merkle batch journal with historical proofs",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794080309.6927044,
+      "timestamp_str": "2026-11-07 22:38:29",
+      "agent": "opencode:cycle73",
+      "impact_assessment": {
+        "why": "The single .merkle sidecar is overwritten by each new anchor, so an earlier batch root and its inclusion proofs are lost. The telemetry anchor journal solved the same overwrite problem for head anchors.",
+        "benefits": "append_merkle_anchor appends batches with prev/hash links and monotonic ranges; verify_merkle_journal names prev/order/root/truncation defects; merkle_proof_for_journal_record proves membership in an earlier batch after a newer anchor is written; the single-anchor API is unchanged.",
+        "risks": "contract: new journal functions/wrappers; dependency: stdlib only; concurrency: single-writer append under fsync (same boundary as the single anchor); state: new .merkle.journal sidecar, not committed.",
+        "mitigation": "Keep the single-anchor format untouched; validate every record's schema/ranges/root/prev/hash; reject range rollback; test intact, truncated, deleted, tampered, rollback, missing and proof cases; run 266 tests and AIKit."
+      },
+      "plan_digest": "ecf34aab7fb24d52a9e5f35fd0fa00265501a4a2ef6ff0db41eb81413169151d"
+    },
+    {
+      "task_id": "brain-cycle73-merkle-journal",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first append_merkle_anchor ImportError; chained journal, verifier, historical proof, Telemetry wrapper, tests, eval, README/ADR-067",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794080896.0689452,
+      "timestamp_str": "2026-11-07 22:48:16",
+      "agent": "opencode:cycle73"
+    },
+    {
+      "task_id": "brain-cycle73-merkle-journal",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: 2 anchors 16-24/24-32; record 20 proof batch 1 after batch 2; truncated 32>30; deleted prev; tampered root-mismatch:2; rollback refused; missing; single-anchor proof lost; 277 tests OK; aikit 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794080896.4694834,
+      "timestamp_str": "2026-11-07 22:48:16",
+      "agent": "opencode:cycle73"
+    },
+    {
+      "task_id": "brain-cycle73-merkle-journal",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit Merkle journal, eval, tests, ADR-067, cycle 73",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794080896.8424413,
+      "timestamp_str": "2026-11-07 22:48:16",
+      "agent": "opencode:cycle73"
+    },
+    {
+      "task_id": "brain-cycle73-merkle-journal",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle73-merkle-journal' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794080897.2156556,
+      "timestamp_str": "2026-11-07 22:48:17",
+      "agent": "opencode:cycle73"
     }
   ]
 }
