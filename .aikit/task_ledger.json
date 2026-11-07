@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle51-movement-noop",
+    "task_id": "brain-cycle52-zero-audit",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794065246.4212234,
-    "owner": "opencode:cycle51",
-    "started_by": "opencode:cycle51",
+    "updated_at": 1794065490.1800203,
+    "owner": "opencode:cycle52",
+    "started_by": "opencode:cycle52",
     "continuations": [],
-    "completed_at": 1794065258.2454026
+    "completed_at": 1794065580.828852
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle47-backend-trust",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit code, tests, trust harness, ADR-045, cycle 47",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063643.6573308,
-      "timestamp_str": "2026-11-07 18:00:43",
-      "agent": "opencode:cycle47"
-    },
-    {
-      "task_id": "brain-cycle47-backend-trust",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle47-backend-trust' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794063652.5631683,
-      "timestamp_str": "2026-11-07 18:00:52",
-      "agent": "opencode:cycle47"
-    },
-    {
-      "task_id": "brain-cycle48-honest-verdict",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: distinguish genuine completion from step-cap exhaustion in run verdicts",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063757.5254288,
-      "timestamp_str": "2026-11-07 18:02:37",
-      "agent": "opencode:cycle48",
-      "impact_assessment": {
-        "why": "run_task_logged writes verdict done whenever the world sets done, but the world also sets done at the 200-step/energy cap, so failed runs are logged as successes.",
-        "benefits": "Verdict records state the fact: done only before the cap; truncated at the cap; reason carries steps and reward.",
-        "risks": "contract: verdict/reason text changes for capped runs only; dependency: stdlib only; concurrency: none; state: hash chain unchanged, record count unchanged.",
-        "mitigation": "Extract verdict helper, pin success and cap cases, patch-helper ablation restores legacy label, all standing pins re-run."
-      },
-      "plan_digest": "ecedd62c11fba9ff4c9fca3f3435e790003e77a6253eb7b9ad1658f3edfb7817"
-    },
     {
       "task_id": "brain-cycle48-honest-verdict",
       "phase": "implementation",
@@ -254,6 +215,45 @@
       "timestamp": 1794065258.2454152,
       "timestamp_str": "2026-11-07 18:27:38",
       "agent": "opencode:cycle51"
+    },
+    {
+      "task_id": "brain-cycle52-zero-audit",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Full audit after the no-op guard closure: gates, wait/noop backends, verdict facts, standing pins, candidate scan",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794065372.3107667,
+      "timestamp_str": "2026-11-07 18:29:32",
+      "agent": "opencode:cycle52",
+      "impact_assessment": {
+        "why": "After cycles 50-51 closed the wait, premature-collect and blocked-movement no-op paths, audit whether any remaining candidate is a measured gap rather than policy tuning or a new task family.",
+        "benefits": "Zero-finding stop decision backed by the full battery and a named dead-end list.",
+        "risks": "contract: none (no code change); dependency: none; concurrency: none; state: ledger and cycle log only.",
+        "mitigation": "Re-run all gates and harnesses; name each candidate and why it does not qualify; no code edits."
+      },
+      "plan_digest": "072145c329a048a15b473a2fb89295333bcfcb57e8b570f9891f3e9cfeea0832"
+    },
+    {
+      "task_id": "brain-cycle52-zero-audit",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] Zero qualifying findings; identical battery re-verified (145 tests, aikit 5/5, cold-start 16/8/13/6, cold-first 200->16/8/13/6, wait/noop 16/8/13/6, noop ablate-noop 36/28/33/26, both off 200/0); STOP per zero-finding rule; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794065490.1800203,
+      "timestamp_str": "2026-11-07 18:31:30",
+      "agent": "opencode:cycle52"
+    },
+    {
+      "task_id": "brain-cycle52-zero-audit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle52-zero-audit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794065580.8288543,
+      "timestamp_str": "2026-11-07 18:33:00",
+      "agent": "opencode:cycle52"
     }
   ]
 }

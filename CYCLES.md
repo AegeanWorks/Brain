@@ -2595,3 +2595,35 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
 - **Pinned regression baselines for cycle 52**: unittest 145 OK; aikit 5/5; noop backend 16/8/13/6 with 3/1/1/1 and fallbacks 16/8/13/6; noop ablate-noop 36/28/33/26; noop ablate-both 200/0; wait backend 16/8/13/6; prompt hashes 4bd74314/7f1f5088/4f18a4b6/e05d4d08; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 52 - full audit after the no-op guard closure, zero verified safe improvements (STOP)
+
+- **Baseline** (commit d0203a2, cycle 51; no code change in this cycle):
+  - canonical gate: 145 tests OK; aikit check 5/5; policy 180ba03d...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - cold-start warm-cold: 16/8/13/6 with 3/1/1/1; cold-first: 200 then 16/8/13/6.
+  - wait backend: 16/8/13/6 with 3/1/1/1, fallbacks 16/8/13/6.
+  - noop (blocked-movement) backend: 16/8/13/6 with 3/1/1/1, fallbacks 16/8/13/6.
+  - noop ablate-noop: 36/28/33/26; noop ablate-both: 200/0 x4.
+- **Gap**: none qualifies. Candidates audited and rejected, one line each:
+  - free-cell reverse/unproductive movement: the 20-step trust window is the declared mechanism; a shortest-path progress guard would reject legitimate detours and requires a new adversarial backend, so it is policy tuning, not a bug fix.
+  - moving the stall counter into the persistent SelfModel/S vector: same values and behavior, refactor only.
+  - planner-tracker integration: no failing behavior eval; needs a new plan representation, not a gap fix.
+  - layout key collision / custom-world variants: built-in layouts are deterministic per task/seed; exercising it needs a new task family.
+  - llama.cpp retry/backoff: no local server or weights; untestable in this battery, speculative.
+  - harness verdict duplication and cumulative fallback counter: no current claim or number moves.
+  - trust-window tuning (20 -> lower): declared safety threshold; tuning without a failing eval is not a gap.
+  - `mean_conf` still has no consumer: inventing a confidence policy is not a measured gap.
+- **Target delta**: none. Falsifier moot: any change would need a failing eval first, and none exists that survives the four-slot battery without regressing the 145-test pin set or adding a speculative family.
+- **Change**: none. No code, no harness, no ADR (audit result, not a design decision).
+- **After**: identical battery re-verified: 145 OK, 5/5, 466/240/217, cold-start 16/8/13/6, cold-first 200 -> 16/8/13/6, wait/noop 16/8/13/6, noop ablate-noop 36/28/33/26, both off 200/0. No deltas.
+- **Ablation**: none (no integration claim).
+- **Verdict**: full cycle with zero verified safe improvements. Stopping per the goal rule (zero-findings cycle). STOP.
+- **Gates**: unittest 145/145 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest discover -s tests -t .` -> 145 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - `python -m evals.trust` -> wait 16/8/13/6; `--backend noop` -> 16/8/13/6; `--backend noop --ablate-noop` -> 36/28/33/26; `--backend noop --ablate` -> 200/0.
+  - `python -m evals.coldstart --capture` -> 16/8/13/6; `--scenario cold-first --capture` -> 200 then 16/8/13/6.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
+- **Pinned regression baselines carried (no new pins)**: unittest 145 OK; aikit 5/5; cold-start 16/8/13/6; cold-first 200 then 16/8/13/6; wait/noop 16/8/13/6; noop ablate-noop 36/28/33/26; both off 200/0; verdict facts cap truncated/reward 0.0; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.
