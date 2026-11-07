@@ -21,6 +21,7 @@ import json
 from collections import deque
 
 from budget import BudgetExceeded, spend, use_budget
+from identity import input_digest
 
 SIZE = 8
 
@@ -1153,14 +1154,21 @@ class Agent:
             self.telemetry_log = _FileTelemetry(log_path)
         if self.telemetry_log is None:
             raise ValueError("telemetry_log or log_path is required")
-        self.telemetry_log.write_header(task_id, max_steps,
-                                          policy=PLANNER_POLICY["name"],
-                                          policy_sha256=policy_digest(),
-                                          model=model_label(self.planner.backend))
         from worlds.grid import GridWorld
 
         self.world = GridWorld(task_id, seed)
         self._reset_episode()
+        initial = self.world.reset()
+        identity_sha, _projection = input_digest(initial, {
+            "task": task_id, "seed": seed, "max_steps": max_steps,
+            "policy_sha256": policy_digest(),
+        })
+        self.last_episode_sha256 = identity_sha
+        self.telemetry_log.write_header(task_id, max_steps,
+                                          policy=PLANNER_POLICY["name"],
+                                          policy_sha256=policy_digest(),
+                                          model=model_label(self.planner.backend),
+                                          episode_sha256=identity_sha)
         trace = self.run(max_steps=max_steps, budget=budget)
         verdict, reason = self._episode_verdict(trace, max_steps)
         try:

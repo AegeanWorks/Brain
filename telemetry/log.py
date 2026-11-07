@@ -290,7 +290,8 @@ class Telemetry:
         return record
 
     def write_header(self, task, budget, manifest_sha256=None, manifest_path=None,
-                     policy=None, policy_sha256=None, model=None):
+                     policy=None, policy_sha256=None, model=None,
+                     episode_sha256=None):
         """Write header record (seq 0) describing task and budget.
 
         ``manifest_sha256`` is stored verbatim when given. When
@@ -298,7 +299,8 @@ class Telemetry:
         sha256 of that file is computed and stored. ``policy``,
         ``policy_sha256`` and ``model`` cite the producing configuration
         (Assay-style per-record policy binding); all are stored
-        verbatim when given.
+        verbatim when given. ``episode_sha256`` binds the stable episode
+        identity when the caller supplies it.
         """
         if manifest_sha256 is None and manifest_path is not None:
             manifest_sha256 = sha256_file(manifest_path)
@@ -314,6 +316,7 @@ class Telemetry:
                 "policy": policy,
                 "policy_sha256": policy_sha256,
                 "model": model,
+                "episode_sha256": episode_sha256,
                 "M": None,
                 "P": None,
                 "S": None,

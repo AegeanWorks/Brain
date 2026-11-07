@@ -59,6 +59,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.execution_budget
   ```
+- **Resume-Identity Battery**:
+  ```bash
+  python -m evals.resume_identity
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -82,13 +86,15 @@ brain/
 ├── inventory.py
 ├── demo.py
 ├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
+├── budget.py                 <- opt-in step/LLM/token/time budgets
+├── identity.py               <- canonical episode digest + resume policy
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -242,6 +248,18 @@ budget checks wall time on every spend. A tight limit raises
 attempted usage; a generous budget leaves actions byte-identical, and
 `budget=None` is a no-op. `python -m evals.execution_budget` shows the
 generous 13-step/1.0 run and the step/LLM/token/time caps.
+
+## 🪪 Episode Identity & Resume
+
+`input_digest(initial_state, config)` builds a canonical projection with
+volatile keys (`ts`, `created_at`, `session_id`, …) removed and returns
+the SHA-256 plus projection. `resume_decision` returns `resume`, `new`
+or `ask`; `prepare_resume` pauses a refused candidate instead of
+overwriting it. `run_task_logged` writes `episode_sha256` into the run
+header: reruns with the same task/seed/config match, while a changed
+seed, target or policy digest differs. `python -m
+evals.resume_identity` shows same/volatile resume, changed seed/target
+new, legacy ask, policy-any resume, and the 13/6-step header traces.
 
 ## 🧾 Verdict Facts
 

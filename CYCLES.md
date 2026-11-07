@@ -3008,3 +3008,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 221 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 66**: unittest 221 OK; aikit 5/5; generous budget T3 13/1.0/actions match, steps 13, pressure 0.065; step cap 3 -> BudgetExceeded(steps,3,4) with 3 actions; LLM cap 2 -> (llm_calls,2,3) 2 calls; token cap 8 -> (tokens,8,10) 2 calls; time cap 0 -> seconds; Merkle batch 12-20/count 8 proof 3 siblings; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 66 - canonical episode identity and resume policy (neurocore transfer)
+
+- **Baseline** (commit 100a40b, cycle 65; same T3:15/65 and logged runs):
+  - canonical gate: 221 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - logged headers had no episode digest, and there was no declared rule for resuming a stored episode after the task/seed/config changed.
+- **Gap**: a rerun could not be compared with a stored episode from the log, and changed targets/configs had no `resume`/`new`/`ask` decision or pause guard.
+- **Target delta**: same task/seed/config -> same digest and `resume`; changed seed/target/config -> different digest and `new`; volatile fields ignored; missing digest -> `ask`; policy `any` -> `resume`; logged header `episode_sha256` equals the independent digest; actions/steps/rewards unchanged.
+- **Falsifier**: same episode differs; changed target/seed/config does not; volatile keys change the digest; a missing digest resumes; the header digest disagrees; any standing/policy pin moves.
+- **Change**: identity.py adds `VOLATILE_KEYS`, `canonical_projection`, `digest_projection`, `input_digest`, `normalise_policy`, `resume_decision`, `resume_guard` and `prepare_resume`; `run_task_logged` computes the digest from the reset initial state/config and writes `episode_sha256` into the header; `Telemetry.write_header` accepts the additive field. tests/test_identity.py covers volatile exclusion, changed target/seed/config, the decision matrix, pause/allowed guards and header equality; evals/resume_identity.py measures same/changed/volatile/legacy/policy cases plus header traces. README and ADR-060 record the contract. No new dependencies; no schema bump.
+- **After** (same T3:15/65 and logged runs):
+  - same T3:15 reruns: identical `episode_sha256`, 13 steps each, actions identical; T3:65: different digest, 6 steps; changed target: different digest, `new`.
+  - volatile `ts`/`created_at`/`session_id`: same digest, `resume`; absent digest: `ask`; policy `any` on a changed episode: `resume`.
+  - logged header digest equals the independently computed `input_digest`; `prepare_resume` pauses a refused candidate and allows a matching one.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, keyed telemetry, prompt budget, Merkle, execution budget and the 200k tail-read bound are unchanged; 230 tests OK; policy unchanged.
+- **Ablation** (same inputs):
+  - no `episode_sha256` in the header: the independent digest still exists, but the log cannot name the episode; adding the field restores the binding.
+  - a changed target/seed/config changes the digest and `strict` returns `new`; a volatile-only change keeps `resume`. The identity property and its decision die with the projection/decision cut.
+- **Verdict**: episode-identity trace binding. Behavior is unchanged; the measured deltas are same/different digests, the resume/new/ask matrix, the pause guard, and the header `episode_sha256`. No action or emergence claim.
+- **Gates**: unittest 230/230 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_identity.TestEpisodeIdentity.test_volatile_fields_are_ignored -v` -> before: ModuleNotFoundError (`identity`); after: OK.
+  - `python -m unittest tests.test_identity -v` -> 9 OK.
+  - `python -m evals.resume_identity` -> same resume/13, changed-seed new/6, changed-target new, volatile resume, legacy ask, policy-any resume; headers match.
+  - `python -m unittest discover -s tests -t .` -> 230 OK.
+  - `python aikit.py check brain` -> 5/5 after adding `budget.py` and `identity.py` to the README tree.
+- **Pinned regression baselines for cycle 67**: unittest 230 OK; aikit 5/5; same T3:15 digest/resume/13 steps; T3:65 different digest/6; changed target new; volatile resume; legacy ask; policy-any resume; header digest binding; generous budget 13/1.0/actions match; caps 4/3, 3/2, 10/8, seconds; Merkle 12-20/count 8 proof 3; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
