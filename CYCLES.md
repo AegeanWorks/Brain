@@ -3581,3 +3581,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 87**: unittest 389 OK; aikit 5/5; ref verify 2/2, missing-log 1/1, fabricated 0/1, unreferenced 1, store 2/2, no-header/missing-file errors; policy decbfce3...; claim ref T3:15 f9343058... match, two runs 3622529a... distinct; tour audit 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration journal 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins unchanged; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 87 - chain/HMAC integrity checks for claim-ref verification (fresh gap audit)
+
+- **Baseline** (commit 76b6c1c, cycle 86; same T3:15/65 runs):
+  - canonical gate: 389 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the verifier checked header episode membership only; a tampered or caller-supplied log with a copied digest could pass.
+- **Gap**: claim refs were not tied to log integrity. `verify_chain` detects edited/deleted/reordered/unchained logs, and an optional HMAC can verify keyed records.
+- **Target delta**: default verification rejects a tampered log with its findings; the membership-only mode still passes 1/1 for the ablation; a keyed log verifies with the correct key and fails with a wrong key; intact 2/2 and store/missing/no-header cases unchanged.
+- **Falsifier**: a tampered log is accepted by default; a correct keyed log is rejected; a wrong key passes; the ablation/keyed options are ignored; any behavior/pin moves.
+- **Change**: claims_verify.py adds optional `hmac_key` and `verify_logs` arguments to `verify_claim_refs`/`verify_claim_store`, validates the options, and runs `verify_chain(path, hmac_key=...)` before trusting each log's header. A non-ok chain raises with the findings; `verify_logs=False` is membership-only and rejects an hmac_key. Results gain `verify_logs`/`hmac`. tests/test_claim_ref_verify.py adds tampered/membership/keyed/wrong-key/store-chain tests; evals/claim_ref_verify.py adds tampered/tampered-off/keyed/keyed-wrong. README and ADR-081 record the contract. No new dependencies; no claim/store schema or policy change.
+- **After** (same runs):
+  - intact: 2/2 verified, verify_logs true, hmac false; tampered: default ValueError `failed chain verification: edited-record:1, broken-link:...`, membership-only verified 1; tampered-off: 1 verified/ok true.
+  - keyed: 1 verified/ok true/hmac true; keyed-wrong: ValueError `bad-mac:0, bad-mac:1`; unkeyed keyed log: chain passes, MAC ignored (documented).
+  - missing-log 1/1, fabricated 0/1, unreferenced 1, store 2/2, no-header/missing-file errors unchanged.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0, rule readout/tie/tour audits, progress guard/skip, Merkle journal/compaction, claim store, calibration journal/bridge/retention, keyed telemetry, prompt budget, execution budget, resume identity, workspace binding, snapshot diff/digest, calibration and the 200k tail-read bound unchanged; 393 tests OK; policy unchanged.
+- **Ablation** (same tampered log):
+  - `verify_logs=True`: rejected (`edited-record:1`, broken links); `verify_logs=False`: membership-only verified 1. The integrity property dies with the flag.
+  - keyed correct vs wrong: correct verifies 1/1, wrong `bad-mac`; a chain-only rewrite remains undetected without an external witness.
+- **Verdict**: evidence-integrity extension. Behavior is unchanged; the measured deltas are tamper rejection, the membership-only ablation, and keyed correct/wrong outcomes. No action or emergence claim.
+- **Gates**: unittest 393/393 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_claim_ref_verify.TestClaimRefVerifier.test_tampered_log_rejected_by_default -v` -> before: ValueError not raised; after: OK.
+  - `python -m unittest tests.test_claim_ref_verify -v` -> 14 OK.
+  - `python -m evals.claim_ref_verify` -> intact 2/2; tampered error/membership 1; tampered-off 1; keyed 1/ok; keyed-wrong bad-mac; missing/no-header unchanged.
+  - `python -m unittest discover -s tests -t .` -> 393 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 88**: unittest 393 OK; aikit 5/5; ref verify intact 2/2, tampered rejected/membership 1, keyed 1/ok, wrong key bad-mac, missing-log 1/1, fabricated 0/1, unreferenced 1, store 2/2; policy decbfce3...; claim ref T3:15 f9343058... match, two runs 3622529a... distinct; tour audit 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration journal 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins unchanged; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+

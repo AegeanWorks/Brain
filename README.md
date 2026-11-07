@@ -545,15 +545,20 @@ that the ref matches; two runs keep distinct refs; a legacy payload
 loads with `None`; an invalid ref leaves the history unchanged.
 
 `claims_verify.py` checks refs against live logs. `verify_claim_refs(ledger,
-log_paths)` reads every header `episode_sha256` (union across logs and
-multiple headers), reports `verified/unverified/unreferenced` counts and
+log_paths, hmac_key=None, verify_logs=True)` reads every header
+`episode_sha256` (union across logs and multiple headers) and, by
+default, runs `verify_chain` on each log first; an optional `hmac_key`
+also verifies keyed records. A failed chain/MAC check raises instead of
+trusting the header. It reports `verified/unverified/unreferenced` and
 names `unknown-episode` findings; `verify_claim_store` loads a snapshot
-first. It writes nothing. `python -m evals.claim_ref_verify` shows a
-2/2 verified pair, missing-log 1/1, fabricated 0/1, an unreferenced
-verdict, the store path, and no-header/missing-file errors. The verifier
-confirms membership in header episodes; it does not verify the log chain
-or signature, so a caller-supplied log with a copied episode digest
-would still pass.
+first. `verify_logs=False` is the membership-only ablation and cannot
+take an `hmac_key`. `python -m evals.claim_ref_verify` shows a 2/2
+verified pair, missing-log 1/1, fabricated 0/1, an unreferenced verdict,
+the store path, a tampered log (rejected; membership-only still 1), a
+keyed log (correct key ok, wrong key `bad-mac`), and
+no-header/missing-file errors. The chain check detects edited/deleted/
+reordered records but not a fully rewritten self-consistent log; HMAC
+requires key custody, and anchors/journals are separate witnesses.
 
 ## 🧾 Verdict Facts
 

@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle86-ref-verifier",
+    "task_id": "brain-cycle87-ref-integrity",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794091475.788462,
-    "owner": "opencode:cycle86",
-    "started_by": "opencode:cycle86",
+    "updated_at": 1794092502.493875,
+    "owner": "opencode:cycle87",
+    "started_by": "opencode:cycle87",
     "continuations": [],
-    "completed_at": 1794091476.123373
+    "completed_at": 1794092503.2660928
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle83-tiebreak-audit",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: audit the current rule tie-break via readout alternatives and visit counts",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794088941.8459606,
-      "timestamp_str": "2026-11-08 01:02:21",
-      "agent": "opencode:cycle83",
-      "impact_assessment": {
-        "why": "The cycle-79 readout reports tie count and confidence but not which moves are tied or how visits influenced the rule's choice. A readout-only tie-break audit can measure the current choice without changing actions or scores.",
-        "benefits": "probe.rule.alternatives lists each best-distance move with its visit count; the eval counts tie steps with visit spread and whether the rule chose the least-visited alternative; rule_readout=False removes the field; actions/steps/rewards stay identical.",
-        "risks": "contract: readout-only additions to _rule_confidence/probe.rule, no new policy key; dependency: stdlib only; concurrency: none; state: telemetry probe grows by one list.",
-        "mitigation": "Keep the action selection untouched; collect alternatives in the existing move loop; test unique/tie/visits/collect/no-goal/off/action parity/JSON; run the on/off seed battery and 356 tests plus AIKit."
-      },
-      "plan_digest": "0f1d6d55756cebc16c9262b1ba8c5041829bc155f2a45f7bd7da2af26167396a"
-    },
-    {
-      "task_id": "brain-cycle83-tiebreak-audit",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first KeyError alternatives; alternatives/visits in _rule_confidence, tests/eval tie audit, README/ADR-077",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794089337.5001605,
-      "timestamp_str": "2026-11-08 01:08:57",
-      "agent": "opencode:cycle83"
-    },
-    {
-      "task_id": "brain-cycle83-tiebreak-audit",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: 89/89 readouts, 113 alternatives, 28 ties, 1 spread, 28 least-visited, 0 non-least; off 0; actions match; 361 tests OK; aikit 5/5; policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794089338.1189985,
-      "timestamp_str": "2026-11-08 01:08:58",
-      "agent": "opencode:cycle83"
-    },
-    {
-      "task_id": "brain-cycle83-tiebreak-audit",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit tie-break audit, tests/eval, ADR-077, cycle 83",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794089338.8659515,
-      "timestamp_str": "2026-11-08 01:08:58",
-      "agent": "opencode:cycle83"
-    },
-    {
-      "task_id": "brain-cycle83-tiebreak-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle83-tiebreak-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794089339.3932397,
-      "timestamp_str": "2026-11-08 01:08:59",
-      "agent": "opencode:cycle83"
-    },
     {
       "task_id": "brain-cycle84-tour-audit",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794091476.1233757,
       "timestamp_str": "2026-11-08 01:44:36",
       "agent": "opencode:cycle86"
+    },
+    {
+      "task_id": "brain-cycle87-ref-integrity",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: chain/HMAC integrity checks for claim-ref verification",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794092089.8764732,
+      "timestamp_str": "2026-11-08 01:54:49",
+      "agent": "opencode:cycle87",
+      "impact_assessment": {
+        "why": "The cycle-86 verifier trusts any parseable header episode digest; a caller-supplied log with a copied digest passes. verify_chain can reject edited/reordered/unchained logs, and an optional hmac_key can verify keyed records, before their episode headers are trusted.",
+        "benefits": "verify_claim_refs(..., hmac_key=None, verify_logs=True) runs chain verification on every log; a tampered log raises by default while verify_logs=False keeps the membership-only ablation; a keyed log verifies with the correct key and fails with a wrong key; claim-store verification passes the same options.",
+        "risks": "contract: verifier kwargs only, claim/store schema unchanged; dependency: telemetry.log verify_chain; concurrency: none; state: read-only.",
+        "mitigation": "Default to chain verification, validate hmac_key/verify_logs, name the failing findings, test intact/tampered/off/keyed/wrong-key/store/malformed, and rerun 389 tests plus AIKit."
+      },
+      "plan_digest": "1eabcc60fd686699d28f7e76ef15d8eea1276f6b2d9d31595fac6a7fea7f7f08"
+    },
+    {
+      "task_id": "brain-cycle87-ref-integrity",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first tampered log accepted; chain/HMAC options, verify_chain per log, membership-only ablation, tests/eval, README/ADR-081",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794092501.2172987,
+      "timestamp_str": "2026-11-08 02:01:41",
+      "agent": "opencode:cycle87"
+    },
+    {
+      "task_id": "brain-cycle87-ref-integrity",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: intact 2/2; tampered rejected/membership 1; keyed 1 ok/wrong bad-mac; missing/fabricated/store unchanged; 393 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794092501.7694254,
+      "timestamp_str": "2026-11-08 02:01:41",
+      "agent": "opencode:cycle87"
+    },
+    {
+      "task_id": "brain-cycle87-ref-integrity",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit ref integrity, tests/eval, ADR-081, cycle 87",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794092502.493875,
+      "timestamp_str": "2026-11-08 02:01:42",
+      "agent": "opencode:cycle87"
+    },
+    {
+      "task_id": "brain-cycle87-ref-integrity",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle87-ref-integrity' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794092503.2660947,
+      "timestamp_str": "2026-11-08 02:01:43",
+      "agent": "opencode:cycle87"
     }
   ]
 }

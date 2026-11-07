@@ -9,7 +9,24 @@ claim/verdict for an unknown episode, and writes nothing.
 from pathlib import Path
 
 from claims import ClaimLedger
-from telemetry.log import Telemetry
+from telemetry.log import Telemetry, verify_chain
+
+
+def _validate_options(hmac_key, verify_logs):
+    if not isinstance(verify_logs, bool):
+        raise ValueError(
+            "Why: verify_logs must be a bool. "
+            "Fix: pass verify_logs=True or False.")
+    if hmac_key is not None:
+        if (not isinstance(hmac_key, (bytes, bytearray))
+                or not hmac_key):
+            raise ValueError(
+                "Why: hmac_key must be non-empty bytes or None. "
+                "Fix: pass the verifier-held bytes key, or omit it.")
+        if not verify_logs:
+            raise ValueError(
+                "Why: hmac_key needs verify_logs=True. "
+                "Fix: enable chain verification or omit hmac_key.")
 
 
 def _normalise_paths(log_paths):
@@ -33,10 +50,18 @@ def _normalise_paths(log_paths):
     return [Path(path) for path in paths]
 
 
-def _log_episodes(path):
+def _log_episodes(path, hmac_key=None, verify_logs=True):
     if not Path(path).exists():
         raise ValueError(
             "log %s does not exist. Fix: pass a logged run path." % path)
+    if verify_logs:
+        chain = verify_chain(path, hmac_key=hmac_key)
+        if not chain["ok"]:
+            raise ValueError(
+                "log %s failed chain verification: %s. "
+                "Fix: repair the log or pass verify_logs=False for "
+                "membership-only verification."
+                % (path, ", ".join(chain["findings"])))
     try:
         records = Telemetry(path).read_all()
     except (OSError, ValueError) as exc:
@@ -56,17 +81,25 @@ def _log_episodes(path):
     return episodes
 
 
-def verify_claim_refs(ledger, log_paths):
-    """Check every verdict ref against the episodes found in the logs."""
+def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True):
+    """Check every verdict ref against the episodes found in the logs.
+
+    ``verify_logs=True`` (default) first verifies each log's hash chain;
+    an optional ``hmac_key`` also verifies keyed records. A failed check
+    raises instead of trusting the header. ``verify_logs=False`` is the
+    membership-only ablation and cannot take an ``hmac_key``.
+    """
     if not isinstance(ledger, ClaimLedger):
         raise ValueError(
             "Why: ledger must be a ClaimLedger. "
             "Fix: build or load a ClaimLedger first.")
+    _validate_options(hmac_key, verify_logs)
     paths = _normalise_paths(log_paths)
     logs = {}
     episodes = set()
     for path in paths:
-        found = _log_episodes(path)
+        found = _log_episodes(path, hmac_key=hmac_key,
+                              verify_logs=verify_logs)
         logs[str(path)] = sorted(found)
         episodes.update(found)
     verified = 0
@@ -97,11 +130,15 @@ def verify_claim_refs(ledger, log_paths):
         "episodes": sorted(episodes),
         "logs": logs,
         "findings": findings,
+        "verify_logs": verify_logs,
+        "hmac": hmac_key is not None,
     }
 
 
-def verify_claim_store(store_path, log_paths):
+def verify_claim_store(store_path, log_paths, hmac_key=None,
+                       verify_logs=True):
     """Load a claim-store snapshot and verify its verdict refs."""
     from claims_store import load_ledger
 
-    return verify_claim_refs(load_ledger(store_path), log_paths)
+    return verify_claim_refs(load_ledger(store_path), log_paths,
+                             hmac_key=hmac_key, verify_logs=verify_logs)
