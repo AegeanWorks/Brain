@@ -23,6 +23,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.telemetry_lock
   ```
+- **Cycle-Escape Battery**:
+  ```bash
+  python -m evals.escape
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -52,7 +56,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart + trust batteries, tasks
+├── evals/                    <- estimators, recompute, coldstart/trust/escape batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -83,6 +87,21 @@ plus `noop_guard=False` is the raw control. Each step's action record carries
 `proposed/rule/steps_since_reward/distrusted/accepted/reason`, and the hub
 carries `steps_since_reward`; rule-only runs and good-backend replays keep
 their exact actions and zero fallbacks.
+
+## 🔁 Repeated-Position Cycle Escape
+
+For obstacle layouts with two or more blockers, the planner counts how
+many times the current cell appears in the full episode history. On the
+second visit it takes one deterministic BFS step toward the target
+(neighbor order `up/down/left/right`), instead of following the local
+viability/pool order into the same loop. The action record's `probe`
+gains `cycle_escape` with `position/visits/distance/action`. The gate is
+memory-backed: `Planner(...).plan(state, None)` cannot see a repeat and
+the old 200-step loop returns; `cycle_escape=False` is the executable
+ablation. Single-blocker and open-field paths keep their existing
+rules. `python -m evals.escape` shows both recovered three-blocker
+layouts, the escape-off and memory-blind controls, and the unchanged
+first prompt hash.
 
 ## 🧾 Verdict Facts
 

@@ -1,13 +1,12 @@
 """Three-blocker snapshot matrix: pin the audited two-detour family.
 
 Audit extension of the two-blocker matrix: five three-obstacle configs
-verified deterministic 3x identical on the intact tree. Four complete
-with 1.0 reward (three detours, one pool-sufficient); one truncates at
-the 200-step cap with 0.0 reward and is documented as reserved routing
-headroom — fixing it without breaking seed-74 blind coupling and T1
-optimality has no verified safe edit (see cycles 35/37 prototypes), so
-the pin locks the current behavior against silent drift in either
-direction until a reviewed routing change updates it.
+verified deterministic 3x identical on the intact tree. All five now
+complete with 1.0 reward (four detours, one pool-sufficient); the
+former (6,5) truncation is recovered by the repeated-position BFS
+escape (cycle 54), which needs full episode memory. The pin locks the
+current behavior against silent drift in either direction until a
+reviewed routing change updates it.
 
 Regeneration rule (deliberately manual, no auto-update flag): after a
 reviewed planner change, re-audit the five configs on the intact tree
@@ -40,7 +39,7 @@ THREE_CONFIGS = [
     ((7, 3), [(5, 2), (7, 0), (6, 1)], 12, 1.0),
     ((6, 0), [(5, 0), (2, 1), (7, 1)], 10, 1.0),
     ((4, 7), [(4, 4), (7, 7), (3, 1)], 13, 1.0),
-    ((6, 5), [(6, 4), (5, 5), (3, 5)], 200, 0.0),
+    ((6, 5), [(6, 4), (5, 5), (3, 5)], 19, 1.0),
 ]
 
 
@@ -65,12 +64,13 @@ class TestThreeBlocker(unittest.TestCase):
 
     def test_blind_kills_three_blocker(self):
         # Visit-coupled killing configs: (6,0) 10/1.0 is pool-sufficient
-        # and (6,5) 200/0.0 is the truncation baseline (blind == intact,
-        # vacuous) — both honestly recorded in the pins test and stayed
-        # unpinned here.
+        # (honest exception) and stays unpinned here. (6,5) is now a
+        # killing config too: the intact escape completes in 19 steps
+        # while the memory-blind cut still truncates at 200/0.
         for target, obstacles, want in (((6, 7), [(2, 7), (5, 4), (6, 3)], 15),
                                          ((7, 3), [(5, 2), (7, 0), (6, 1)], 12),
-                                         ((4, 7), [(4, 4), (7, 7), (3, 1)], 13)):
+                                         ((4, 7), [(4, 4), (7, 7), (3, 1)], 13),
+                                         ((6, 5), [(6, 4), (5, 5), (3, 5)], 19)):
             intact = _three_steps(target, obstacles)
             self.assertEqual(len(intact), want)
             self.assertEqual(sum(r["reward"] for r in intact), 1.0)

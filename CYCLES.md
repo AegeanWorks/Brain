@@ -2655,3 +2655,37 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
 - **Pinned regression baselines for cycle 54**: unittest 149 OK; aikit 5/5; locked telemetry chain 4/4; lock-off ablation broken-link:1,2 with prefix 2/4; timeout test raises; stale lock test recovers; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 54 - repeated-position BFS escape for multi-obstacle routing loops
+
+- **Baseline** (commit 17f28b7, cycle 53; pre-change worktree replay with the same declining backend, seeds 0 and prompt code):
+  - canonical gate: 149 tests OK; aikit check 5/5; policy 180ba03d386a53368fc66a95f4825e1d68b5717fd22e43564925f24600afb75e.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - cycle-a (target [6,5], obstacles [6,4],[5,5],[3,5]): 200 steps, 0.0 reward, success false, 200 model calls, 200 fallbacks, no `cycle_escape` probe; action hash 8baacf99..., first prompt hash 398a93d3..., syn 0.0 syn_n 0.0 phi 0.0, 404 records.
+  - cycle-b (target [6,4], obstacles [5,4],[6,0],[6,3]): 200 steps, 0.0 reward, success false, 200 model calls, 200 fallbacks, no probe; action hash c1ae3ac7..., first prompt hash aa934aba..., syn 0.0 syn_n 0.0 phi 0.0, 404 records.
+  - 300-config seeded three-blocker scan: two truncations (cycle-a is the documented pin; cycle-b was found by the scan), all other sampled configs byte-identical under the prototype.
+- **Gap**: the local viability/pool order builds visit counts from only the last four memories, so a six-cell loop never observes its own repeat and re-enters the same cycle until the 200-step cap. The documented (6,5) pin and the sampled (6,4) layout are both 200/0.
+- **Target delta**: cycle-a 200/0 -> 19/1.0; cycle-b 200/0 -> 18/1.0; success 0/2 -> 2/2; gain 0 -> .905/.91; recovery 0 -> 1.0; trace gains `probe.cycle_escape` on the repeated cell; first prompts byte-identical; `cycle_escape=False` and the memory-blind cut restore 200/0.
+- **Falsifier**: either case stays at 200/0; any standing, single-obstacle, multi, three, trust, cold-start or holdout pin moves; the first prompt hash changes; the escape-off ablation does not restore the exact baseline action hashes; or the memory-blind cut completes.
+- **Change**: agent.py adds module-level `_bfs_step` (deque BFS, fixed up/down/left/right order), gates it inside `_rule_action` on target tasks with no remaining items and >=2 obstacles and current-cell count >=2 in the full episode history, records `probe.cycle_escape` with position/visits/distance/action, adds `Planner(cycle_escape=True)` and `PLANNER_POLICY["cycle_escape"] = "repeat>=2->bfs"`; evals/escape.py adds intact/ablate/blind modes with a declining backend; tests/test_cycle_escape.py adds recovery, ablation, blind, probe, determinism and policy tests; test_three_blocker.py and test_three_goldens.py update the (6,5) pin to 19/1.0 and its golden hash; README and ADR-050 record the contract. No new dependencies; no schema change.
+- **After** (same backend class, seeds, prompt builder and probe code):
+  - cycle-a: 19 steps, 1.0 reward, success true, 19 model calls, 19 fallbacks, 2 escape probes: first at [5,2] visits 2 distance 6 action down, second at [5,3] visits 2 distance 5 action right; action hash 9ed8486f..., first prompt hash 398a93d3... (unchanged); syn -0.005187576 syn_n -0.025158955 phi 0.0, 42 records.
+  - cycle-b: 18 steps, 1.0 reward, success true, 18 model calls, 18 fallbacks, 2 escape probes (first at [5,1] visits 2 distance 6 action down); action hash 722c4c33..., first prompt hash aa934aba... (unchanged); syn -0.002387766 syn_n -0.011128706 phi 0.0, 40 records.
+  - gain .905/.91; recovery 1.0; rule-only standing behavior and trace unchanged: 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; trust 16/8/13/6 with fallbacks 16/8/13/6; cold-start 16/8/13/6; multi pins 9/18/11/13/14; three pins 15/12/10/13/19; exhaustive T3 still 3906/3906. `policy_digest` 180ba03d... -> ea4450748ebd2c555e0017c7d346230c5366f72cd4dd16fd84bbf3f8f463cb73.
+  - shipped 300-config scan: 0 changed, 0 regressed outside the fixed cycle; the sampled cycle-b 200/0 -> 18/1.0.
+- **Ablation** (same backend class, seeds, prompts and probe code):
+  - `cycle_escape=False`: cycle-a 200/0 action hash 8baacf99..., cycle-b 200/0 action hash c1ae3ac7...; no escape probe; syn 0.0 phi 0.0; prompt hashes unchanged. Exactly the pre-change baseline.
+  - memory-blind (`plan(state, None)`): both cases 200/0, no escape probe; action hashes cd16b302.../367ab500..., prompt hashes 99f16255.../6e41e2a7... (the `visits` field is absent by construction). The property and the probe die with the memory cut.
+- **Verdict**: integration confirmed for memory-driven repeated-position escape. Behavior improves (0/2 -> 2/2 success, 200/200 -> 19/18 steps) and the trace gains a `cycle_escape` readout; the escape-off and memory-blind controls restore the loop. No emergence claim beyond the measured dependency.
+- **Gates**: unittest 156/156 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_cycle_escape -v` -> before: recovery FAIL (0.0 != 1.0), memory-cut OK; after: 7 OK.
+  - `python -m unittest tests.test_cycle_escape tests.test_three_blocker tests.test_three_goldens -v` -> 10 OK.
+  - `python -m unittest discover -s tests -t .` -> 156 OK.
+  - `python -m evals.escape` / `--mode ablate` / `--mode blind` -> intact 19/18 with 1.0 and 2 probes; ablate 200/200 with 0.0 and no probe; blind 200/200 with 0.0 and no probe.
+  - `python -m evals.trust` -> 16/8/13/6 with 3/1/1/1 and fallbacks 16/8/13/6; `python -m evals.coldstart --capture` -> 16/8/13/6 with store_reads 1.
+  - pre-change worktree replay at 17f28b7 -> cycle-a 200/0 hash 8baacf99, cycle-b 200/0 hash c1ae3ac7, first prompts 398a93d3/aa934aba.
+  - 300-config seeded scan -> 1 fixed, 0 changed, 0 regressed; fixed case 200/0 -> 18/1.0 with blind 200/0.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 55**: unittest 156 OK; aikit 5/5; cycle-a 19/1.0 action hash 9ed8486f..., prompt 398a93d3...; cycle-b 18/1.0 action hash 722c4c33..., prompt aa934aba...; escape-off 200/0 hashes 8baacf99.../c1ae3ac7...; blind 200/0 hashes cd16b302.../367ab500...; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy ea445074...; multi pins 9/18/11/13/14; three pins 15/12/10/13/19; exhaustive 3906/3906; trust 16/8/13/6; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

@@ -18,6 +18,7 @@ import copy
 import hashlib
 import itertools
 import json
+from collections import deque
 
 SIZE = 8
 
@@ -42,6 +43,7 @@ PLANNER_POLICY = {
     "backend_noop_guard": "on",
     "detour_pooling": "visits",
     "pool_corridor": ">=2",
+    "cycle_escape": "repeat>=2->bfs",
 }
 
 
@@ -158,6 +160,55 @@ def _enters_blocked_corridor(nxt, goal, obstacles):
     return False
 
 
+def _bfs_step(pos, goal, obstacles):
+    """Return one deterministic BFS step toward ``goal`` and its distance.
+
+    Breadth-first search over the 8x8 board with the static obstacle
+    set; neighbor order is the world action order. Returns
+    ``(action, distance)`` or ``(None, 0)`` when the goal is unreachable
+    or the inputs are malformed. Pure function of its inputs.
+    """
+    try:
+        start = (int(pos[0]), int(pos[1]))
+        target = (int(goal[0]), int(goal[1]))
+        blocked = {(int(o[0]), int(o[1])) for o in (obstacles or [])}
+    except (TypeError, ValueError, IndexError):
+        return (None, 0)
+    if not (0 <= start[0] < SIZE and 0 <= start[1] < SIZE):
+        return (None, 0)
+    if start == target:
+        return (None, 0)
+    order = (("up", 0, -1), ("down", 0, 1),
+             ("left", -1, 0), ("right", 1, 0))
+    queue = deque([start])
+    previous = {start: None}
+    while queue:
+        cell = queue.popleft()
+        if cell == target:
+            break
+        for _name, dx, dy in order:
+            nxt = (cell[0] + dx, cell[1] + dy)
+            if not (0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE):
+                continue
+            if nxt in blocked or nxt in previous:
+                continue
+            previous[nxt] = cell
+            queue.append(nxt)
+    if target not in previous:
+        return (None, 0)
+    path = []
+    cell = target
+    while cell is not None:
+        path.append(cell)
+        cell = previous[cell]
+    path.reverse()
+    first = path[1]
+    for name, dx, dy in order:
+        if (start[0] + dx, start[1] + dy) == first:
+            return (name, len(path) - 1)
+    return (None, 0)
+
+
 def _step_toward(pos, goal, obstacles, visits=None):
     dx = goal[0] - pos[0]
     dy = goal[1] - pos[1]
@@ -267,10 +318,13 @@ class Planner:
     immediately whenever the rule action is productive. With backend
     None the rule path is exact. ``trust_window=None`` disables the
     stall gate and ``noop_guard=False`` disables the no-op guard so raw
-    backend controls can be measured.
+    backend controls can be measured. ``cycle_escape=False`` disables
+    the repeated-position BFS escape so the loop can be measured as an
+    executable ablation.
     """
 
-    def __init__(self, backend=None, trust_window=20, noop_guard=True):
+    def __init__(self, backend=None, trust_window=20, noop_guard=True,
+                 cycle_escape=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -281,10 +335,15 @@ class Planner:
         if not isinstance(noop_guard, bool):
             raise ValueError(
                 "Why: noop_guard must be a bool. Fix: pass noop_guard=True or False.")
+        if not isinstance(cycle_escape, bool):
+            raise ValueError(
+                "Why: cycle_escape must be a bool. "
+                "Fix: pass cycle_escape=True or False.")
         self._get_hub = None
         self.backend = backend
         self.trust_window = trust_window
         self.noop_guard = noop_guard
+        self.cycle_escape = cycle_escape
         self._backend_distrusted = False
         self.fallbacks = 0
         self._recall_source = None
@@ -446,6 +505,22 @@ class Planner:
                     if state.get("task") == "T2_delayed_match" and steps < 2:
                         return "wait"
                     return "collect"
+                if self.cycle_escape and len(obstacles) >= 2:
+                    repeated = 0
+                    for m in mem_list:
+                        if (isinstance(m, dict) and m.get("x") == x
+                                and m.get("y") == y):
+                            repeated += 1
+                    if repeated >= 2:
+                        action, distance = _bfs_step(pos, target, obstacles)
+                        if action is not None:
+                            probe["cycle_escape"] = {
+                                "position": [int(x), int(y)],
+                                "visits": repeated,
+                                "distance": distance,
+                                "action": action,
+                            }
+                            return action
                 return _toward(target)
             return "wait"
 

@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle53-telemetry-lock",
-    "last_phase": "verification",
+    "task_id": "brain-cycle54-cycle-escape",
+    "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794066314.6357605,
-    "owner": "opencode:cycle53",
-    "started_by": "opencode:cycle53",
+    "updated_at": 1794067432.3276567,
+    "owner": "opencode:cycle54",
+    "started_by": "opencode:cycle54",
     "continuations": [],
-    "completed_at": 1794066324.4906924
+    "completed_at": 1794067529.9877627
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle49-zero-audit",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] Zero qualifying findings; identical battery re-verified (140 tests, aikit 5/5, cold-start 16/8/13/6, cold-first 200->16/8/13/6, trust 36/28/33/26); STOP per zero-finding rule; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794064167.3862193,
-      "timestamp_str": "2026-11-07 18:09:27",
-      "agent": "opencode:cycle49"
-    },
-    {
-      "task_id": "brain-cycle49-zero-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle49-zero-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794064242.3603876,
-      "timestamp_str": "2026-11-07 18:10:42",
-      "agent": "opencode:cycle49"
-    },
-    {
-      "task_id": "brain-cycle50-noop-guard",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: reject legal no-op proposals immediately when the rule has a productive action",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794064519.6289213,
-      "timestamp_str": "2026-11-07 18:15:19",
-      "agent": "opencode:cycle50",
-      "impact_assessment": {
-        "why": "A stalled backend proposing wait is accepted for 20 steps before the trust window, costing 20 wasted steps per episode; wait is a legal but dominated no-op whenever the rule can move or collect.",
-        "benefits": "Stalled backend completes in rule-optimal steps (16/8/13/6) instead of 36/28/33/26; trace records reason=no-op; trust window remains for movement stalls.",
-        "risks": "contract: Planner gains noop_guard and model_decision.reason; dependency: stdlib only; concurrency: none; state: no persistent schema change.",
-        "mitigation": "Keep noop_guard independent of trust_window; raw control disables both; update pinned trust numbers deliberately; re-run all standing goldens."
-      },
-      "plan_digest": "232bc79be3b5dc1fbe35fb1ac9de7b2b5d73dd2913df2737ed19664bf21ab595"
-    },
-    {
-      "task_id": "brain-cycle50-noop-guard",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first no-op tests; noop_guard independent of trust_window, model_decision.reason, two-level trust-battery ablations",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794064932.748571,
-      "timestamp_str": "2026-11-07 18:22:12",
-      "agent": "opencode:cycle50"
-    },
-    {
-      "task_id": "brain-cycle50-noop-guard",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: stalled backend 36/28/33/26 -> 16/8/13/6 with rewards 3/1/1/1; ablate-noop restores 36/28/33/26; ablate-trust stays 16/8/13/6; both off 200/0; prompts unchanged; 143 tests OK; aikit 5/5; standing unchanged; ADR-047 and cycle 50 recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794064937.0055723,
-      "timestamp_str": "2026-11-07 18:22:17",
-      "agent": "opencode:cycle50"
-    },
     {
       "task_id": "brain-cycle50-noop-guard",
       "phase": "verification",
@@ -254,6 +193,67 @@
       "timestamp": 1794066324.4906948,
       "timestamp_str": "2026-11-07 18:45:24",
       "agent": "opencode:cycle53"
+    },
+    {
+      "task_id": "brain-cycle54-cycle-escape",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: memory-gated repeated-position cycle escape for multi-obstacle routing",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794066899.177231,
+      "timestamp_str": "2026-11-07 18:54:59",
+      "agent": "opencode:cycle54",
+      "impact_assessment": {
+        "why": "The documented 3-blocker config (target [6,5], obstacles [6,4],[5,5],[3,5]) loops 200 steps with 0 reward in a 6-cell cycle; a 300-config seeded scan found 2 truncations, both from the same repeated-position loop.",
+        "benefits": "Recover both configs to 19/18 steps with 1.0 reward, preserve all standing/single-obstacle/multi pins, keep the blind memory-cut at 200/0, and add a cycle_escape probe readout.",
+        "risks": "contract: Planner behavior and PLANNER_POLICY change; dependency: stdlib collections.deque only; concurrency: none; state: no schema change, new telemetry probe key.",
+        "mitigation": "Gate on obstacles>=2, no remaining items, full-episode repeat count>=2; BFS avoids obstacles; executable ablation via cycle_escape=False; blind cut via memories=None; re-run 300-config scan and all standing pins."
+      },
+      "plan_digest": "150f8e9042fd6a1ff435ea13b16ae7611f43463b7c291422190885a51495868e"
+    },
+    {
+      "task_id": "brain-cycle54-cycle-escape",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first recovery test; memory-gated BFS escape, cycle_escape probe, policy key, eval battery, three-blocker pins/goldens, README/ADR",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794067402.0167646,
+      "timestamp_str": "2026-11-07 19:03:22",
+      "agent": "opencode:cycle54"
+    },
+    {
+      "task_id": "brain-cycle54-cycle-escape",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: cycle-a 200/0 -> 19/1.0, cycle-b 200/0 -> 18/1.0, gain .905/.91, prompts 398a93d3/aa934aba unchanged; escape-off and memory-blind restore 200/0; 156 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; ADR-050 and cycle 54 recorded",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794067425.303559,
+      "timestamp_str": "2026-11-07 19:03:45",
+      "agent": "opencode:cycle54"
+    },
+    {
+      "task_id": "brain-cycle54-cycle-escape",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit repeated-position cycle escape, eval battery, probe, pins, ADR-050, cycle 54",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794067432.3276567,
+      "timestamp_str": "2026-11-07 19:03:52",
+      "agent": "opencode:cycle54"
+    },
+    {
+      "task_id": "brain-cycle54-cycle-escape",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle54-cycle-escape' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794067529.9877648,
+      "timestamp_str": "2026-11-07 19:05:29",
+      "agent": "opencode:cycle54"
     }
   ]
 }
