@@ -12,11 +12,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent import Agent
+from agent import Agent, policy_digest
 from claims import ClaimLedger
 from claims_verify import verify_claim_refs
 from episode_verify import verify_episode_header
+from identity import input_digest
 from telemetry.log import Telemetry
+from worlds.grid import GridWorld
 
 AT = "2026-11-07T00:00:00Z"
 
@@ -96,6 +98,68 @@ class TestEpisodeVerify(unittest.TestCase):
             Path(path).write_text("{bad json\n", encoding="utf-8")
             with self.assertRaises(ValueError):
                 verify_episode_header(path)
+
+    def test_expected_policy_matches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, _header = _run(tmp, "T3_navigate", 15, "policy-ok")
+            result = verify_episode_header(
+                path, expected_policy_sha256=policy_digest())
+        self.assertTrue(result["ok"], result["findings"])
+        self.assertEqual(result["expected_policy_sha256"], policy_digest())
+
+    def test_expected_policy_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, header = _run(tmp, "T3_navigate", 15, "policy-wrong")
+            result = verify_episode_header(
+                path, expected_policy_sha256="0" * 64)
+        self.assertFalse(result["ok"])
+        self.assertIn("policy-mismatch", result["findings"])
+        self.assertEqual(result["results"][0]["recomputed"],
+                         header["episode_sha256"])
+
+    def test_forged_policy_with_matching_episode_is_caught_by_pin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forged.jsonl")
+            fake_policy = "f" * 64
+            state = GridWorld("T3_navigate", 15).reset()
+            fake_episode, _projection = input_digest(state, {
+                "task": "T3_navigate", "seed": 15, "max_steps": 200,
+                "policy_sha256": fake_policy,
+            })
+            Telemetry(path).write_header(
+                "T3_navigate", 200, seed=15,
+                policy_sha256=fake_policy, episode_sha256=fake_episode)
+            internal = verify_episode_header(path)
+            pinned = verify_episode_header(
+                path, expected_policy_sha256=policy_digest())
+        self.assertTrue(internal["ok"], internal["findings"])
+        self.assertFalse(pinned["ok"])
+        self.assertIn("policy-mismatch", pinned["findings"])
+
+    def test_invalid_expected_policy_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, _header = _run(tmp, "T3_navigate", 15, "policy-invalid")
+            for value in ("text", 3, "0" * 63, "G" * 64):
+                with self.assertRaises(ValueError):
+                    verify_episode_header(
+                        path, expected_policy_sha256=value)
+
+    def test_claims_expected_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, header = _run(tmp, "T3_navigate", 15, "claims-policy")
+            ledger = _ledger(header["episode_sha256"])
+            good = verify_claim_refs(
+                ledger, path, verify_episodes=True,
+                expected_policy_sha256=policy_digest())
+            with self.assertRaises(ValueError):
+                verify_claim_refs(
+                    ledger, path, verify_episodes=True,
+                    expected_policy_sha256="0" * 64)
+            with self.assertRaises(ValueError):
+                verify_claim_refs(
+                    ledger, path, expected_policy_sha256=policy_digest())
+        self.assertTrue(good["ok"], good["findings"])
+        self.assertEqual(good["verified"], 1)
 
     def test_claim_refs_verify_episodes(self):
         with tempfile.TemporaryDirectory() as tmp:

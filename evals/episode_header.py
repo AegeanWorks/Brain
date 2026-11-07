@@ -4,7 +4,8 @@ A T3:15 header carries seed 15, budget 200, the policy digest and the
 episode digest; rebuilding GridWorld(task, 15) and input_digest
 reproduces it. Changing the seed or episode, or omitting the seed/header,
 is named. Claim refs can opt into the same check; membership-only still
-passes the tampered header.
+passes the tampered header. An optional expected-policy pin catches a
+forged policy whose episode digest is internally consistent.
 """
 
 import argparse
@@ -13,14 +14,17 @@ import os
 import tempfile
 from pathlib import Path
 
-from agent import Agent
+from agent import Agent, policy_digest
 from claims import ClaimLedger
 from claims_verify import verify_claim_refs
 from episode_verify import verify_episode_header
+from identity import input_digest
 from telemetry.log import Telemetry
+from worlds.grid import GridWorld
 
 MODES = ("intact", "wrong-seed", "wrong-episode", "missing-seed",
-         "missing-header", "claims", "claims-tampered")
+         "missing-header", "claims", "claims-tampered", "policy-current",
+         "policy-wrong", "policy-forged", "claims-policy")
 AT = "2026-11-07T00:00:00Z"
 
 
@@ -52,7 +56,7 @@ def measure_case(mode="intact", directory=None):
     result = {"mode": mode, "headers": 0, "seed": None,
               "episode_prefix": None, "recomputed_prefix": None,
               "ok": None, "findings": [], "verified": None,
-              "error": None}
+              "internal_ok": None, "error": None}
     if mode == "missing-seed":
         path = os.path.join(directory, "missing-seed.jsonl")
         Telemetry(path).write_header("T3_navigate", 200,
@@ -70,6 +74,27 @@ def measure_case(mode="intact", directory=None):
                        "ok": verified["ok"],
                        "findings": verified["findings"]})
         return result
+    if mode == "policy-forged":
+        path = os.path.join(directory, "policy-forged.jsonl")
+        fake_policy = "f" * 64
+        state = GridWorld("T3_navigate", 15).reset()
+        fake_episode, _projection = input_digest(state, {
+            "task": "T3_navigate", "seed": 15, "max_steps": 200,
+            "policy_sha256": fake_policy,
+        })
+        Telemetry(path).write_header(
+            "T3_navigate", 200, seed=15, policy_sha256=fake_policy,
+            episode_sha256=fake_episode)
+        internal = verify_episode_header(path)
+        pinned = verify_episode_header(
+            path, expected_policy_sha256=policy_digest())
+        result.update({"headers": pinned["headers"], "seed": 15,
+                       "episode_prefix": fake_episode[:12],
+                       "recomputed_prefix": fake_episode[:12],
+                       "ok": pinned["ok"],
+                       "findings": pinned["findings"],
+                       "internal_ok": internal["ok"]})
+        return result
     path = _run(directory, mode)
     header = Telemetry(path).read_all()[0]
     episode = header["episode_sha256"]
@@ -78,7 +103,13 @@ def measure_case(mode="intact", directory=None):
     elif mode in ("wrong-episode", "claims-tampered"):
         _rewrite_header(path, lambda value:
                         value.__setitem__("episode_sha256", "0" * 64))
-    verified = verify_episode_header(path)
+    expected = None
+    if mode == "policy-current":
+        expected = policy_digest()
+    elif mode == "policy-wrong":
+        expected = "0" * 64
+    verified = verify_episode_header(
+        path, expected_policy_sha256=expected)
     result.update({"headers": verified["headers"],
                    "seed": header.get("seed"),
                    "episode_prefix": episode[:12],
@@ -87,12 +118,23 @@ def measure_case(mode="intact", directory=None):
                        if verified["results"] else None),
                    "ok": verified["ok"],
                    "findings": verified["findings"]})
-    if mode in ("claims", "claims-tampered"):
+    if mode in ("claims", "claims-tampered", "claims-policy"):
         ref = "0" * 64 if mode == "claims-tampered" else episode
         ledger = _ledger(ref)
         if mode == "claims":
             checked = verify_claim_refs(ledger, path, verify_episodes=True)
             result["verified"] = checked["verified"]
+        elif mode == "claims-policy":
+            checked = verify_claim_refs(
+                ledger, path, verify_episodes=True,
+                expected_policy_sha256=policy_digest())
+            result["verified"] = checked["verified"]
+            try:
+                verify_claim_refs(
+                    ledger, path, verify_episodes=True,
+                    expected_policy_sha256="0" * 64)
+            except ValueError as exc:
+                result["error"] = str(exc)
         else:
             try:
                 verify_claim_refs(ledger, path, verify_logs=False,

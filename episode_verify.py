@@ -17,8 +17,18 @@ def _valid_digest(value):
             and all(ch in "0123456789abcdef" for ch in value))
 
 
-def verify_episode_header(log_path):
-    """Rebuild the episode identity from one log's header fields."""
+def verify_episode_header(log_path, expected_policy_sha256=None):
+    """Rebuild the episode identity from one log's header fields.
+
+    ``expected_policy_sha256`` optionally pins the producing policy; a
+    header with a different stored policy reports ``policy-mismatch``
+    even when its episode digest is internally consistent.
+    """
+    if expected_policy_sha256 is not None and not _valid_digest(
+            expected_policy_sha256):
+        raise ValueError(
+            "Why: expected_policy_sha256 must be a 64-hex digest or None. "
+            "Fix: pass policy_digest() or omit it.")
     try:
         records = Telemetry(log_path).read_all()
     except (OSError, ValueError) as exc:
@@ -27,7 +37,8 @@ def verify_episode_header(log_path):
                if isinstance(record, dict) and record.get("type") == "header"]
     if not headers:
         return {"ok": False, "headers": 0,
-                "findings": ["missing-header"], "results": []}
+                "findings": ["missing-header"], "results": [],
+                "expected_policy_sha256": expected_policy_sha256}
     findings = []
     results = []
     for header in headers:
@@ -48,6 +59,9 @@ def verify_episode_header(log_path):
         if not _valid_digest(episode):
             findings.append("invalid-episode")
             continue
+        if (expected_policy_sha256 is not None
+                and policy != expected_policy_sha256):
+            findings.append("policy-mismatch")
         try:
             state = GridWorld(task, seed).reset()
             recomputed, _projection = input_digest(state, {
@@ -70,4 +84,5 @@ def verify_episode_header(log_path):
         "headers": len(headers),
         "findings": findings,
         "results": results,
+        "expected_policy_sha256": expected_policy_sha256,
     }

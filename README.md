@@ -412,13 +412,20 @@ new, legacy ask, policy-any resume, and the 13/6-step header traces.
 policy digest, episode digest and workspace. `verify_episode_header(path)`
 rebuilds `GridWorld(task, seed)` and recomputes `input_digest` from the
 stored fields; `ok` means the header's episode digest is independently
-reproducible. `verify_claim_refs(..., verify_episodes=True)` opts into the
-same check. `python -m evals.episode_header` shows intact seed 15 /
-`f9343058…`, wrong seed/episode (`episode-mismatch`), missing seed/header,
-and claims/tampered (the claim-ref check rejects; membership-only still
-verifies). The recomputation trusts the stored task/seed/budget/policy; it
-proves internal consistency, not that the run happened, and old headers
-without a seed report `missing-seed`.
+reproducible. An optional `expected_policy_sha256=` pin reports
+`policy-mismatch` when the header cites a different policy, even if its
+episode digest is self-consistent (a forged policy plus a matching
+digest). `verify_claim_refs(..., verify_episodes=True,
+expected_policy_sha256=...)` opts into the same checks and requires
+episode verification for a pin. `python -m evals.episode_header` shows
+intact seed 15 / `f9343058…`, wrong seed/episode (`episode-mismatch`),
+missing seed/header, claims/tampered (the claim-ref check rejects;
+membership-only still verifies), a current policy pin (`ok`), a wrong
+pin (`policy-mismatch`), a forged policy+episode that passes internally
+but fails the pin, and the claims-policy path. The recomputation trusts
+the stored task/seed/budget/policy; it proves internal consistency, not
+that the run happened, and old headers without a seed report
+`missing-seed`.
 
 ## 📁 Workspace Evidence Binding
 

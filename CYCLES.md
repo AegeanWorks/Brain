@@ -3660,3 +3660,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 90**: unittest 410 OK; aikit 5/5; episode header seed 15, episode f9343058..., wrong seed 7be0905c..., claims 1/ok, claims-tampered episode-mismatch; policy decbfce3...; ref verify journaled 2/2, truncated 26<28, keyed/tampered cases; claim refs f9343058.../3622529a...; tour 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 90 - optional expected-policy pin for episode and claim verification (fresh gap audit)
+
+- **Baseline** (commit 40decff, cycle 89; same T3:15 run):
+  - canonical gate: 410 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `verify_episode_header` recomputed from the header's own policy_sha256, so a forged policy paired with a matching episode digest passed internally.
+- **Gap**: no external policy expectation. An optional pin (the current policy_digest) can reject a header claiming a different policy even when its episode digest is self-consistent.
+- **Target delta**: the current policy pin verifies; a wrong pin reports policy-mismatch; a forged policy `f`*64 plus a matching episode passes internally but fails the pin; claim refs accept the pin with verify_episodes=True and refuse it without.
+- **Falsifier**: the current pin rejects an intact header; a wrong policy passes; the forged header passes the pin; a pin without episode verification is silently ignored; behavior/pins move.
+- **Change**: episode_verify.py adds `expected_policy_sha256=None` (validated 64-hex) and appends `policy-mismatch` when the stored policy differs while still returning the recomputation. claims_verify.py adds `expected_policy_sha256=None` to verify_claim_refs/verify_claim_store, requires verify_episodes=True when set, and passes it per log; results carry the pin. tests/test_episode_verify.py adds five policy tests; evals/episode_header.py adds policy-current/policy-wrong/policy-forged/claims-policy. README and ADR-084 record the contract. No new dependencies; no policy or behavior change.
+- **After** (same T3:15 run):
+  - policy-current: ok true, findings []; policy-wrong: ok false, policy-mismatch, episode still recomputed f9343058...
+  - policy-forged: fake policy `f`*64 + episode 7a428fdb... passes internal (true) but pinned ok false with policy-mismatch.
+  - claims-policy: 1 verified with the current pin; wrong pin raises `failed episode verification: policy-mismatch`; pin without verify_episodes raises.
+  - existing intact/wrong-seed/wrong-episode/missing-seed/missing-header/claims/claims-tampered cases unchanged; behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0, rule readout/tie/tour audits, progress guard/skip, Merkle journal/compaction, claim store/ref verifier, calibration journal/bridge/retention, keyed telemetry, prompt budget, execution budget, resume identity, workspace binding, snapshot diff/digest, calibration and the 200k tail-read bound unchanged; 415 tests OK; policy unchanged.
+- **Ablation** (same forged header):
+  - without the pin: internal verification passes (episode = recomputation under the fake policy); with the current-policy pin: policy-mismatch. The external-expectation property dies with the pin.
+  - the pin compares the stored policy digest only; a forger who knows the expected digest still needs chain/journal/HMAC checks.
+- **Verdict**: evidence-integrity extension. Behavior is unchanged; the measured delta is the forged-header catch by the external policy pin and the claims opt-in. No action or emergence claim.
+- **Gates**: unittest 415/415 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_episode_verify.TestEpisodeVerify.test_expected_policy_matches -v` -> before: TypeError (`expected_policy_sha256`); after: OK.
+  - `python -m unittest tests.test_episode_verify -v` -> 13 OK.
+  - `python -m evals.episode_header` -> current ok, wrong/forged policy-mismatch, claims 1, claims-policy wrong raises.
+  - `python -m unittest discover -s tests -t .` -> 415 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 91**: unittest 415 OK; aikit 5/5; episode header intact f9343058..., wrong seed 7be0905c..., policy-current ok, policy-wrong/forged policy-mismatch, claims-policy 1 and wrong pin rejected; policy decbfce3...; ref verify journaled 2/2, truncated 26<28, keyed/tampered cases; claim refs f9343058.../3622529a...; tour 13/0/13; move audit 89/89/113/28/1/28; store append 10/9/19; bridge 10/3/13 and 10/9/19; claims 3/2/1; calibration 10/10 0.129/0.484; Merkle compaction 3->1; progress/guard pins; standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
