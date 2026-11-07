@@ -115,6 +115,31 @@ def _digest_of(record):
     return hashlib.sha256(_canonical(body)).hexdigest()
 
 
+def _last_nonempty_line(path, chunk_size=65536):
+    """Return the last non-empty line, reading backward from the file tail.
+
+    Adapted from ``assay/storage.py`` (AegeanWorks/assay, AL-1.1). The
+    bounded binary scan avoids reading a whole JSONL log just to find
+    the previous digest when a fresh writer resumes it.
+    """
+    chunk_size = max(256, int(chunk_size))
+    # hygiene: allow binary tail read; bytes are decoded as UTF-8 below
+    with Path(path).open("rb") as handle:
+        handle.seek(0, os.SEEK_END)
+        end = handle.tell()
+        buffer = b""
+        while end > 0:
+            start = max(0, end - chunk_size)
+            handle.seek(start)
+            buffer = handle.read(end - start) + buffer
+            trimmed = buffer.rstrip(b"\r\n")
+            lines = [line for line in trimmed.splitlines() if line.strip()]
+            if lines and (start == 0 or b"\n" in trimmed):
+                return lines[-1].decode("utf-8")
+            end = start
+    return ""
+
+
 def sha256_file(path):
     """Return hex sha256 of file bytes at ``path``."""
     h = hashlib.sha256()
@@ -168,30 +193,38 @@ class Telemetry:
         In-memory head when this instance has written; otherwise the
         last chained digest already on disk; ``GENESIS`` for a new log.
         A legacy tail without a digest still anchors the next record:
-        the raw line's sha256, so the break is attributable.
+        the raw line's sha256, so the break is attributable. Only the
+        final line is read from disk, so a fresh writer does not scan
+        the whole log.
         """
         if self._head is not None:
             return self._head
         if not self.path.exists():
             return GENESIS
-        last_raw = None
-        last_digest = None
         try:
-            with open(self.path, "r", encoding="utf-8") as f:
-                for line in f:
-                    if line.strip():
-                        last_raw = line
-                        try:
-                            last_digest = json.loads(line).get("digest")
-                        except ValueError:
-                            last_digest = None
+            last_raw = _last_nonempty_line(self.path)
         except OSError:
             return GENESIS
+        if not last_raw:
+            return GENESIS
+        last_digest = None
+        try:
+            last_digest = json.loads(last_raw).get("digest")
+        except ValueError:
+            last_digest = None
         if last_digest is not None:
             return last_digest
-        if last_raw is not None:
-            return "LEGACY:" + hashlib.sha256(last_raw.encode("utf-8")).hexdigest()
-        return GENESIS
+        try:
+            with open(self.path, "rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                terminated = handle.tell() > 0
+                if terminated:
+                    handle.seek(-1, os.SEEK_END)
+                    terminated = handle.read(1) in (b"\n", b"\r")
+        except OSError:
+            terminated = False
+        raw = last_raw + ("\n" if terminated else "")
+        return "LEGACY:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     def _write_record(self, record):
         record = dict(record)

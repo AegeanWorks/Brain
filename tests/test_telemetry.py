@@ -1,7 +1,9 @@
 """Telemetry roundtrip checks."""
 
+import hashlib
 import json
 import os
+import time
 import unittest
 import tempfile
 
@@ -63,6 +65,57 @@ class TestTelemetry(unittest.TestCase):
             self.assertIsInstance(grouped, list)
             self.assertGreaterEqual(len(grouped), 1)
             self.assertEqual(sum(g["count"] for g in grouped), len(rows))
+
+
+    def test_head_digest_tail_read_equivalence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "t.jsonl")
+            tel = Telemetry(path)
+            tel.write_header("task-d", 5)
+            tel.append_action(1, "run", {"n": 1})
+            last = tel.read_all()[-1]["digest"]
+            self.assertEqual(Telemetry(path)._head_digest(), last)
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write("\n\n")
+            self.assertEqual(Telemetry(path)._head_digest(), last)
+
+            legacy_line = '{"legacy":true}\n'
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(legacy_line)
+            want = "LEGACY:" + hashlib.sha256(
+                legacy_line.encode("utf-8")).hexdigest()
+            self.assertEqual(Telemetry(path)._head_digest(), want)
+
+            legacy_path = os.path.join(tmp, "legacy.jsonl")
+            legacy_raw = '{"legacy":"no-newline"}'
+            with open(legacy_path, "w", encoding="utf-8") as fh:
+                fh.write(legacy_raw)
+            want = "LEGACY:" + hashlib.sha256(
+                legacy_raw.encode("utf-8")).hexdigest()
+            self.assertEqual(Telemetry(legacy_path)._head_digest(), want)
+
+            with open(legacy_path, "a", encoding="utf-8") as fh:
+                fh.write("\n\n")
+            want = "LEGACY:" + hashlib.sha256(
+                (legacy_raw + "\n").encode("utf-8")).hexdigest()
+            self.assertEqual(Telemetry(legacy_path)._head_digest(), want)
+
+    def test_head_digest_reads_tail_not_whole_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "big.jsonl")
+            with open(path, "w", encoding="utf-8") as fh:
+                for index in range(200_000):
+                    fh.write('{"x":%d}\n' % index)
+                fh.write(json.dumps({"digest": "a" * 64,
+                                     "prev": "GENESIS"},
+                                    sort_keys=True) + "\n")
+            timings = []
+            for _ in range(2):
+                started = time.perf_counter()
+                head = Telemetry(path)._head_digest()
+                timings.append(time.perf_counter() - started)
+            self.assertEqual(head, "a" * 64)
+            self.assertLess(min(timings), 0.120)
 
 
 if __name__ == "__main__":

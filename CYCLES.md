@@ -2845,3 +2845,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - runtime BFS-live prototype -> intact 9/12/9/11/12, blind 9/12/9/11/12; 300-config scan 1 improved, 0 regressed.
   - `python -m evals.chain_anchor` -> intact 8/8, truncated 8->6 detected, unanchored 8->6 ok.
 - **Pinned regression baselines carried (no new pins)**: unittest 177 OK; aikit 5/5; chain intact 8/8, truncated 8->6 `truncated-tail:6<8`, unanchored 8->6 ok; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; manifest coverage 1.0/0.0; trust 16/8/13/6, ablate-noop 36/28/33/26 with 21 calls; both-off 200/0; escape 19/18; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 60 - tail-read telemetry head lookup (assay transfer)
+
+- **Baseline** (commit 09d1755, cycle 59; same telemetry format):
+  - canonical gate: 177 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - `Telemetry._head_digest()` on a fresh instance read every line of the existing log: 100k records (1.29 MB) 191.3 ms, 500k (6.89 MB) 943.5 ms, 1M (13.89 MB) 1985.8 ms; the 200k failing-first fixture took 381.8 ms.
+  - Head values and append bytes were already correct; the cost was only the full-file scan.
+- **Gap**: when a fresh writer resumes an existing JSONL log, `_head_digest` walks the whole file to find the last `digest`. The cost grows linearly with history and is paid on every new `Telemetry` instance before the first append.
+- **Target delta**: 200k-record head lookup < 120 ms; exact equality for a normal chain, blank tails, and legacy tails with/without a terminator; a fresh append still verifies as one chain; no schema, policy or record-byte change.
+- **Falsifier**: the 200k lookup stays above 120 ms; any head value differs; a legacy tail hashes differently; a fresh append breaks the chain; the 177-test pin set regresses.
+- **Change**: `telemetry/log.py` gains `_last_nonempty_line(path, chunk_size=65536)`, adapted from `assay/storage.py:27` (AegeanWorks/assay, AL-1.1): a bounded binary tail scan. `_head_digest` uses it, parses only the final line, and reconstructs the exact text-mode terminator only for a legacy tail so the `LEGACY:<sha256>` anchor is byte-identical. No new dependencies; no schema or policy change.
+- **After** (same fixtures and chain):
+  - failing-first 200k fixture: 381.8 ms -> 0.764 ms min (8.268 ms max) with the same `"a"*64` head.
+  - benchmark: 100k 191.3 -> 0.979 ms; 500k 943.5 -> 0.812 ms; 1M 1985.8 -> 0.820 ms (min; max 14.467/9.638/9.580 ms).
+  - normal/blank-tail/legacy head equivalence passes; a fresh append after 1,000 records yields `verify_chain` ok with 1,001 records; 179 tests OK; aikit 5/5; policy unchanged.
+- **Ablation**: the pre-change full-scan path is the baseline (the same tests fail the 120 ms bound); no behavior or emergence claim. Removal of the tail helper restores the old scan.
+- **Verdict**: performance-only transfer from assay. Behavior, trace bytes and chain semantics are unchanged; the measured delta is head-lookup cost. No integration or emergence claim.
+- **Gates**: unittest 179/179 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - baseline benchmark -> 100k 191.3 ms, 500k 943.5 ms, 1M 1985.8 ms.
+  - `python -m unittest tests.test_telemetry.TestTelemetry.test_head_digest_reads_tail_not_whole_file -v` -> before: FAIL (381.8 ms >= 120 ms); after: OK.
+  - `python -m unittest tests.test_telemetry -v` -> 5 OK.
+  - `python -m unittest discover -s tests -t .` -> 179 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - 1,000-record fresh-append chain check -> `ok=true`, 1,001 records.
+- **Pinned regression baselines for cycle 61**: unittest 179 OK; aikit 5/5; 200k head lookup < 120 ms (after 0.764 ms, before 381.8 ms); head/legacy equivalence; 1,001-record chain ok; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle59-zero-audit",
+    "task_id": "brain-cycle60-tail-head",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794070075.8402953,
-    "owner": "opencode:cycle59",
-    "started_by": "opencode:cycle59",
+    "updated_at": 1794072174.1079755,
+    "owner": "opencode:cycle60",
+    "started_by": "opencode:cycle60",
     "continuations": [],
-    "completed_at": 1794070157.0242903
+    "completed_at": 1794072174.3397624
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle55-distrust-skip",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: stalled --ablate-noop steps/actions/rewards unchanged; calls 36/28/33/26 -> 21/21/21/21, fallbacks 16/8/13/6 -> 1/1/1/1, skipped 15/7/12/5; --no-skip restores calls/fallbacks; vectors and syn/phi unchanged; 158 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy 8c2c51bc",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068132.332934,
-      "timestamp_str": "2026-11-07 19:15:32",
-      "agent": "opencode:cycle55"
-    },
-    {
-      "task_id": "brain-cycle55-distrust-skip",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle55-distrust-skip' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794068140.3730655,
-      "timestamp_str": "2026-11-07 19:15:40",
-      "agent": "opencode:cycle55"
-    },
-    {
-      "task_id": "brain-cycle56-manifest-binding",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: bind each model decision to its generation manifest hash in telemetry",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068437.7201567,
-      "timestamp_str": "2026-11-07 19:20:37",
-      "agent": "opencode:cycle56",
-      "impact_assessment": {
-        "why": "Backends compute last_manifest (model_id, checkpoint, prompt, observation, sampling) but Planner.plan discards it, so a run log cannot prove which prompt/model produced an action; a same-named checkpoint swap is invisible. Dead-end audit: excluding dead goal steps improved multi (7,5) 18->16 but regressed a sampled (3,0) config 11->21, so it is not safe.",
-        "benefits": "Every model call gets model_manifest_sha256 in model_decision; checkpoint/prompt swaps become visible in the trace while actions stay identical; probe_manifest=False gives an executable ablation.",
-        "risks": "contract: model_decision gains a key and Planner a probe flag; dependency: stdlib only; concurrency: none; state: no schema change.",
-        "mitigation": "Read only last_manifest after a successful generate; set None when generate raises; keep the readout passive; compare action hashes across checkpoint swap and probe-off modes; re-run standing/trust/escape/cold-start pins."
-      },
-      "plan_digest": "a3a00afa070d5a48dae6aece7c1a8f7088cb86bb8b526c85e89d2d3ec11dcdd1"
-    },
-    {
-      "task_id": "brain-cycle56-manifest-binding",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first manifest test; probe_manifest flag, model_manifest_sha256 readout with stale-raise null, manifest-binding battery, checkpoint-swap and probe-off tests, README/ADR-052",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068749.9659712,
-      "timestamp_str": "2026-11-07 19:25:49",
-      "agent": "opencode:cycle56"
-    },
-    {
-      "task_id": "brain-cycle56-manifest-binding",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: manifest coverage 0 -> 1.0, checkpoint A/B digests differ, probe-off coverage 0.0, stale raise null; actions/steps/rewards/vectors/syn/phi identical; 164 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy 136dec8a",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068822.8644197,
-      "timestamp_str": "2026-11-07 19:27:02",
-      "agent": "opencode:cycle56"
-    },
     {
       "task_id": "brain-cycle56-manifest-binding",
       "phase": "in_progress",
@@ -254,6 +193,67 @@
       "timestamp": 1794070157.0242915,
       "timestamp_str": "2026-11-07 19:49:17",
       "agent": "opencode:cycle59"
+    },
+    {
+      "task_id": "brain-cycle60-tail-head",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: replace the full-file telemetry head scan with the assay tail reader",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794071889.2119045,
+      "timestamp_str": "2026-11-07 20:18:09",
+      "agent": "opencode:cycle60",
+      "impact_assessment": {
+        "why": "A fresh Telemetry instance on an existing log scans every line to find the last digest: 100k records (1.3 MB) ~191 ms, 1M records ~2 s. assay/storage.py:27 last_nonempty_line reads only the tail chunk.",
+        "benefits": "O(file) -> O(tail chunk) head lookup with identical digest and legacy-tail output; no new dependencies; append/byte content unchanged.",
+        "risks": "contract: no schema or policy change; dependency: stdlib only; concurrency: no change; state: no new files. Legacy-tail hashing must preserve the exact text-mode terminator.",
+        "mitigation": "Add failing-first timing and equivalence tests for normal, blank-tail and legacy logs; compare head values before/after; run the full 177-test and AIKit gates."
+      },
+      "plan_digest": "d324ba59d9d8f9636d474f62a47dab06fb2f7e2bcb00c9d76b5d6dee11e333bc"
+    },
+    {
+      "task_id": "brain-cycle60-tail-head",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: 200k 381.8ms -> 0.764ms; 100k/500k/1M 191/943/1986 -> 0.98/0.81/0.82ms; head/legacy equivalence; 1001-record chain ok; 179 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072168.1489418,
+      "timestamp_str": "2026-11-07 20:22:48",
+      "agent": "opencode:cycle60"
+    },
+    {
+      "task_id": "brain-cycle60-tail-head",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first 200k tail-read test; _last_nonempty_line adapted from assay, _head_digest tail read with exact legacy terminator; 179 tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072168.156289,
+      "timestamp_str": "2026-11-07 20:22:48",
+      "agent": "opencode:cycle60"
+    },
+    {
+      "task_id": "brain-cycle60-tail-head",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit tail-read head lookup, tests, cycle 60",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072174.1079755,
+      "timestamp_str": "2026-11-07 20:22:54",
+      "agent": "opencode:cycle60"
+    },
+    {
+      "task_id": "brain-cycle60-tail-head",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle60-tail-head' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794072174.339764,
+      "timestamp_str": "2026-11-07 20:22:54",
+      "agent": "opencode:cycle60"
     }
   ]
 }
