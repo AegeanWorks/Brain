@@ -56,13 +56,15 @@ class TestMultiObstacle(unittest.TestCase):
             self.assertEqual(len(trace), want, "%r %r steps" % (target, obstacles))
 
     def test_blind_kills_multi_recovery(self):
-        target, obstacles, want = MULTI_CONFIGS[1]
-        intact = _multi_steps(target, obstacles)
-        self.assertEqual(len(intact), want)
-        self.assertEqual(sum(r["reward"] for r in intact), 1.0)
-        blind = _multi_steps(target, obstacles, planner=BlindPlanner())
-        self.assertEqual(len(blind), 200)
-        self.assertEqual(sum(r["reward"] for r in blind), 0.0)
+        # Visit-coupled killing configs: (5,0) 9/1.0 is pool-sufficient
+        # (honest exception, like seeds 15/65) and stays unpinned here.
+        for target, obstacles, want in MULTI_CONFIGS[1:]:
+            intact = _multi_steps(target, obstacles)
+            self.assertEqual(len(intact), want)
+            self.assertEqual(sum(r["reward"] for r in intact), 1.0)
+            blind = _multi_steps(target, obstacles, planner=BlindPlanner())
+            self.assertEqual(len(blind), 200, "%r %r" % (target, obstacles))
+            self.assertEqual(sum(r["reward"] for r in blind), 0.0)
 
     def test_standing_totals_untouched(self):
         totals = {}

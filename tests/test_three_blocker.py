@@ -64,13 +64,19 @@ class TestThreeBlocker(unittest.TestCase):
             self.assertEqual(len(trace), want_steps, "%r %r" % (target, obstacles))
 
     def test_blind_kills_three_blocker(self):
-        target, obstacles = (6, 7), [(2, 7), (5, 4), (6, 3)]
-        intact = _three_steps(target, obstacles)
-        self.assertEqual(len(intact), 15)
-        self.assertEqual(sum(r["reward"] for r in intact), 1.0)
-        blind = _three_steps(target, obstacles, planner=BlindPlanner())
-        self.assertEqual(len(blind), 200)
-        self.assertEqual(sum(r["reward"] for r in blind), 0.0)
+        # Visit-coupled killing configs: (6,0) 10/1.0 is pool-sufficient
+        # and (6,5) 200/0.0 is the truncation baseline (blind == intact,
+        # vacuous) — both honestly recorded in the pins test and stayed
+        # unpinned here.
+        for target, obstacles, want in (((6, 7), [(2, 7), (5, 4), (6, 3)], 15),
+                                         ((7, 3), [(5, 2), (7, 0), (6, 1)], 12),
+                                         ((4, 7), [(4, 4), (7, 7), (3, 1)], 13)):
+            intact = _three_steps(target, obstacles)
+            self.assertEqual(len(intact), want)
+            self.assertEqual(sum(r["reward"] for r in intact), 1.0)
+            blind = _three_steps(target, obstacles, planner=BlindPlanner())
+            self.assertEqual(len(blind), 200, "%r %r" % (target, obstacles))
+            self.assertEqual(sum(r["reward"] for r in blind), 0.0)
 
 
 if __name__ == "__main__":

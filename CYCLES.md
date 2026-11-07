@@ -2258,3 +2258,63 @@ only integration scores, cross-module dependencies, and ablation differentials.
   ffa19359...; golden 9/9 + multi 5/5 + three 5/5; pins
   16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical; manifest + repro variance 0.
+
+## Cycle 43 — complete the killing-blind matrices (idea transfer)
+- **Source**: Lattice negative-control completion (fourteenth transfer;
+  cycle-26 pinned corridor-cut, cycles 35/37/41 pinned single blind
+  exemplars).
+- **Gap**: blind tests pin one killing exemplar per family — multi
+  (7,5) and three-blocker (6,7) — so coupling loss on the other
+  killing configs ((3,6),(5,6),(5,7) and (7,3),(4,7)) would pass all
+  124 tests. Pool-sufficient (5,0) 9/1.0 and (6,0) 10/1.0 plus the
+  (6,5) 200/0.0 truncation baseline are honest exceptions (blind ==
+  intact, vacuous) and stay documented, not pinned as kills.
+- **Target delta**: loop the blind differential over every killing
+  config in both families; 4/4 multi kills + 3/3 three kills pinned.
+- **Falsifier**: standing totals move, trace numbers move, or any
+  newly pinned blind stops killing on the intact tree.
+- **Change** (tests/test_multi_obstacle.py + tests/test_three_blocker.py
+  blind tests extended to loops; ADR-042): audit-measured 200/0.0
+  pins, honest-exception comments; no source diff; no new deps.
+- **Baseline** (cycle-42 pins re-verified): 124 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; blind audit
+  multi 9/200/200/200/200, three 200/200/10/200/200.
+- **After**:
+  - code identical: 30-seed 466/240/217; multi 9/18/11/13/14;
+    three-blocker 15/12/10/13/200; all 124 carried tests pass
+    (files extended, count unchanged).
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - matrices complete: multi blind kills 4/4, three blind kills 3/3
+    pinned; variance 0.
+- **Ablation / sensitivity** (no source touched):
+  - the extended loops are themselves the cuts: intact 18/11/13/14
+    vs blind 200/0.0 on every newly pinned seed — coupling loss on
+    any of them fails loudly where the single-exemplar gate stayed
+    green.
+  - pool-sufficient (5,0),(6,0) and truncation-baseline (6,5) are
+    excluded by construction with honest comments, so no vacuous
+    pin can block a genuine coupling gain.
+- **Verdict**: provenance win (negative-control matrices now
+  complete); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 124/124 OK (files extended, count unchanged);
+  aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_multi_obstacle tests.test_three_blocker -v` -> 5 OK.
+  - `python -m unittest discover -s tests -t .` -> 124 OK before
+    and after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical; blind audit 10/10
+    signatures.
+- **Pinned regression baselines for cycle 44**: unittest 124 OK; aikit
+  5/5; standing 466/240/217; multi 9/18/11/13/14 with 1.0; multi
+  goldens 5/5 paths; three-blocker 15/12/10/13/200 with rewards and
+  5/5 paths; blind kills multi 4/4 + three 3/3 pinned (sufficient
+  (5,0) 9/1.0, (6,0) 10/1.0 and truncation (6,5) 200/0.0 honestly
+  carried); seed-74 9 intact / 200 blind; 0-99 1581/800/683;
+  T1 100-199 1646; T3 100-199 732; T3 200-299 718; T3 300-399 671;
+  T3 400-499 675; holdout 1581/800/738; exhaustive 3906/3906 27860;
+  corridor-cut 12/744; random floor 1271/5.0 vs 89/11.0; chain ok +
+  5 findings; headers ffa19359...; golden 9/9 + multi 5/5 + three
+  5/5; pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532
+  phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; manifest + repro
+  variance 0.

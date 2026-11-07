@@ -289,3 +289,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Keystone pinned simulation hash (multi paths in cycle 38, counts in cycle 41): three-blocker counts pin outcomes, but a behavior-neutral path swap at identical counts would drift silently.
 - **Decision**: tests/test_three_goldens.py pins SHA-256 over canonical action sequences for the five configs (computed once on the intact tree); regeneration is deliberately manual (reviewed edit, no auto-update). No source change; no new deps.
 - **Consequences**: 124 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); any path change fails loudly.
+
+### ADR-042: Complete the killing-blind matrices for both blocker families
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Lattice negative-control completion: blind tests pinned one killing exemplar per family, so coupling loss on the other killing configs would pass all gates. Pool-sufficient (5,0),(6,0) and truncation-baseline (6,5) are honest exceptions (blind == intact).
+- **Decision**: Extend the multi blind test to all four killing configs and the three-blocker blind test to all three killing configs (loops with honest-exception comments). No source change; no new deps.
+- **Consequences**: 124 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); multi kills 4/4 and three kills 3/3 pinned — coupling loss on any of them fails loudly.
