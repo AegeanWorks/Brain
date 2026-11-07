@@ -1689,3 +1689,73 @@ only integration scores, cross-module dependencies, and ablation differentials.
   16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
   variance 0.
+
+## Cycle 34 — hub-carried collect evidence for persistent-hidden forage
+- **Baseline** (cycle-33 pins re-verified, same rig/seeds):
+  - canonical: 108 OK; aikit 5/5 PASS.
+  - code behavior: standing 466/240/217; T1-71 16/3.0 visible;
+    persistent-hidden T1 (HiddenT1 omits items after init):
+    71/74/78 all 200/1.0 vs 16/12/18 intact with 3.0.
+  - trace internals: fixed-rig syn 0.05411532 syn_n 0.10814360
+    phi 0.0 n32; hub0/m0 0.0; p0/s0 identical; substrate_errors
+    all zero; hub dict carries last_step/last_action/last_reward
+    only (planner reads and discards).
+  - model-seam internals: policy_digest 18edf1ca... (viability
+    leaf); manifest determinism True; visit-oracle 5/5; hidden
+    13/16; persistent-hidden T3 13/6.
+  - probe gap: tests/test_persistent_hidden_forage.py absent;
+    new 3-test probe FAILs 2/3 on intact tree (hidden 200/1.0 vs
+    16/3.0; hub-blind 200/1.0 control not yet gated).
+- **Gap**: full-history recall returns the initial 3-cell list
+  forever on persistent-hidden forage; after the first collect the
+  stale cell routes the agent back and it loops to cap with 1.0.
+  Planner ignores hub collect evidence by construction.
+- **Target delta**: hub accumulates successful collect cells;
+  planner filters recalled items against them; hidden 200/1.0 ->
+  16/12/18 with 3.0; standing and trace byte-identical.
+- **Falsifier**: standing totals move, trace numbers move, or any
+  hidden seed stays 200/1.0; emergence falsifier: hub-blind lesion
+  must restore 200/1.0 or the gain is not hub-carried.
+- **Change** (agent.py only: Planner.plan reads
+  collected_positions and filters recalled items_positions;
+  Agent.run appends successful collect cells to hub with dedupe;
+  tests/test_persistent_hidden_forage.py new 3 tests): deterministic,
+  stdlib only. ADR-033.
+- **After** (identical battery, same seeds):
+  - code: standing 466/240/217 identical; hidden T1-71 200->16,
+    T1-74 200->12, T1-78 200->18, all 3.0; 3x repeats variance 0
+    (deterministic replay, carried repro 27/27).
+  - trace: fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0 n32
+    identical; lesions unchanged; substrate_errors all zero.
+  - seam carried: visit/hidden/persistent oracles unchanged;
+    hidden-forage obs now carries filtered items (hub-filtered).
+- **Ablation** (hub-blind: read_hub empty, same HiddenT1):
+  - intact hub: 16/3.0.
+  - cut blind: 200/1.0.
+  - Gain dies with the cut, returns with the restore: hub
+    collected channel load-bearing. Standing None control
+    unchanged (466/240/217, full suite green).
+- **Verdict**: robustness win with proven hub-memory coupling; no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 111/111 OK (108 carried + 3 new); aikit 5/5
+  PASS (one hygiene finding on the way: bare except pass at
+  filtering — fixed to value-preserving fallback).
+- **Commands run**:
+  - `python -m unittest tests.test_persistent_hidden_forage -v`
+    -> 2 FAIL (200/1.0) before, 3 OK after.
+  - `python -m unittest discover -s tests -t .` -> 108 OK before,
+    111 OK after.
+  - `python aikit.py check brain` -> 5/5 before; 4/5 (hygiene
+    silent-except) then 5/5 after fallback fix.
+  - standing 30-seed + fixed-rig recompute identical; hidden 3-seed
+    + hub-blind ablation.
+- **Pinned regression baselines for cycle 35**: unittest 111 OK; aikit
+  5/5; standing 466/240/217; hidden-T1 16/12/18 with 3.0;
+  hub-blind ablation 200/1.0; 0-99 1581/800/683; T1 100-199 1646;
+  T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499 675;
+  holdout 500-599 1581/800/738; exhaustive T3 3906/3906 total
+  27860; corridor-cut 12/744; random floor 1271/5.0 vs 89/11.0;
+  chain ok + 5 findings; headers grid-rule/planner + 18edf1ca...;
+  golden 9/9; pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn
+  0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; manifest +
+  repro variance 0.

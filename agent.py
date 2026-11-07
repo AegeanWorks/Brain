@@ -226,7 +226,10 @@ class Planner:
 
     def plan(self, state, memories=None):
         hub = self.read_hub()
-        _ = hub.get("last_action") if hub else None
+        try:
+            collected = list(hub.get("collected_positions", [])) if hub else []
+        except Exception:
+            collected = []
         recent = list(memories)[-4:] if memories else []
         positions = []
         for m in recent:
@@ -262,6 +265,15 @@ class Planner:
         remaining = state.get("items_positions")
         if remaining is None:
             remaining = _recall("items_positions")
+        if remaining is not None and collected:
+            try:
+                done_set = set()
+                for c in collected:
+                    done_set.add((int(c[0]), int(c[1])))
+                remaining = [c for c in list(remaining)
+                             if (int(c[0]), int(c[1])) not in done_set]
+            except Exception:
+                remaining = list(remaining)
         recalled_target = _recall("target")
         if "cue" in state:
             cue_val = state.get("cue")
@@ -523,6 +535,20 @@ class Agent:
             self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
             self.selfmodel.record(new_state, action, reward, done)
             self.hub_write({"last_step": i, "last_action": action, "last_reward": reward})
+            if action == "collect" and float(reward) > 0.0:
+                try:
+                    cur = self.get_hub().get("collected_positions", [])
+                    nxt = list(cur) + [[int(new_state.get("x", 0)), int(new_state.get("y", 0))]]
+                    seen = set()
+                    uniq = []
+                    for c in nxt:
+                        key = (int(c[0]), int(c[1]))
+                        if key not in seen:
+                            seen.add(key)
+                            uniq.append([int(key[0]), int(key[1])])
+                    self.hub_write({"collected_positions": uniq})
+                except Exception:
+                    self._substrate_errors["bind"] += 1
             # -- persistent substrate update (stdlib only, deterministic) --
             if self.memory_store is not None:
                 try:

@@ -226,3 +226,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Cycle 32 collapsed _has_exit to a leaf check but left PLANNER_POLICY advertising lookahead_depth 4, so run headers cited a tuner the code no longer reads.
 - **Decision**: Replace the dead lookahead_depth key with viability leaf in PLANNER_POLICY; re-pin the digest-sensitivity probe to the new key; add tests/test_policy_accuracy.py (no dead knob, leaf declared, digest differs from legacy depth-4). No planner logic touched; no new deps.
 - **Consequences**: 108 tests OK; aikit check 5/5; standing behavior (466/240/217) and trace (syn 0.0541 phi 0.0) byte-identical; policy_digest 99d01431... -> 18edf1ca...; headers cite the shipped configuration with chain verify ok; legacy depth-4 citation fails the new accuracy gate by construction.
+
+### ADR-033: Hub-carried collect evidence for persistent-hidden forage
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Full-history recall returns the initial forage list forever on persistent-hidden layouts, so after the first collect the stale cell loops the agent to the 200-step cap with 1.0 reward. Planner read hub last_action and discarded it — the hub channel had no load-bearing use.
+- **Decision**: Agent.run appends each successful collect cell to hub collected_positions (deduped, deterministic); Planner.plan filters recalled items_positions against that set for both rule geometry and backend obs. Visible states bypass recall, so the filter is a no-op there. No new deps.
+- **Consequences**: 111 tests OK; aikit check 5/5; standing behavior (466/240/217) and trace (syn 0.0541 phi 0.0) byte-identical; persistent-hidden T1 200/1.0 -> 16/12/18 with 3.0; hub-blind lesion restores 200/1.0, proving hub-memory coupling.
