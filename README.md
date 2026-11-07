@@ -158,6 +158,7 @@ brain/
 ├── calibration_store.py      <- append-only checksummed forecast journal
 ├── claims.py                 <- immutable claim/kill-test/verdict ledger
 ├── claims_store.py           <- checksummed snapshots + backup recovery
+├── claims_verify.py          <- read-only verdict-ref verification
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
