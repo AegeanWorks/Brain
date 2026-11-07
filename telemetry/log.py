@@ -123,12 +123,16 @@ class Telemetry:
         self._head = record["digest"]
         return record
 
-    def write_header(self, task, budget, manifest_sha256=None, manifest_path=None):
+    def write_header(self, task, budget, manifest_sha256=None, manifest_path=None,
+                     policy=None, policy_sha256=None, model=None):
         """Write header record (seq 0) describing task and budget.
 
         ``manifest_sha256`` is stored verbatim when given. When
         ``manifest_path`` is given and ``manifest_sha256`` is None, the
-        sha256 of that file is computed and stored.
+        sha256 of that file is computed and stored. ``policy``,
+        ``policy_sha256`` and ``model`` cite the producing configuration
+        (Assay-style per-record policy binding); all are stored
+        verbatim when given.
         """
         if manifest_sha256 is None and manifest_path is not None:
             manifest_sha256 = sha256_file(manifest_path)
@@ -141,6 +145,9 @@ class Telemetry:
                 "task": task,
                 "budget": budget,
                 "manifest_sha256": manifest_sha256,
+                "policy": policy,
+                "policy_sha256": policy_sha256,
+                "model": model,
                 "M": None,
                 "P": None,
                 "S": None,

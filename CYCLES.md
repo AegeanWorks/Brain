@@ -1502,3 +1502,60 @@ only integration scores, cross-module dependencies, and ablation differentials.
   tamper findings; golden 9/9 paths; pins 16/8/13/6/9 + 7/14 +
   6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest + repro determinism variance 0.
+
+## Cycle 31 — policy citation in run headers (idea transfer)
+- **Source**: Assay per-record policy citation + research-engine 3b
+  evidence binding (tenth transfer; deep read of MECHANICS.md also
+  re-audited the remainder: golden-path/demo, deterministic
+  projections, revisions, cascades, UNKNOWN, screening, digests,
+  backup trails, stats, search, duplicates, calibration — all
+  already embodied, dead, or blocked for stdlib Brain as recorded
+  in cycle 29).
+- **Gap**: run_task_logged wrote headers with manifest_sha256 always
+  None and no policy reference — a log could not say which
+  configuration produced it.
+- **Target delta**: headers cite planner name + config digest + model
+  label, all covered by the hash chain; behavior and trace
+  byte-identical (additive header keys).
+- **Falsifier**: standing totals move, trace numbers move, existing
+  telemetry tests break, or a header citation mismatches.
+- **Change** (agent.py PLANNER_POLICY + policy_digest() +
+  model_label() + header call; telemetry/log.py optional
+  policy/policy_sha256/model header fields; tests/test_policy_binding.py
+  new 4 tests; ADR-030): declared-config digest (not code bytes), so
+  behavior-preserving refactors keep evidence valid while any policy
+  change invalidates it. No new deps.
+- **Baseline** (cycle-30 pins re-verified): 101 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; gap proven
+  (write_header rejects policy kwargs; headers cite nothing).
+- **After**:
+  - code identical: 30-seed 466/240/217; all 101 carried tests pass
+    (header keys additive; roundtrip/bins/strictness untouched).
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - binding live: rule headers cite grid-rule/planner + digest +
+    model rule; stub runs cite StubBackend; real 32-record run
+    verifies clean with the cited header.
+- **Ablation** (no source revert needed — each probe is a failing
+  control):
+  - config-variant digest differs (sensitivity proven).
+  - header policy tamper -> edited-record:0 under verify.
+  - pre-change tree: TypeError on policy kwargs + missing fields.
+- **Verdict**: provenance win (runs now cite their producer);
+  no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 105/105 OK (101 carried + 4 new); aikit 5/5.
+- **Commands run**:
+  - `python -m unittest tests.test_policy_binding -v` -> 4 OK.
+  - `python -m unittest discover -s tests -t .` -> 101 OK before,
+    105 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig + real-run verify identical.
+- **Pinned regression baselines for cycle 32**: unittest 105 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T1 100-199 1646;
+  T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499 675;
+  holdout 500-599 1581/800/738; exhaustive T3 3906/3906 total
+  27860; corridor-cut control 12/742; random floor best 1271/5.0
+  vs rule 89/11.0 (margins x10/+5); chain intact ok + 5 named
+  tamper findings; headers cite policy+digest+model; golden 9/9
+  paths; pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn
+  0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; manifest +
+  repro determinism variance 0.

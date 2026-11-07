@@ -205,3 +205,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Keystone --simulate --expect-hash: step counts and rewards pin outcomes, but a behavior-neutral path swap at identical counts would drift silently past all pins.
 - **Decision**: tests/test_golden_traces.py pins SHA-256 over canonical action sequences for the 9 pin seeds (computed once on the intact tree); regeneration is deliberately manual (reviewed edit, no auto-update) so goldens can never be rebaselined to green a red tree. No source change; no new deps.
 - **Consequences**: 101 tests OK (0.014s); aikit check 5/5; standing behavior and trace byte-identical (no source diff); any path change fails loudly — corridor-cut moves 479 10->12 steps, which necessarily changes its hash (different length list).
+
+### ADR-030: Policy citation in run headers (evidence binding)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Assay per-record policy citation + research-engine 3b evidence binding (a run is bound to what produced it): run_task_logged wrote headers with no policy reference (manifest_sha256 always None), so a log could not say which configuration produced it.
+- **Decision**: agent.py declares PLANNER_POLICY (name + depth/corridor/visits/recall) with policy_digest() (SHA-256 over canonical declared config — behavior-preserving refactors do not invalidate evidence, any policy change does) and model_label() (rule/stub/model basename); run_task_logged cites all three in write_header (new optional policy/policy_sha256/model fields, additive on schema 2). No new deps.
+- **Consequences**: 105 tests OK (4 new, ~1s); aikit check 5/5; standing behavior and trace byte-identical (94 carried behavior tests + fixed-rig syn 0.0541 green); config-variant digest differs (sensitivity); header policy tamper fails verify as edited-record:0 (binding rides the chain).

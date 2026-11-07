@@ -15,11 +15,48 @@ agent (bind_hub) so all modules can read the same hub mapping.
 """
 
 import copy
+import hashlib
 import itertools
+import json
 
 SIZE = 8
 
 _LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
+
+PLANNER_POLICY = {
+    "name": "grid-rule/planner",
+    "lookahead_depth": 4,
+    "corridor_avoidance": True,
+    "visits_tiebreak": True,
+    "recall": "full-history+goal",
+}
+
+
+def _canonical_json(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=True)
+
+
+def policy_digest(policy=None):
+    """SHA-256 over the canonical declared planner configuration.
+
+    Binds a run header to the policy that produced it (Assay +
+    research-engine 3b evidence binding, adapted: declared config
+    instead of code bytes, so behavior-preserving refactors do not
+    invalidate evidence while any policy change does).
+    """
+    body = _canonical_json(dict(policy) if policy is not None else dict(PLANNER_POLICY))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def model_label(backend):
+    """Stable model label for run headers: 'rule' with no backend."""
+    if backend is None:
+        return "rule"
+    path = getattr(backend, "model_path", None)
+    if path:
+        return str(path).replace("\\", "/").split("/")[-1]
+    return type(backend).__name__
 
 
 class Memory:
@@ -567,7 +604,10 @@ class Agent:
             self.telemetry_log = _FileTelemetry(log_path)
         if self.telemetry_log is None:
             raise ValueError("telemetry_log or log_path is required")
-        self.telemetry_log.write_header(task_id, max_steps)
+        self.telemetry_log.write_header(task_id, max_steps,
+                                          policy=PLANNER_POLICY["name"],
+                                          policy_sha256=policy_digest(),
+                                          model=model_label(self.planner.backend))
         from worlds.grid import GridWorld
 
         self.world = GridWorld(task_id, seed)
