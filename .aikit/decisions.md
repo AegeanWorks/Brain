@@ -79,3 +79,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: MemoryStore opened a corrupt file into DatabaseError at first execute and leaked the connection handle (Windows tempdir cleanup then failed with PermissionError). PRINCIPLE-013 requires corrupt -> quarantine for state files.
 - **Decision**: Open validates via schema setup plus PRAGMA quick_check; on sqlite3.DatabaseError the failed connection is closed, the file (plus WAL sidecars) is moved to path + ".corrupt" (numbered on collision), and a fresh store opens. recovery_notes() exposes the log, empty on clean opens.
 - **Consequences**: 54 tests OK; aikit check 5/5; corrupt fixture recovery 0/1 -> 1/1 with byte-identical quarantine preserved; no behavior change on healthy files.
+
+### ADR-012: Swappable small-model backend seam (llama.cpp first)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Running a small model against Brain must not fuse the repo to one runtime: llama.cpp now, other providers later. The rule planner stays the default and the measured baseline.
+- **Decision**: New models/ package with ModelBackend.generate(observation) interface; Planner accepts an optional backend and falls back to the rule policy (counted in fallbacks) on missing, invalid, or raising proposals. LlamaCppBackend lands separately once the binary and GGUF weights are fetched; providers never enter the repo (user-local cache only).
+- **Consequences**: Seam + StubBackend + 3 protocol tests pinned; backend None path byte-identical to the rule tree.

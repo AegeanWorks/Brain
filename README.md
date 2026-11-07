@@ -34,6 +34,7 @@ brain/
 ├── inventory.py
 ├── demo.py
 ├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
+├── models/                   <- swappable small-model backends (interface + stub)
 ├── memory/                   <- SQLite FTS5 persistent store (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)

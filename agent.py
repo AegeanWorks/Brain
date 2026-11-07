@@ -19,6 +19,8 @@ import itertools
 
 SIZE = 8
 
+_LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
+
 
 class Memory:
     """Ordered store of observed state dicts."""
@@ -136,10 +138,17 @@ def _step_toward(pos, goal, obstacles, visits=None):
 
 
 class Planner:
-    """Fixed rule-based policy over the state dict."""
+    """Fixed rule-based policy over the state dict.
 
-    def __init__(self):
+    An optional ModelBackend proposes the action first; any missing,
+    invalid, or raising proposal falls back to the rule policy and is
+    counted in fallbacks. With backend None the rule path is exact.
+    """
+
+    def __init__(self, backend=None):
         self._get_hub = None
+        self.backend = backend
+        self.fallbacks = 0
 
     def bind_hub(self, getter):
         self._get_hub = getter
@@ -171,6 +180,16 @@ class Planner:
             return _step_toward(pos, goal, obstacles, visits)
 
         remaining = state.get("items_positions")
+        if self.backend is not None:
+            obs = {"task": state.get("task"), "x": x, "y": y,
+                   "steps": steps, "legal": list(_LEGAL_ACTIONS)}
+            try:
+                proposed = self.backend.generate(obs)
+            except Exception:
+                proposed = None
+            if isinstance(proposed, str) and proposed in _LEGAL_ACTIONS:
+                return proposed
+            self.fallbacks += 1
         if remaining:
             if pos in [list(c) for c in remaining]:
                 return "collect"

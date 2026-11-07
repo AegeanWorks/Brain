@@ -414,3 +414,39 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 54 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Final pins**: unittest 54 OK; aikit 5/5; all cycle-9 pins carried.
+
+## Cycle 11 — swappable model-backend seam + stub protocol pins
+
+- **Baseline**: 54 tests OK; aikit 5/5; Planner has no backend hook
+  (new seam tests fail on this tree with TypeError).
+- **Gap**: a small model cannot be measured against Brain without a
+  runtime-agnostic seam; building the llama.cpp wiring first would
+  fuse the repo to one provider.
+- **Target delta**: ModelBackend interface + StubBackend + planner
+  fallback hook with 3 green protocol tests (54 -> 57); backend-None
+  path byte-identical to the rule tree.
+- **Falsifier**: any existing test red, or replay/fallback counts off.
+- **Change** (models/__init__.py + models/backend.py new; agent.py
+  Planner accepts backend, validates tokens against the legal set,
+  counts fallbacks; tests/test_model_backend.py new; README tree;
+  ADR-012): interface + stub + hook only. No provider, no weights,
+  no network.
+- **After**: stub replays the rule trace exactly (13/13, 0 fallbacks);
+  invalid-token and raising backends fall back 1:1 to the rule trace;
+  full suite 57/57.
+  Failing-first proof: the 3 tests error on the pre-seam tree
+  (TypeError, verified via stash) and pass with the seam.
+- **Ablation**: not an emergence claim; the sever-the-backend case is
+  the fallback tests themselves (backend cut -> rule carries 100%).
+- **Verdict**: seam win with protocol pins; real model delta reserved
+  for cycle 12. Verdict UNKNOWN.
+- **Gates**: unittest 57/57 OK; aikit check 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_backend -v` -> 3 errors
+    pre-seam (stash), 3 OK post-seam.
+  - `python -m unittest discover -s tests -t .` -> 57 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - background fetches started (approved): llama.cpp win-cpu zip +
+    SmolLM2 Q8 GGUF to user-local cache (outside repo).
+- **Pinned regression baselines for cycle 12**: unittest 57 OK; aikit
+  5/5; stub replay 13/13 zero-fallback; invalid/raise fallback == steps.
