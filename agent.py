@@ -42,6 +42,7 @@ PLANNER_POLICY = {
     "backend_trust": "stall>=20->match-only",
     "backend_noop_guard": "on",
     "backend_distrust_skip": "on",
+    "model_manifest_probe": "on",
     "detour_pooling": "visits",
     "pool_corridor": ">=2",
     "cycle_escape": "repeat>=2->bfs",
@@ -324,11 +325,14 @@ class Planner:
     executable ablation. Once the backend is distrusted, the planner
     stops calling it: match-only means only the rule action can be
     accepted, so the call is redundant. ``skip_after_distrust=False``
-    restores the calls for the cost ablation.
+    restores the calls for the cost ablation. ``probe_manifest=True``
+    copies the backend's ``last_manifest.sha256`` into the decision
+    record; ``probe_manifest=False`` removes that readout.
     """
 
     def __init__(self, backend=None, trust_window=20, noop_guard=True,
-                 cycle_escape=True, skip_after_distrust=True):
+                 cycle_escape=True, skip_after_distrust=True,
+                 probe_manifest=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -347,12 +351,17 @@ class Planner:
             raise ValueError(
                 "Why: skip_after_distrust must be a bool. "
                 "Fix: pass skip_after_distrust=True or False.")
+        if not isinstance(probe_manifest, bool):
+            raise ValueError(
+                "Why: probe_manifest must be a bool. "
+                "Fix: pass probe_manifest=True or False.")
         self._get_hub = None
         self.backend = backend
         self.trust_window = trust_window
         self.noop_guard = noop_guard
         self.cycle_escape = cycle_escape
         self.skip_after_distrust = skip_after_distrust
+        self.probe_manifest = probe_manifest
         self._backend_distrusted = False
         self.fallbacks = 0
         self._recall_source = None
@@ -560,7 +569,7 @@ class Planner:
                 except Exception:
                     since = 0
             if self.skip_after_distrust and self._backend_distrusted:
-                probe["model_decision"] = {
+                decision = {
                     "proposed": None,
                     "rule": rule_action,
                     "steps_since_reward": since,
@@ -571,12 +580,23 @@ class Planner:
                     "reason": "skipped",
                     "skipped": True,
                 }
+                if self.probe_manifest:
+                    decision["model_manifest_sha256"] = None
+                probe["model_decision"] = decision
                 self.last_probe = probe
                 return rule_action
+            manifest_sha = None
             try:
                 proposed = self.backend.generate(obs)
+                if self.probe_manifest:
+                    manifest = getattr(self.backend, "last_manifest", None)
+                    if isinstance(manifest, dict):
+                        value = manifest.get("sha256")
+                        if isinstance(value, str):
+                            manifest_sha = value
             except Exception:
                 proposed = None
+                manifest_sha = None
             accepted = False
             reason = "invalid"
             if isinstance(proposed, str) and proposed in _LEGAL_ACTIONS:
@@ -598,7 +618,7 @@ class Planner:
                 elif since >= self.trust_window:
                     self._backend_distrusted = True
                     reason = "stall"
-            probe["model_decision"] = {
+            decision = {
                 "proposed": proposed,
                 "rule": rule_action,
                 "steps_since_reward": since,
@@ -609,6 +629,9 @@ class Planner:
                 "reason": reason,
                 "skipped": False,
             }
+            if self.probe_manifest:
+                decision["model_manifest_sha256"] = manifest_sha
+            probe["model_decision"] = decision
             self.last_probe = probe
             if accepted:
                 return proposed

@@ -1,77 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle55-distrust-skip",
+    "task_id": "brain-cycle56-manifest-binding",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794068132.332934,
-    "owner": "opencode:cycle55",
-    "started_by": "opencode:cycle55",
+    "updated_at": 1794068822.8791854,
+    "owner": "opencode:cycle56",
+    "started_by": "opencode:cycle56",
     "continuations": [],
-    "completed_at": 1794068140.3730624
+    "completed_at": 1794068826.3931677
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle51-movement-noop",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit movement no-op guard, tests, noop backend harness, ADR-048, cycle 51",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794065246.4212234,
-      "timestamp_str": "2026-11-07 18:27:26",
-      "agent": "opencode:cycle51"
-    },
-    {
-      "task_id": "brain-cycle51-movement-noop",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle51-movement-noop' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794065258.2454152,
-      "timestamp_str": "2026-11-07 18:27:38",
-      "agent": "opencode:cycle51"
-    },
-    {
-      "task_id": "brain-cycle52-zero-audit",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Full audit after the no-op guard closure: gates, wait/noop backends, verdict facts, standing pins, candidate scan",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794065372.3107667,
-      "timestamp_str": "2026-11-07 18:29:32",
-      "agent": "opencode:cycle52",
-      "impact_assessment": {
-        "why": "After cycles 50-51 closed the wait, premature-collect and blocked-movement no-op paths, audit whether any remaining candidate is a measured gap rather than policy tuning or a new task family.",
-        "benefits": "Zero-finding stop decision backed by the full battery and a named dead-end list.",
-        "risks": "contract: none (no code change); dependency: none; concurrency: none; state: ledger and cycle log only.",
-        "mitigation": "Re-run all gates and harnesses; name each candidate and why it does not qualify; no code edits."
-      },
-      "plan_digest": "072145c329a048a15b473a2fb89295333bcfcb57e8b570f9891f3e9cfeea0832"
-    },
-    {
-      "task_id": "brain-cycle52-zero-audit",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] Zero qualifying findings; identical battery re-verified (145 tests, aikit 5/5, cold-start 16/8/13/6, cold-first 200->16/8/13/6, wait/noop 16/8/13/6, noop ablate-noop 36/28/33/26, both off 200/0); STOP per zero-finding rule; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794065490.1800203,
-      "timestamp_str": "2026-11-07 18:31:30",
-      "agent": "opencode:cycle52"
-    },
-    {
-      "task_id": "brain-cycle52-zero-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle52-zero-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794065580.8288543,
-      "timestamp_str": "2026-11-07 18:33:00",
-      "agent": "opencode:cycle52"
-    },
     {
       "task_id": "brain-cycle53-telemetry-lock",
       "phase": "planning",
@@ -254,6 +194,67 @@
       "timestamp": 1794068140.3730655,
       "timestamp_str": "2026-11-07 19:15:40",
       "agent": "opencode:cycle55"
+    },
+    {
+      "task_id": "brain-cycle56-manifest-binding",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: bind each model decision to its generation manifest hash in telemetry",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068437.7201567,
+      "timestamp_str": "2026-11-07 19:20:37",
+      "agent": "opencode:cycle56",
+      "impact_assessment": {
+        "why": "Backends compute last_manifest (model_id, checkpoint, prompt, observation, sampling) but Planner.plan discards it, so a run log cannot prove which prompt/model produced an action; a same-named checkpoint swap is invisible. Dead-end audit: excluding dead goal steps improved multi (7,5) 18->16 but regressed a sampled (3,0) config 11->21, so it is not safe.",
+        "benefits": "Every model call gets model_manifest_sha256 in model_decision; checkpoint/prompt swaps become visible in the trace while actions stay identical; probe_manifest=False gives an executable ablation.",
+        "risks": "contract: model_decision gains a key and Planner a probe flag; dependency: stdlib only; concurrency: none; state: no schema change.",
+        "mitigation": "Read only last_manifest after a successful generate; set None when generate raises; keep the readout passive; compare action hashes across checkpoint swap and probe-off modes; re-run standing/trust/escape/cold-start pins."
+      },
+      "plan_digest": "a3a00afa070d5a48dae6aece7c1a8f7088cb86bb8b526c85e89d2d3ec11dcdd1"
+    },
+    {
+      "task_id": "brain-cycle56-manifest-binding",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first manifest test; probe_manifest flag, model_manifest_sha256 readout with stale-raise null, manifest-binding battery, checkpoint-swap and probe-off tests, README/ADR-052",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068749.9659712,
+      "timestamp_str": "2026-11-07 19:25:49",
+      "agent": "opencode:cycle56"
+    },
+    {
+      "task_id": "brain-cycle56-manifest-binding",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: manifest coverage 0 -> 1.0, checkpoint A/B digests differ, probe-off coverage 0.0, stale raise null; actions/steps/rewards/vectors/syn/phi identical; 164 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy 136dec8a",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068822.8644197,
+      "timestamp_str": "2026-11-07 19:27:02",
+      "agent": "opencode:cycle56"
+    },
+    {
+      "task_id": "brain-cycle56-manifest-binding",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit manifest binding, battery, tests, ADR-052, cycle 56",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794068822.8791854,
+      "timestamp_str": "2026-11-07 19:27:02",
+      "agent": "opencode:cycle56"
+    },
+    {
+      "task_id": "brain-cycle56-manifest-binding",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle56-manifest-binding' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794068826.393169,
+      "timestamp_str": "2026-11-07 19:27:06",
+      "agent": "opencode:cycle56"
     }
   ]
 }

@@ -2721,3 +2721,35 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 56**: unittest 158 OK; aikit 5/5; stalled `--ablate-noop` 36/28/33/26 with actions 90a61333/1736021f/33d9f09c/55e279bf, calls 21/21/21/21, fallbacks 1/1/1/1, skipped 15/7/12/5; `--no-skip` calls 36/28/33/26, fallbacks 16/8/13/6, last reason distrusted; default wait 16/8/13/6 calls 16/8/13/6; trust-off 16/8/13/6; both-off 200/0; escape 19/18; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 8c2c51bc...; multi pins 9/18/11/13/14; three pins 15/12/10/13/19; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 56 - bind each model decision to its generation-manifest hash
+
+- **Baseline** (commit 82ecb79, cycle 55; same declining manifest backend, seeds, prompts and probe code):
+  - canonical gate: 158 tests OK; aikit check 5/5; policy 8c2c51bc964cbe74120131e0cd3dffeee0e1052c10a5f6869531b37654257c77.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - model-seam trace: the decision record keys were `proposed/rule/steps_since_reward/trust_window/noop_guard/distrusted/accepted/reason/skipped`; no generation-manifest hash. The backend held `last_manifest` for T3 seed 15 (`5d06a1dcef060583a71ec82cb2bdab6b91479b7cdb7fa47f5ee150c14298aec5`) but it never reached the log. A checkpoint swap under the same model label was invisible.
+  - dead-end audit: excluding dead goal steps from the two-blocker pool improved pin (7,5) 18 -> 16 but regressed a sampled (3,0) config 11 -> 21; unsafe, discarded.
+- **Gap**: the generation manifest is the model seam's only exact binding of action to prompt/observation/sampling/checkpoint. Computing it and discarding it means a run log cannot audit the "same model hash/prompts/seeds" claim, and a same-named checkpoint swap leaves no trace.
+- **Target delta**: manifest coverage 0/N -> N/N; first digest equals the independently recomputed `manifest_for` hash; checkpoint A vs B changes every digest while actions stay identical; `probe_manifest=False` restores coverage 0 without changing actions; a raising call records `null`.
+- **Falsifier**: the digest is absent or wrong; checkpoint swap leaves the digest unchanged; probe-off still emits the key; a raising backend leaks a stale digest; any action/steps/reward/syn/phi moves; standing, trust, escape or cold-start pins move.
+- **Change**: agent.py adds `Planner(probe_manifest=True)` and copies `last_manifest.sha256` into `model_decision.model_manifest_sha256` after a successful generate (null on raise; null on skipped decisions when the probe is on); adds `PLANNER_POLICY["model_manifest_probe"] = "on"`. evals/manifest_binding.py adds intact/ablate/swap modes with a declining manifest backend; tests/test_manifest_binding.py covers per-step hashes, checkpoint swap, probe-off, stale-raise, policy and validation. README and ADR-052 record the contract. No new dependencies; no schema change.
+- **After** (same backend class, seeds, prompts and probe code):
+  - T1 seed 71: 16 steps, 3.0 reward, action hash bafe50ff..., first manifest hash cabec7a8... (A) / 6583aae7... (B); syn 0.03728282024294677 syn_n 0.07725767406794228 phi 0.0, 36 records.
+  - T3 seed 15: 13 steps, 1.0 reward, action hash 63c67660..., first manifest hash 5ba4e50c... (A) / 4a410229... (B); syn -0.05791331748493783 syn_n -0.2135530490569846 phi 0.0, 30 records.
+  - manifest coverage 1.0 on both; actions, steps, rewards and M/P/S/hub vectors are identical to the probe-off run; standing, T1 0-99, holdout, fixed-rig, trust, escape and cold-start unchanged; 164 tests OK. `policy_digest` 8c2c51bc... -> 136dec8aaa005c1248bd11b144fa0d3b1d627e468d5bdd083fbbbff4d17caa26.
+- **Ablation** (same backend, seeds and prompts):
+  - `probe_manifest=False`: coverage 0.0 on both cases, the key is absent, and action hashes/vectors/syn/phi are byte-identical (bafe50ff.../63c67660..., 0.03728282.../-0.05791332..., phi 0.0). The binding dies with the cut.
+  - checkpoint swap: coverage stays 1.0, actions identical, and every digest moves (T1 cabec7a8... -> 6583aae7...; T3 5ba4e50c... -> 4a410229...). The trace distinguishes the swap that the baseline could not.
+  - stale raise: `last_manifest` holds "stale" and `generate` raises; the decision records `null`, so no stale binding leaks.
+- **Verdict**: trace-integrity instrumentation. Behavior is unchanged by design; the measured deltas are manifest coverage (0 -> 1.0), checkpoint discrimination (0 -> 1 swap detected) and stale-raise safety (stale -> null). No action or emergence claim.
+- **Gates**: unittest 164/164 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_manifest_binding.TestManifestBinding.test_each_decision_binds_its_manifest -v` -> before: TypeError (`probe_manifest` missing) and a baseline probe with no `model_manifest_sha256`; after: OK.
+  - `python -m unittest tests.test_manifest_binding -v` -> 6 OK.
+  - `python -m unittest discover -s tests -t .` -> 164 OK.
+  - `python -m evals.manifest_binding` -> intact coverage 1.0; `--mode ablate` -> coverage 0.0 with identical action hashes; `--mode swap` -> coverage 1.0 with different digests and identical action hashes.
+  - `python -m evals.trust` / `--ablate-noop` / `--ablate` -> 16/8/13/6, 36/28/33/26 with 21 calls and 15/7/12/5 skipped, 200/0 unchanged.
+  - `python -m evals.escape` -> 19/18 intact, 200/200 ablate and blind; `python -m evals.coldstart --capture` -> 16/8/13/6 with store_reads 1.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 57**: unittest 164 OK; aikit 5/5; manifest intact coverage 1.0 with T1 cabec7a8.../T3 5ba4e50c..., ablate coverage 0.0 with action hashes bafe50ff.../63c67660..., swap digests 6583aae7.../4a410229..., stale raise null; stalled `--ablate-noop` 36/28/33/26 with 21/21/21/21 calls, 1/1/1/1 fallbacks, 15/7/12/5 skipped; `--no-skip` calls 36/28/33/26, fallbacks 16/8/13/6; default wait 16/8/13/6; trust-off 16/8/13/6; both-off 200/0; escape 19/18; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 136dec8a...; multi pins 9/18/11/13/14; three pins 15/12/10/13/19; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

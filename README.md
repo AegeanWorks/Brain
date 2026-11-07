@@ -27,6 +27,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.escape
   ```
+- **Manifest-Binding Battery**:
+  ```bash
+  python -m evals.manifest_binding
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -92,6 +96,20 @@ is the raw control. Each step's action record carries
 `reason` is `stall` only on the triggering step, then `distrusted` (call
 kept) or `skipped` (call omitted). Rule-only runs and good-backend
 replays keep their exact actions and zero fallbacks.
+
+## 🔗 Model-Manifest Binding
+
+A backend that exposes `last_manifest` (model id, checkpoint label,
+prompt, observation, sampling) has its manifest SHA-256 copied into
+every `model_decision` as `model_manifest_sha256`. The trace therefore
+binds each action to the exact generation input, and a same-named
+checkpoint swap changes the hash while the action trace stays
+identical. A raising call records `null` instead of leaking a stale
+manifest. `probe_manifest=False` removes the readout as the executable
+ablation. Weights never enter the repo: the manifest carries labels and
+hashes only. `python -m evals.manifest_binding` shows intact (coverage
+1.0), probe-off (coverage 0.0) and checkpoint A/B (different hashes,
+same actions).
 
 ## 🔁 Repeated-Position Cycle Escape
 
