@@ -26,6 +26,7 @@ Deterministic agent substrate with memory planner self-model and integration tel
 brain/
 ├── .gitignore
 ├── COMMERCIAL.md
+├── CYCLES.md                   <- append-only improvement-cycle ledger
 ├── LICENSE
 ├── LICENSES/
 ├── REUSE.toml

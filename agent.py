@@ -61,7 +61,7 @@ def _nearest(pos, cells):
     return best
 
 
-def _step_toward(pos, goal, obstacles):
+def _step_toward(pos, goal, obstacles, visits=None):
     dx = goal[0] - pos[0]
     dy = goal[1] - pos[1]
     ordered = []
@@ -75,13 +75,47 @@ def _step_toward(pos, goal, obstacles):
     elif dy < 0:
         ordered.append(("up", [pos[0], pos[1] - 1]))
     blocked = {tuple(o) for o in (obstacles or [])}
-    for name, nxt in ordered:
-        if 0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE and tuple(nxt) not in blocked:
-            return name
+    counts = visits if isinstance(visits, dict) else {}
+
+    def _free(cell):
+        return 0 <= cell[0] < SIZE and 0 <= cell[1] < SIZE and tuple(cell) not in blocked
+
+    def _has_exit(cell):
+        # One-step lookahead: a candidate cell is viable when stepping onto
+        # it leaves at least one free distance-reducing exit toward the goal.
+        # The goal cell itself is trivially viable.
+        if list(cell) == list(goal):
+            return True
+        ddx = goal[0] - cell[0]
+        ddy = goal[1] - cell[1]
+        exits = []
+        if ddx > 0:
+            exits.append([cell[0] + 1, cell[1]])
+        elif ddx < 0:
+            exits.append([cell[0] - 1, cell[1]])
+        if ddy > 0:
+            exits.append([cell[0], cell[1] + 1])
+        elif ddy < 0:
+            exits.append([cell[0], cell[1] - 1])
+        return any(_free(e) for e in exits)
+
+    free_ordered = [(name, nxt) for name, nxt in ordered if _free(nxt)]
+    # Prefer viable exits, then least-visited cells; the x-first axis order
+    # survives inside each group because the sort is stable.
+    viable = [pair for pair in free_ordered if _has_exit(pair[1])]
+    dead = [pair for pair in free_ordered if not _has_exit(pair[1])]
+    for group in (viable, dead):
+        group.sort(key=lambda pair: counts.get((pair[1][0], pair[1][1]), 0))
+    for name, _nxt in viable + dead:
+        return name
+    backup = []
     for name, delta in (("up", [0, -1]), ("down", [0, 1]), ("left", [-1, 0]), ("right", [1, 0])):
         nxt = [pos[0] + delta[0], pos[1] + delta[1]]
-        if 0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE and tuple(nxt) not in blocked:
-            return name
+        if _free(nxt):
+            backup.append((name, nxt))
+    backup.sort(key=lambda pair: counts.get((pair[1][0], pair[1][1]), 0))
+    for name, _nxt in backup:
+        return name
     return "wait"
 
 
@@ -110,6 +144,9 @@ class Planner:
         x, y = state["x"], state["y"]
         pos = [x, y]
         stuck = positions.count((x, y)) >= 2
+        visits = {}
+        for px, py in positions:
+            visits[(px, py)] = visits.get((px, py), 0) + 1
         steps = state.get("steps", 0)
         obstacles = list(state.get("obstacles", []))
         if "obstacle" in state and state["obstacle"] not in obstacles:
@@ -122,7 +159,7 @@ class Planner:
                 for name, nxt in (("down", [pos[0], pos[1] + 1]) if dy > 0 else ("up", [pos[0], pos[1] - 1]),) if dy != 0 else ():
                     if 0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE and tuple(nxt) not in {tuple(o) for o in obstacles}:
                         return name
-            return _step_toward(pos, goal, obstacles)
+            return _step_toward(pos, goal, obstacles, visits)
 
         remaining = state.get("items_positions")
         if remaining:

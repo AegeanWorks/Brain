@@ -54,3 +54,50 @@ only integration scores, cross-module dependencies, and ablation differentials.
   wiring errors T1=125 T2=70 T3=60 (10 seeds); error_rate 0.806/0.875/0.857;
   phi 0.0 x3; syn 0.1167/0.1000/0.1229; lesion_s syn delta 0.0 x3;
   task succ 30/30, avg_steps 15.5/8.0/7.0.
+
+## Cycle 2 — dead-end-entry lookahead with least-visited tie-break
+
+- **Baseline** (cycle 1 pins): 43 tests OK; aikit 5/5; 30-seed step totals
+  T1=466 (mean 15.533), T2=240 (mean 8.0, stdev 0.0), T3=219 (mean 7.3).
+- **Gap**: T3 seed 15 (target [6,7], obstacle [6,1]) took 15 steps vs
+  BFS-optimal 13: x-first ordering entered column x=6, found (6,1) blocked,
+  and oscillated (5,0)<->(6,0) before the stuck backstop fired (+2 steps).
+  T1 audit: greedy path == optimal TSP path on all 30 seeds and
+  actual == greedy+3 everywhere — ordering headroom zero (dead end, one line).
+- **Target delta**: T3 seed 15 15->13; all other 89 runs byte-identical
+  (T1=466, T2=240, T3 total 219->217).
+- **Falsifier**: seed 15 stays 15, or any other seed's step count increases.
+- **Change** (agent.py only: _step_toward + 4-line visits build in
+  Planner.plan; tests/test_trap_escape.py new): one-step lookahead prefers
+  distance-reducing candidates with a free exit toward the goal (goal cell
+  trivially viable), then least-visited cells from planner memory; stable
+  x-first/fallback order breaks ties. Deterministic, stdlib only.
+- **After** (identical battery, same seeds):
+  - T3 seed 15: 15 -> 13 (optimal, matches BFS).
+  - 30-seed totals: T1=466, T2=240, T3=217 — every non-target seed identical.
+  - 100-seed T3 scan: one residual detour remains, seed 65 (8 vs 6, a
+    2-ply cul-de-sac entry the 1-step rule cannot see) — recorded boundary.
+- **Ablation** (integration cut: BlindPlanner severs memory, same rules):
+  - intact seed 65 completes in 8 steps with reward 1.0;
+  - blind seed 65 cycles to the 200-step cap with zero reward.
+  - Gain dies with the cut, returns with the restore: the visit-count
+    memory input is load-bearing (it also guards lookahead-induced cycles
+    on seeds 65/74, which truncate at 200 without it).
+  - Mechanism note, honestly recorded: on seed 15 lookahead alone suffices
+    (blind still scores 13); visits carry the differential on trap seeds.
+- **Verdict**: efficiency win with proven memory coupling; no emergence
+  claim. Verdict UNKNOWN.
+- **Gates**: unittest 46/46 OK; aikit check 5/5 PASS (README tree updated
+  for CYCLES.md after a guidelines FAIL on the first check run).
+- **Commands run**:
+  - `python -m unittest tests.test_trap_escape -v` -> 2 FAIL (15 vs 13,
+    219 vs 217) before; 3 OK after (incl. ablation).
+  - `python -m unittest discover -s tests -t .` -> 46 OK.
+  - `python aikit.py check brain` -> 4/5 (guidelines: README tree) then
+    5/5 after README fix.
+  - audit probes: T1 greedy-vs-optimal per seed, T3 actual-vs-BFS per seed,
+    repeat-count probe, 100-seed detour scan, no-visits comparison probe.
+- **Pinned regression baselines for cycle 3**: unittest 46 OK; aikit 5/5;
+  step totals T1=466 T2=240 T3=217 (30 seeds); T3 seed 15 = 13;
+  T3 seed 65 = 8 intact / 200 blind; wiring SM errors T1=125 T2=70 T3=60;
+  phi 0.0 x3; syn 0.1167/0.1000/0.1229.
