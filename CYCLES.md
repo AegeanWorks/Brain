@@ -2627,3 +2627,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.coldstart --capture` -> 16/8/13/6; `--scenario cold-first --capture` -> 200 then 16/8/13/6.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
 - **Pinned regression baselines carried (no new pins)**: unittest 145 OK; aikit 5/5; cold-start 16/8/13/6; cold-first 200 then 16/8/13/6; wait/noop 16/8/13/6; noop ablate-noop 36/28/33/26; both off 200/0; verdict facts cap truncated/reward 0.0; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 53 - serialize telemetry hash-chain appends with an AIKit-style lock
+
+- **Baseline** (commit c274de4, cycle 52; AIKit `file_lock` inspected in `scripts/disruption_recovery.py` and `idea_catcher/registry.py`):
+  - canonical gate: 145 tests OK; aikit check 5/5; policy 180ba03d...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - two writers, one record each, slowed head read: `verify_chain` returned `ok=false`, findings `['broken-link:1']`, records 2.
+  - lock-off concurrent battery (two writers x two records): `broken-link:1`, `broken-link:2`, verified prefix 2 of 4 expected records.
+- **Gap**: `Telemetry._write_record` reads the head digest and appends without a lock. Two writers can both read the same head and emit stale links, so a concurrent log is not a single valid chain. AIKit already serialises ledger/registry read-modify-write cycles with a bounded, stale-breaking advisory lock.
+- **Target delta**: concurrent two-writer chain `broken-link` -> `ok=true` with 4/4 records; single-writer behavior/trace unchanged; lock-off ablation reproduces the broken links; timeout surfaces instead of silent interleaving.
+- **Falsifier**: concurrent chain still breaks; single-writer record count or standing pins move; timeout still writes unprotected; the lock-off ablation does not reproduce the break.
+- **Change**: telemetry/log.py adds `_append_lock` (O_CREAT|O_EXCL lock file, PID/timestamp, 30s stale break by atomic rename, bounded `lock_timeout`, TimeoutError with Why/Fix); `_write_record` holds the lock from head read through fsync and refreshes a size-stale head; `Telemetry(lock_timeout=3.0)`; evals/telemetry_lock.py; tests/test_telemetry_concurrency.py (two-writer chain, single-writer chain, timeout, stale lock).
+- **After** (same two-writer battery, same backend/prompts/seeds):
+  - locked chain: `ok=true`, `chain_records=4`, `expected_records=4`, no findings, no worker errors.
+  - single writer: chain `ok=true`, 3 records; existing telemetry, wiring and recompute tests unchanged.
+  - behavior and standing trace: 466/240/217; T1 seeds 0-99 1581; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d... unchanged.
+  - 149 tests OK; aikit 5/5.
+- **Ablation** (patch `telemetry.log._append_lock` to a no-op, same writers/prompts):
+  - `ok=false`, findings `broken-link:1`, `broken-link:2`; verified prefix 2 of 4 expected records. The serialized chain and its verdict die with the cut.
+- **Verdict**: trace-integrity integration confirmed. This is the first AIKit transfer cycle; the mined shortlist also includes reachability/round-trip audits, proof/evidence envelopes, the codebase-map digest and test budgets, none of which is a current measured gap.
+- **Gates**: unittest 149/149 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_telemetry_concurrency -v` -> before: 1 failure (`broken-link:1`); after: 4 OK.
+  - `python -m evals.telemetry_lock` -> ok, 4/4 records; `--ablate` -> broken-link:1,2, prefix 2/4.
+  - `python -m unittest discover -s tests -t .` -> 149 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
+- **Pinned regression baselines for cycle 54**: unittest 149 OK; aikit 5/5; locked telemetry chain 4/4; lock-off ablation broken-link:1,2 with prefix 2/4; timeout test raises; stale lock test recovers; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.

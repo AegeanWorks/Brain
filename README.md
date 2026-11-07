@@ -19,6 +19,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.trust
   ```
+- **Telemetry Lock Battery**:
+  ```bash
+  python -m evals.telemetry_lock
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -86,6 +90,15 @@ A logged run is `done` only when it ended before the step budget. A run that
 consumes the full budget is `truncated` even though the world's `done` flag is
 set by the cap; the verdict reason always carries `steps` and `reward`, so a
 capped run cannot read back as a success.
+
+## 🔗 Multi-Writer Telemetry
+
+Each JSONL append holds an advisory lock file from the head read through the
+durable write, so concurrent writers form one hash chain instead of linking to
+the same stale head. A lock older than 30 seconds is treated as a crashed
+writer and broken atomically; a bounded timeout raises instead of writing
+unprotected. `python -m evals.telemetry_lock` shows the locked chain and
+`--ablate` reproduces the broken pre-fix chain.
 
 ## 📜 License
 

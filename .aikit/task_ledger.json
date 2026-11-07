@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle52-zero-audit",
+    "task_id": "brain-cycle53-telemetry-lock",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794065490.1800203,
-    "owner": "opencode:cycle52",
-    "started_by": "opencode:cycle52",
+    "updated_at": 1794066314.6357605,
+    "owner": "opencode:cycle53",
+    "started_by": "opencode:cycle53",
     "continuations": [],
-    "completed_at": 1794065580.828852
+    "completed_at": 1794066324.4906924
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle48-honest-verdict",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first verdict tests; _episode_verdict distinguishes pre-cap completion from cap exhaustion; reason carries steps and reward",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063936.100368,
-      "timestamp_str": "2026-11-07 18:05:36",
-      "agent": "opencode:cycle48"
-    },
-    {
-      "task_id": "brain-cycle48-honest-verdict",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Verdict facts verified: cap 200/0 done -> truncated with reward=0.0; success 33/1 done with reward=1.0; behavior and record counts unchanged; legacy-predicate ablation restores done; 140 tests OK; aikit 5/5; ADR-046 and cycle 48 recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063940.906038,
-      "timestamp_str": "2026-11-07 18:05:40",
-      "agent": "opencode:cycle48"
-    },
-    {
-      "task_id": "brain-cycle48-honest-verdict",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit verdict fix, tests, ADR-046, cycle 48",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063945.113347,
-      "timestamp_str": "2026-11-07 18:05:45",
-      "agent": "opencode:cycle48"
-    },
-    {
-      "task_id": "brain-cycle48-honest-verdict",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle48-honest-verdict' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794063954.4548316,
-      "timestamp_str": "2026-11-07 18:05:54",
-      "agent": "opencode:cycle48"
-    },
-    {
-      "task_id": "brain-cycle49-zero-audit",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Full audit: gates, cold-start, cold-first, trust, verdict, standing pins, dead-channel scan",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794064146.7414956,
-      "timestamp_str": "2026-11-07 18:09:06",
-      "agent": "opencode:cycle49",
-      "impact_assessment": {
-        "why": "After cycles 45-48, audit whether any remaining candidate moves a measured number without breaking pins or adding a speculative task family.",
-        "benefits": "Zero-finding stop decision backed by the complete four-track battery and a named dead-end list.",
-        "risks": "contract: none (no code change); dependency: none; concurrency: none; state: ledger and cycle log only.",
-        "mitigation": "Re-run gates and all harnesses; list each candidate with the reason it does not qualify; no code edits."
-      },
-      "plan_digest": "81efd7d11c13f2cfdfb888c5c680e539cb13df68aab0908351a3b251531c4558"
-    },
     {
       "task_id": "brain-cycle49-zero-audit",
       "phase": "verification",
@@ -254,6 +193,67 @@
       "timestamp": 1794065580.8288543,
       "timestamp_str": "2026-11-07 18:33:00",
       "agent": "opencode:cycle52"
+    },
+    {
+      "task_id": "brain-cycle53-telemetry-lock",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: serialize telemetry hash-chain appends with AIKit-style advisory file lock",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794065851.524348,
+      "timestamp_str": "2026-11-07 18:37:31",
+      "agent": "opencode:cycle53",
+      "impact_assessment": {
+        "why": "Telemetry._write_record reads the head digest then appends without a lock; two writers can link to the same stale head and break verify_chain.",
+        "benefits": "Concurrent writers preserve a valid chain and all records; timeout surfaces instead of silent interleaving; single-writer trace unchanged.",
+        "risks": "contract: Telemetry gains lock_timeout and a lock-file sibling; dependency: stdlib only (os/msvcrt/fcntl not needed with O_EXCL); concurrency: lock covers head read through fsync; state: lock file is transient and stale-broken.",
+        "mitigation": "Adapt AIKit file_lock (O_CREAT|O_EXCL, PID stamp, 30s stale break, bounded timeout); failing-first two-writer test; all chain and telemetry tests re-run."
+      },
+      "plan_digest": "7fefae3947ea5221fefa119a09c429ff69bffc240bbd6644a6a2db9b8bbc04d0"
+    },
+    {
+      "task_id": "brain-cycle53-telemetry-lock",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first two-writer chain test; AIKit-style append lock with stale break and bounded timeout; lock/stale/timeout tests and telemetry_lock battery",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794066304.4542074,
+      "timestamp_str": "2026-11-07 18:45:04",
+      "agent": "opencode:cycle53"
+    },
+    {
+      "task_id": "brain-cycle53-telemetry-lock",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Trace integrity verified: two-writer chain broken-link -> ok 4/4; lock-off ablation broken-link:1,2 prefix 2/4; timeout and stale-lock paths pass; 149 tests OK; aikit 5/5; standing pins unchanged; ADR-049 and cycle 53 recorded",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794066309.893905,
+      "timestamp_str": "2026-11-07 18:45:09",
+      "agent": "opencode:cycle53"
+    },
+    {
+      "task_id": "brain-cycle53-telemetry-lock",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit telemetry lock, concurrency tests, battery, ADR-049, cycle 53",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794066314.6357605,
+      "timestamp_str": "2026-11-07 18:45:14",
+      "agent": "opencode:cycle53"
+    },
+    {
+      "task_id": "brain-cycle53-telemetry-lock",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle53-telemetry-lock' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794066324.4906948,
+      "timestamp_str": "2026-11-07 18:45:24",
+      "agent": "opencode:cycle53"
     }
   ]
 }

@@ -16,8 +16,15 @@ on the file descriptor, then fsyncs the containing directory when the
 platform permits. Callers record an action with ``append_action`` before
 executing the corresponding operation, so a crash leaves the intended
 operation in the log.
+
+Multi-writer safety: each append holds an advisory lock file from the
+head read through the durable write, so concurrent writers form one
+chain instead of linking to the same stale head. A lock older than
+``LOCK_STALE_SECONDS`` is treated as a crashed writer and broken via an
+atomic rename. This mirrors AIKit's ``file_lock`` discipline.
 """
 
+import contextlib
 import hashlib
 import json
 import os
@@ -26,6 +33,73 @@ from pathlib import Path
 
 SCHEMA_VERSION = 2
 GENESIS = "GENESIS"
+LOCK_STALE_SECONDS = 30.0
+LOCK_POLL_SECONDS = 0.02
+
+
+@contextlib.contextmanager
+def _append_lock(path, timeout_seconds=3.0):
+    """Hold an exclusive advisory lock for one telemetry append.
+
+    Adapted from AIKit's task-ledger/registry ``file_lock``: an
+    ``O_CREAT|O_EXCL`` lock file with the PID and timestamp serialises
+    writers across processes and threads. A lock older than
+    ``LOCK_STALE_SECONDS`` is stolen by an atomic rename, so exactly one
+    racer can break it. A bounded timeout raises instead of hanging or
+    writing unprotected.
+    """
+    lock_path = Path(str(path) + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    acquired = False
+    while True:
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write("%d:%d\n" % (os.getpid(), int(time.time())))
+                handle.flush()
+            acquired = True
+            break
+        except PermissionError:
+            # Windows raises EACCES while another process removes its
+            # lock; treat it as contention and retry.
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    "Why: another writer holds the telemetry lock on %s. "
+                    "Fix: retry after it finishes, or remove %s if no "
+                    "writer is active." % (Path(path).name, lock_path.name))
+            time.sleep(LOCK_POLL_SECONDS)
+        except FileExistsError:
+            try:
+                age = time.time() - lock_path.stat().st_mtime
+                if age > LOCK_STALE_SECONDS:
+                    claim = Path(str(lock_path) + ".steal_%d" % os.getpid())
+                    try:
+                        os.replace(lock_path, claim)
+                    except OSError:  # hygiene: allow another stale-lock breaker won the rename
+                        pass
+                    else:
+                        try:
+                            claim.unlink(missing_ok=True)
+                        except OSError:  # hygiene: allow best-effort claim cleanup; the retry loop continues
+                            pass
+                        continue
+            except OSError:  # hygiene: allow lock stat race; the retry loop handles it
+                pass
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    "Why: another writer holds the telemetry lock on %s. "
+                    "Fix: retry after it finishes, or remove %s if no "
+                    "writer is active." % (Path(path).name, lock_path.name))
+            time.sleep(LOCK_POLL_SECONDS)
+    try:
+        yield
+    finally:
+        if acquired:
+            try:
+                lock_path.unlink(missing_ok=True)
+            except OSError:  # hygiene: allow best-effort lock release; a stale lock is broken by age
+                pass
 
 
 def _canonical(record):
@@ -63,14 +137,27 @@ def _dir_fsync(dir_path):
 
 
 class Telemetry:
-    """JSONL append-only store at ``path``."""
+    """JSONL append-only store at ``path``.
 
-    def __init__(self, path):
+    ``lock_timeout`` bounds how long one append waits for another
+    writer's advisory lock before raising ``TimeoutError``. A lock older
+    than ``LOCK_STALE_SECONDS`` is treated as a crashed writer.
+    """
+
+    def __init__(self, path, lock_timeout=3.0):
+        if (isinstance(lock_timeout, bool)
+                or not isinstance(lock_timeout, (int, float))
+                or lock_timeout < 0):
+            raise ValueError(
+                "Why: lock_timeout must be a non-negative number. "
+                "Fix: pass lock_timeout=3.0.")
         self.path = Path(path)
         parent = self.path.parent
         if str(parent) and str(parent) not in ("", "."):
             parent.mkdir(parents=True, exist_ok=True)
+        self.lock_timeout = float(lock_timeout)
         self._head = None
+        self._head_size = None
 
     def _head_digest(self):
         """Return the digest new records must link to.
@@ -108,19 +195,30 @@ class Telemetry:
         record.setdefault("schema", SCHEMA_VERSION)
         for key in ("seq", "type", "ts", "M", "P", "S", "hub"):
             record.setdefault(key, None)
-        record["prev"] = self._head_digest()
-        record["digest"] = _digest_of(record)
-        line = json.dumps(record, sort_keys=True) + "\n"
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, "a", encoding="utf-8") as f:
-            f.write(line)
-            f.flush()
-            os.fsync(f.fileno())
-        try:
-            _dir_fsync(self.path.parent)
-        except OSError:  # hygiene: allow best-effort dir fsync; record already flushed
-            pass
-        self._head = record["digest"]
+        with _append_lock(self.path, timeout_seconds=self.lock_timeout):
+            try:
+                size = self.path.stat().st_size
+            except OSError:
+                size = 0
+            if self._head_size != size:
+                self._head = None
+            record["prev"] = self._head_digest()
+            record["digest"] = _digest_of(record)
+            line = json.dumps(record, sort_keys=True) + "\n"
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.path, "a", encoding="utf-8") as f:
+                f.write(line)
+                f.flush()
+                os.fsync(f.fileno())
+            try:
+                _dir_fsync(self.path.parent)
+            except OSError:  # hygiene: allow best-effort dir fsync; record already flushed
+                pass
+            self._head = record["digest"]
+            try:
+                self._head_size = self.path.stat().st_size
+            except OSError:
+                self._head_size = None
         return record
 
     def write_header(self, task, budget, manifest_sha256=None, manifest_path=None,
