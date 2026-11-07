@@ -1367,7 +1367,8 @@ class Agent:
 
     def run_task_logged(self, task_id, seed, max_steps=200, log_path=None,
                         budget=None, workspace_root=None,
-                        calibration_path=None):
+                        calibration_path=None,
+                        calibration_keep_recent=None):
         """Run task with header, per-step actions+results, and verdict.
 
         Writes header (seq 0), one kind "step" action plus one result
@@ -1377,9 +1378,24 @@ class Agent:
         unchanged shape. When ``calibration_path`` is given, the
         persistent self-model's forecasts for this run are appended to
         the calibration journal after the verdict, under a prefix taken
-        from the header digest. The bridge is opt-in and does not change
-        actions; a calibration-store failure raises after the verdict.
+        from the header digest. ``calibration_keep_recent`` optionally
+        rotates the journal immediately after that append, keeping the
+        newest N live and archiving older records. The bridge is opt-in
+        and does not change actions; a calibration-store failure raises
+        after the verdict.
         """
+        if calibration_keep_recent is not None:
+            if calibration_path is None:
+                raise ValueError(
+                    "Why: calibration_keep_recent needs calibration_path. "
+                    "Fix: pass calibration_path=... or omit "
+                    "calibration_keep_recent.")
+            if (isinstance(calibration_keep_recent, bool)
+                    or not isinstance(calibration_keep_recent, int)
+                    or calibration_keep_recent < 1):
+                raise ValueError(
+                    "Why: calibration_keep_recent must be a positive int "
+                    "or None. Fix: pass calibration_keep_recent=100.")
         if calibration_path is not None:
             if self.self_model is None:
                 raise ValueError(
@@ -1427,13 +1443,17 @@ class Agent:
         except Exception:
             self._substrate_errors["verdict"] += 1
         if calibration_path is not None:
-            from calibration_store import append_forecasts
+            from calibration_store import append_forecasts, rotate_forecast_journal
 
             digest = header.get("digest") if isinstance(header, dict) else None
             prefix = str(digest or identity_sha)[:12]
             forecasts = self.self_model.forecasts(
                 prefix, start=forecast_start)
             append_forecasts(forecasts, calibration_path)
+            if calibration_keep_recent is not None:
+                rotate_forecast_journal(
+                    calibration_path,
+                    keep_recent=calibration_keep_recent)
         return trace
 
     def substrate_errors(self):

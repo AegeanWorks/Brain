@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle80-calibration-retention",
+    "task_id": "brain-cycle81-auto-retention",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794087137.791936,
-    "owner": "opencode:cycle80",
-    "started_by": "opencode:cycle80",
+    "updated_at": 1794087856.915791,
+    "owner": "opencode:cycle81",
+    "started_by": "opencode:cycle81",
     "continuations": [],
-    "completed_at": 1794087139.2135894
+    "completed_at": 1794087857.7308109
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle77-calibration-bridge",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: opt-in SelfModel forecast bridge into the calibration journal",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794084785.5812254,
-      "timestamp_str": "2026-11-07 23:53:05",
-      "agent": "opencode:cycle77",
-      "impact_assessment": {
-        "why": "The persistent SelfModel records confidence/outcome pairs and the calibration journal can store them, but no logged run connects the two: real-run forecasts stay in memory and vanish on exit, so cross-run calibration needs hand-built records.",
-        "benefits": "run_task_logged(calibration_path=...) appends only the current run's forecasts after the verdict, under a header-digest prefix; a default T3:15 run stays 13 in-memory forecasts with no file, the logged run persists 13/13 with the same Brier 0.230769, and a second run appends only 6 new records (19 total, two prefixes).",
-        "risks": "contract: SelfModel forecast_count/forecasts and run_task_logged calibration_path; dependency: stdlib only; concurrency: calibration_store lock; state: new local journal append after the verdict, opt-in.",
-        "mitigation": "Fail fast without a persistent SelfModel/forecast API; capture the pre-run count and slice only that run; prefix ids with the header digest; test default/logged/two-runs/missing/corrupt/actions; rerun 314 tests and AIKit."
-      },
-      "plan_digest": "665c30c6abe971e5516e17fd9630ecfb05be1c5115d7394e938cdb959750c23a"
-    },
-    {
-      "task_id": "brain-cycle77-calibration-bridge",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] SelfModel forecasts/slice, run_task_logged calibration_path, fail-fast, header-prefix append, tests/eval, README/ADR-071",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794084786.0220315,
-      "timestamp_str": "2026-11-07 23:53:06",
-      "agent": "opencode:cycle77"
-    },
-    {
-      "task_id": "brain-cycle77-calibration-bridge",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: default 13 in-memory/no file; logged 13/13 Brier 0.230769; two runs 19/19 0.223684 two prefixes; missing/corrupt errors; actions match; 314 tests OK; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794084786.4454165,
-      "timestamp_str": "2026-11-07 23:53:06",
-      "agent": "opencode:cycle77"
-    },
-    {
-      "task_id": "brain-cycle77-calibration-bridge",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit bridge, eval, tests, ADR-071, cycle 77",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794084786.8905184,
-      "timestamp_str": "2026-11-07 23:53:06",
-      "agent": "opencode:cycle77"
-    },
-    {
-      "task_id": "brain-cycle77-calibration-bridge",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle77-calibration-bridge' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794084787.3299131,
-      "timestamp_str": "2026-11-07 23:53:07",
-      "agent": "opencode:cycle77"
-    },
     {
       "task_id": "brain-cycle78-merkle-compaction",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794087139.2135918,
       "timestamp_str": "2026-11-08 00:32:19",
       "agent": "opencode:cycle80"
+    },
+    {
+      "task_id": "brain-cycle81-auto-retention",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: opt-in automatic calibration retention after a logged-run forecast append",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794087449.6939106,
+      "timestamp_str": "2026-11-08 00:37:29",
+      "agent": "opencode:cycle81",
+      "impact_assessment": {
+        "why": "The bridge appends every run's forecasts and relies on a separate manual rotation. A logged run with calibration_keep_recent can bound the live journal immediately after its append by reusing the tested archive rotation, without changing actions or scores.",
+        "benefits": "run_task_logged(calibration_path=..., calibration_keep_recent=10) appends then rotates; T3:15 leaves 10 live/3 archive/13 total with the same Brier 0.230769; a second run reaches 10 live/9 archive/19 total with 0.223684; no threshold keeps 13 live; invalid/no-path/corrupt-archive cases fail loudly.",
+        "risks": "contract: run_task_logged calibration_keep_recent keyword only, append/rotate APIs unchanged; dependency: stdlib only; concurrency: append and rotation each take the store lock; state: automatic .archive/.bak/.rotation files, opt-in.",
+        "mitigation": "Validate the threshold before the run; append first, then rotate, so a rotation failure leaves all forecasts live and the verdict intact; test single/two-run/no-threshold/no-path/invalid/corrupt/action parity; rerun 343 tests and AIKit."
+      },
+      "plan_digest": "c6b184255727ff1810d5782b45bc91cb8c3f2ac16b3c51c5221c71e14693693b"
+    },
+    {
+      "task_id": "brain-cycle81-auto-retention",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first unexpected keyword; calibration_keep_recent validation, append-then-rotate, tests/eval, README/ADR-075",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794087855.3716254,
+      "timestamp_str": "2026-11-08 00:44:15",
+      "agent": "opencode:cycle81"
+    },
+    {
+      "task_id": "brain-cycle81-auto-retention",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: retained 10/3/13 0.230769; two 10/9/19 0.223684; unretained 13; errors before log; corrupt after done; actions match; 351 tests OK; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794087856.3985658,
+      "timestamp_str": "2026-11-08 00:44:16",
+      "agent": "opencode:cycle81"
+    },
+    {
+      "task_id": "brain-cycle81-auto-retention",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit auto-retention, eval, tests, ADR-075, cycle 81",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794087856.915791,
+      "timestamp_str": "2026-11-08 00:44:16",
+      "agent": "opencode:cycle81"
+    },
+    {
+      "task_id": "brain-cycle81-auto-retention",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle81-auto-retention' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794087857.730813,
+      "timestamp_str": "2026-11-08 00:44:17",
+      "agent": "opencode:cycle81"
     }
   ]
 }

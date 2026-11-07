@@ -107,6 +107,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.calibration_retention
   ```
+- **Calibration-Autoretention Battery**:
+  ```bash
+  python -m evals.calibration_autoretention
+  ```
 - **Claim-Verdict Battery**:
   ```bash
   python -m evals.claims
@@ -152,7 +156,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/claims/claims-store batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -465,6 +469,17 @@ store's writer lock. `python -m evals.calibration_retention` shows 19
 records rotating to 10 live/9 archived with identical Brier 0.181579 /
 skill 0.255114, a 19-record backup, a second rotation to 15 archived/25
 total, and conflict/missing/lock cases.
+
+`run_task_logged(..., calibration_keep_recent=10)` applies the same
+rotation automatically after the run's forecast append. The threshold is
+validated before the run; a missing `calibration_path` or an invalid
+threshold fails without creating the log or store. T3:15 leaves 10
+live/3 archived/13 total with the same Brier 0.230769; a second run
+reaches 10/9/19; `calibration_keep_recent=None` keeps all 13 live. A
+rotation failure (for example a corrupt archive) raises after the done
+verdict with all 13 forecasts still live. `python -m
+evals.calibration_autoretention` shows retained, two-run, unretained,
+missing-path, invalid, corrupt-archive and action-parity modes.
 
 ## 🧾 Claim & Verdict Register
 
