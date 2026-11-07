@@ -87,9 +87,13 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.calibration
   ```
-- **Claim-Veridct Battery**:
+- **Claim-Verdict Battery**:
   ```bash
   python -m evals.claims
+  ```
+- **Claim-Store Battery**:
+  ```bash
+  python -m evals.claims_store
   ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
@@ -120,13 +124,14 @@ brain/
 ├── snapshot.py               <- portable run snapshots + deterministic diff
 ├── calibration.py            <- Brier/log-loss/reliability scoring for forecasts
 ├── claims.py                 <- immutable claim/kill-test/verdict ledger
+├── claims_store.py           <- checksummed snapshots + backup recovery
 ├── models/                   <- swappable small-model backends (seam + llama.cpp)
 ├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
 ├── planner/                  <- explicit steps + recover (plan.py)
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/claims/claims-store batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -381,6 +386,21 @@ inconclusive`, `summary()` counts claims/verdicts, and `to_dict`/
 `from_dict` roundtrip as JSON. Declared confidence does not decide the
 verdict. `python -m evals.claims` judges six T3 claims: 3 supported, 2
 refuted, 1 inconclusive, with the 13/6-step/1.0 runs unchanged.
+
+`claims_store.py` makes the ledger durable. `save_ledger(ledger, path)`
+writes one checksummed snapshot atomically (temp + fsync + replace, five
+retries), keeps the previous snapshot as `.bak`, and holds an
+`O_CREAT|O_EXCL` lock (30 s stale steal, bounded timeout). A successful
+write needs 10 MiB free. `load_ledger` returns an empty ledger when no
+snapshot exists, loads the primary, and on a corrupt primary quarantines
+it as `.corrupt` and falls back to `.bak`; `verify_ledger_file` names
+`missing-primary`, `invalid-primary`, schema and checksum defects.
+`python -m evals.claims_store` shows the in-memory file-before/after
+ablation, a 6-claim/6-verdict roundtrip, corrupt-primary recovery (3
+claims from the backup), a checksum tamper, missing, stale-lock steal,
+and a fresh-lock refusal. Keep the snapshot under `.aikit/` or outside
+the source tree; it is local evidence, not committed. The checksum
+detects accidental edits, not a keyed signature.
 
 ## 🧾 Verdict Facts
 

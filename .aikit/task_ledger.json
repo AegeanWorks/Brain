@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle74-progress-skip",
+    "task_id": "brain-cycle75-claim-store",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794081755.2071066,
-    "owner": "opencode:cycle74",
-    "started_by": "opencode:cycle74",
+    "updated_at": 1794082828.715283,
+    "owner": "opencode:cycle75",
+    "started_by": "opencode:cycle75",
     "continuations": [],
-    "completed_at": 1794081755.6267798
+    "completed_at": 1794082829.1284459
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle71-claims",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle71-claims' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794078731.4951663,
-      "timestamp_str": "2026-11-07 22:12:11",
-      "agent": "opencode:cycle71"
-    },
-    {
-      "task_id": "brain-cycle72-progress-guard",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: single-target BFS backend progress guard for legal wrong-way moves",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794079510.4688344,
-      "timestamp_str": "2026-11-07 22:25:10",
-      "agent": "opencode:cycle72",
-      "impact_assessment": {
-        "why": "The no-op guard rejects wait/premature collect/blocked movement, but a legal free-cell move away from a fixed target is accepted until the 20-step trust window expires: T3:15 costs 33 steps/21 calls instead of 13/13, T3:65 26 instead of 6, T2:3 34 instead of 8.",
-        "benefits": "A backend movement that strictly increases BFS distance to the fixed target is rejected immediately with reason no-progress; T3:15 33->13, T3:65 26->6, T2:3 34->8, calls 21->13/6/8; T1 item tours and no-target states stay 36/22.",
-        "risks": "contract: Planner progress_guard keyword and PLANNER_POLICY key (policy digest changes); dependency: stdlib only; concurrency: none; state: no schema change.",
-        "mitigation": "Apply only when a fixed target exists and no items remain; compare against the rule action's BFS distance; keep progress_guard opt-out; preserve T1 and rule-only behavior; test equal-distance acceptance, invalid flags, and run the full suite plus AIKit."
-      },
-      "plan_digest": "637998a99d9de19c4e03037850ffa405656c3b11e3011e869640b53bfdceb0ef"
-    },
-    {
-      "task_id": "brain-cycle72-progress-guard",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first wrong-way 33!=13; _bfs_distance, progress_guard, progress_rejections, no-progress decision, tests, eval, README/ADR-066",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794080044.879509,
-      "timestamp_str": "2026-11-07 22:34:04",
-      "agent": "opencode:cycle72"
-    },
-    {
-      "task_id": "brain-cycle72-progress-guard",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: T3:15 33->13/21->13 calls, T3:65 26->6/21->6, T2:3 34->8/21->8, T1:71 36/22 unchanged; 266 tests OK; aikit 5/5; standing/fixed-rig unchanged; policy 3c04d54a",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794080045.39068,
-      "timestamp_str": "2026-11-07 22:34:05",
-      "agent": "opencode:cycle72"
-    },
-    {
-      "task_id": "brain-cycle72-progress-guard",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit progress guard, eval, tests, ADR-066, cycle 72",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794080045.7819645,
-      "timestamp_str": "2026-11-07 22:34:05",
-      "agent": "opencode:cycle72"
-    },
     {
       "task_id": "brain-cycle72-progress-guard",
       "phase": "completed",
@@ -247,6 +186,67 @@
       "timestamp": 1794081755.626783,
       "timestamp_str": "2026-11-07 23:02:35",
       "agent": "opencode:cycle74"
+    },
+    {
+      "task_id": "brain-cycle75-claim-store",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: durable checksummed claim-ledger store with backup and quarantine recovery",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794082233.007945,
+      "timestamp_str": "2026-11-07 23:10:33",
+      "agent": "opencode:cycle75",
+      "impact_assessment": {
+        "why": "ClaimLedger roundtrips as JSON but has no file API, so verdicts and kill-test evidence are lost when the process exits. The open-ended evidence loop needs a durable claim store.",
+        "benefits": "save_ledger writes one checksummed snapshot atomically (temp+fsync+replace) with a .bak of the previous snapshot; load_ledger restores it, quarantines a corrupt primary and falls back to .bak; verify_ledger_file names missing/checksum/schema defects; a lock serialises writers and steals stale locks.",
+        "risks": "contract: new claims_store.py module only, no agent API change; dependency: stdlib only; concurrency: O_CREAT|O_EXCL lock with 30s stale steal and bounded timeout; state: new local snapshot/.bak/.lock files, not committed.",
+        "mitigation": "Keep ClaimLedger as the data model; verify schema/checksum/claims on load; write temp+fsync+replace with 5 retries and a .bak; test roundtrip, backup fallback, tamper, schema, stale lock, fresh-lock timeout, deterministic checksum and no temp leftovers; rerun 282 tests and AIKit."
+      },
+      "plan_digest": "2407d42497355f2ef0702c01ab1345fbb19df6ec827a259a78b6772f961e7d50"
+    },
+    {
+      "task_id": "brain-cycle75-claim-store",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first claims_store ImportError; checksummed save/load/verify, atomic replace, .bak, lock, quarantine, tests/eval, README/ADR-069",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794082827.7176223,
+      "timestamp_str": "2026-11-07 23:20:27",
+      "agent": "opencode:cycle75"
+    },
+    {
+      "task_id": "brain-cycle75-claim-store",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: roundtrip 6/6; corrupt-primary backup 3/3 + quarantine; tamper checksum; missing; stale lock stolen; fresh lock timeout; no temp; 293 tests OK; aikit 5/5; behavior/policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794082828.290986,
+      "timestamp_str": "2026-11-07 23:20:28",
+      "agent": "opencode:cycle75"
+    },
+    {
+      "task_id": "brain-cycle75-claim-store",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit claim store, eval, tests, ADR-069, cycle 75",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794082828.715283,
+      "timestamp_str": "2026-11-07 23:20:28",
+      "agent": "opencode:cycle75"
+    },
+    {
+      "task_id": "brain-cycle75-claim-store",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle75-claim-store' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794082829.1284485,
+      "timestamp_str": "2026-11-07 23:20:29",
+      "agent": "opencode:cycle75"
     }
   ]
 }
