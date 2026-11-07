@@ -191,6 +191,9 @@ class Planner:
                 obs["obstacles"] = [list(c) for c in obstacles]
             if "cue" in state:
                 obs["cue"] = state.get("cue")
+            if visits:
+                obs["visits"] = [[int(px), int(py), int(visits[(px, py)])]
+                                 for (px, py) in sorted(visits)]
             try:
                 proposed = self.backend.generate(obs)
             except Exception:

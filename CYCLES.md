@@ -606,3 +606,73 @@ only integration scores, cross-module dependencies, and ablation differentials.
   16/8/13/6/9; fixed-rig syn 0.12455861 phi 0.0 n_records 32;
   hub0/m0 syn 0.0 p0/s0 bit-identical; obs-oracle T1-71 16 T2-3 8
   T3-15 13 T3-65 6; minimal-obs ablation 200/0.0 x4.
+
+## Cycle 15 — visit-complete model-seam observations and prompts
+
+- **Baseline** (same rig both runs, cycle-14 pins re-verified):
+  - canonical gate: 63 tests OK; aikit check 5/5 PASS.
+  - code behavior (backend None): T1-71 16/3.0; T2-3 8/1.0; T3-15
+    13/1.0; T3-65 6/1.0; T3-74 9/1.0; 30-seed totals 466/240/217;
+    T1-100 total 1581.
+  - trace internals (fixed rig T1 seed7): syn 0.12455861 syn_n
+    0.24891688 phi 0.0 n_records 32; hub0/m0 -> 0.0; p0/s0 identical.
+  - model-seam internals: obs carries goal (target/items/obstacles/
+    cue) but no visits; prompt carries Target/Items/Obstacles/Cue
+    but no Visits; visit-oracle (obs-limited + visits) truncates
+    T3-74 at 200/0.0 vs rule 9/1.0; other 4 oracle seeds optimal
+    (16/8/13/6).
+  - dead ends, one line each: mean_conf recalibration consumed by
+    nothing (churn); hub last_action wiring has no failing behavior
+    (dead); persistent recall into planner zero headroom on current
+    tasks (reserved); phi floor / P/S independence lifting would be
+    gaming (refused); live-model fine-tuning needs torch/TRL stack +
+    approval (blocked); T2 wait rule kept as contract semantics.
+- **Gap**: Planner computes visits from recent episode memory for
+  tie-breaks but omits it from backend obs, so obs-limited policies
+  cycle on tie-trap seeds.
+- **Target delta**: obs adds sorted visits; prompt renders Visits;
+  visit-oracle T3-74 200 -> 9 with other 4 unchanged; rule totals
+  and trace byte-identical.
+- **Falsifier**: any rule total moves, any trace number moves, or
+  T3-74 stays 200; emergence falsifier: visits-stripped ablation
+  must restore 200/0.0 on 74 only.
+- **Change** (agent.py obs build + models/llamacpp.py build_prompt
+  only; tests/test_obs_visits.py new): obs["visits"] = sorted
+  [[x, y, count]] when non-empty; prompt appends "Visits: [...]."
+  when present, prior prompts byte-identical. No new deps.
+- **After** (identical battery, same seeds):
+  - code behavior identical: 16/8/13/6/9; totals 466/240/217;
+    T1-100 1581; all complete with reward.
+  - trace identical: syn 0.12455861 syn_n 0.24891688 phi 0.0
+    n_records 32; lesions unchanged.
+  - model-seam fixed: obs carries visits {(5,0):2, (4,0):1} on probe
+    rig; prompt contains "Visits" and "[5, 0]".
+  - visit-oracle: T3-74 200 -> 9, T3-15 13, T3-65 6, T1-71 16,
+    T2-3 8, all done with full reward; 3x repeat on 74 byte-identical
+    (variance 0).
+- **Ablation** (visits-stripped MinimalStrip, same geometry):
+  - intact: 9/13/6/16/8 with full reward.
+  - stripped: T3-74 200/0.0, other 4 unchanged (13/6/16/8).
+  - Gain dies with the cut on the tie-trap only, returns with the
+    restore: visits channel load-bearing where lookahead alone
+    cycles. Rule None control unchanged.
+- **Verdict**: seam win with proven visits-integration coupling; no
+  emergent claim. Live-model steering still reserved. Verdict UNKNOWN.
+- **Gates**: unittest 66/66 OK (63 carried + 3 new); aikit check 5/5
+  PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_obs_visits -v` -> 3 FAIL before,
+    3 OK after.
+  - `python -m unittest tests.test_obs_coverage -v` -> 3 OK after.
+  - `python -m unittest tests.test_llamacpp -v` -> 3 OK after.
+  - `python -m unittest discover -s tests -t .` -> 63 OK before,
+    66 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - rule 5-seed + 30-seed + T1-100 probes before/after (identical).
+  - fixed-rig recompute before/after (identical).
+  - visit-oracle 5-seed + 3x repeat + visits-stripped ablation.
+- **Pinned regression baselines for cycle 16**: unittest 66 OK; aikit
+  5/5; rule totals 466/240/217; T1-100 1581; trap 16/8/13/6/9;
+  fixed-rig syn 0.12455861 phi 0.0 n_records 32; hub0/m0 0.0 p0/s0
+  identical; visit-oracle 16/8/13/6/9; visits-stripped ablation
+  200/0.0 on 74 only.

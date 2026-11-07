@@ -100,3 +100,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Planner.plan built backend obs with only task/x/y/steps/legal and build_prompt rendered only those, so distinct goal states collided to identical obs/prompt and any obs-limited backend had zero steering signal.
 - **Decision**: Planner includes target, items_positions, obstacles, and cue copies in obs when present in state; build_prompt appends deterministic Target/Items/Obstacles/Cue lines when those keys are present, leaving minimal-obs prompts byte-identical. No new deps; backend None rule path unchanged.
 - **Consequences**: 63 tests OK; aikit check 5/5; rule totals byte-identical (T1 466 / T2 240 / T3 217, trap seeds 16/8/13/6/9); fixed-rig syn 0.1246 phi 0.0 and hub0/m0 kill with p0/s0 no-op unchanged; obs-oracle on 4 steerable seeds 200/0.0 truncated -> 16/8/13/6 optimal with variance 0; minimal-obs ablation restores truncation.
+
+### ADR-015: Visit-complete model-seam observations and prompts
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: After ADR-014 the obs carried goals but not the least-visited tie-break memory, so obs-limited policies still cycled on tie-trap seeds (T3 seed 74: rule 9 vs obs-only 200).
+- **Decision**: Planner includes sorted visits [[x, y, count]] in obs when non-empty; build_prompt appends a deterministic Visits line when the key is present, leaving all prior prompts byte-identical. No new deps; backend None rule path unchanged.
+- **Consequences**: 66 tests OK; aikit check 5/5; rule totals byte-identical (466/240/217); fixed-rig syn 0.1246 phi 0.0 unchanged; visit-oracle 5/5 optimal (74: 200 -> 9, others unchanged, variance 0); visits-stripped ablation restores 200/0.0 on seed 74 only.

@@ -37,6 +37,8 @@ def build_prompt(observation):
         extras.append("Obstacles: %s." % ([[int(v) for v in c] for c in observation.get("obstacles")],))
     if "cue" in observation and observation.get("cue") is not None:
         extras.append("Cue: %s." % (observation.get("cue"),))
+    if observation.get("visits") is not None:
+        extras.append("Visits: %s." % ([[int(v) for v in e] for e in observation.get("visits")],))
     if extras:
         return base + " " + " ".join(extras)
     return base
