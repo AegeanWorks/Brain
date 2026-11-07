@@ -2318,3 +2318,71 @@ only integration scores, cross-module dependencies, and ablation differentials.
   5/5; pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532
   phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; manifest + repro
   variance 0.
+
+## Cycle 44 — full audit, zero verified safe improvements (STOP)
+- **Baseline** (cycle-43 pins re-verified, same rig/seeds):
+  - canonical: 124 OK; aikit 5/5 PASS.
+  - code behavior: standing 466/240/217; T1-100 1581; T1 100-199
+    1646; T3 ranges 732/718/671/675; holdout 1581/800/738;
+    exhaustive T3 3906/3906 total 27860; T1 exhaustive 39711/39711
+    carried; multi 9/18/11/13/14 with 1.0; three-blocker
+    15/12/10/13/200 with rewards; goldens 9/9 + multi 5/5 + three
+    5/5 paths.
+  - trace internals: fixed-rig syn 0.05411532 syn_n 0.10814360
+    phi 0.0 n32; hub0/m0 0.0; p0/s0 identical; errors zero.
+  - model-seam internals: digest ffa19359... (viability leaf,
+    corridor True, visits True, recall full-history, pooling visits,
+    pool_corridor >=2); manifest True; visit-oracle 5/5; hidden
+    13/16; persistent-hidden 13/6; hidden-T1 16/12/18; headers cite
+    current digest with chain verify ok.
+  - substrate re-read: planner/_step_toward pooling conditional
+    (>=2 corridor-weighted, 1 visits-only, 0 viable-first);
+    memory/store persistent recall never read by planner; hub
+    last_action written-not-read (except collected_positions);
+    planner_tracker/self_model unit-only; telemetry bins strict.
+  - audit scans (new): 3-blocker family 5/5 pinned; blind matrices
+    multi 4/4 + three 3/3 killing pinned; 19 golden paths exact.
+  - dead ends, one line each: multi detours +6/+2/+2/+2 and
+    3-blocker +2/+2/+2/+2 fixable only by breaking T1-100 goldens
+    and seed-74 blind (proven cycles 35/37: naive pool 5 FAIL);
+    3-blocker truncation (6,5) 200/0.0 reserved (same proof);
+    axis-order swap breaks 19 goldens + 39711/3906 (no surviving
+    eval); depth revival untested on multi, risks 3906 single proof;
+    mean_conf consumed by nothing (churn); hub last_action dead
+    (except collected); persistent store zero headroom on current
+    tasks (reserved); tracker/self_model unit-only; T2 wait
+    unreachable (min distance 7 > 2); energy never binds (200/200
+    caps together); phi/P/S gameable if read (refused); live
+    fine-tuning blocked (torch/TRL + approval); new task family in
+    an audit cycle is scope expansion, not a gap fix; codebase map
+    warning is bookkeeping (gate still 5/5).
+- **Gap**: none qualifies. Routing optimal everywhere except
+  reserved detours/truncation whose fixes break carried pins;
+  every remaining candidate is dead, refused, blocked, or reserved
+  (see dead ends). No depth chase (pool already balanced);
+  no metric edits (gaming); no new family in an audit cycle.
+- **Target delta**: none. Falsifier is moot: any change would need a
+  failing eval first, and none exists that survives the quadruple
+  without regressing 19 goldens, 39711/3906, or blind coupling.
+- **Change**: none. No code, no harness, no ADR (audit result, not
+  a design decision).
+- **After**: identical battery re-verified — 124 OK, 5/5, 30-seed
+  466/240/217, fixed-rig syn 0.05411532 phi 0.0 n32, multi and
+  three-blocker pins identical. No deltas, variance not applicable.
+- **Ablation**: none (no integration claim).
+- **Verdict**: full cycle with zero verified safe improvements.
+  Stopping per goal rule (allowed stop: told to stop, zero-findings
+  cycle, or unfixable gate failure). Verdict STOP.
+- **Gates**: unittest 124/124 OK (re-verified, no changes); aikit 5/5
+  PASS (re-verified, no changes).
+- **Commands run**:
+  - `python -m unittest discover -s tests -t .` -> 124 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - standing 30-seed + T1-100 + fixed-rig + multi/three pins
+    re-verified identical.
+- **Pinned regression baselines carried (no new pins)**: unittest 124
+  OK; aikit 5/5; standing 466/240/217; multi 9/18/11/13/14; multi
+  goldens 5/5; three-blocker 15/12/10/13/200 + 5/5 paths; blind
+  kills 4/4 + 3/3; seed-74 9/200; 0-99 1581/800/683; exhaustive
+  27860; headers ffa19359...; fixed-rig syn 0.05411532 phi 0.0 n32;
+  hub0/m0 0.0 p0/s0 identical.
