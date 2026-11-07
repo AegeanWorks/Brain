@@ -1234,3 +1234,51 @@ only integration scores, cross-module dependencies, and ablation differentials.
   exhaustive T3 3906/3906 total 27860; pins 16/8/13/6/9 + 7/14 +
   6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest + repro determinism variance 0.
+
+## Cycle 26 — executable negative controls (idea transfer)
+- **Source**: research-engine kill-test discipline (EVID-008/009: a test
+  must be able to fail; verified tests need controls; a control that
+  never fails errors). Fifth transfer after ModelDuck manifests,
+  Crucible holdout, ModelDuck repro, Lattice exhaustive coverage.
+- **Gap**: trap/range/holdout tests pin intact optimality, but the
+  failing side lived only in one-off manual cut runs; a future change
+  could neuter a probe silently with all tests still green.
+- **Target delta**: permanent in-tree negative control with pinned
+  failing signatures (479 12 vs 10; holdout-500s T3 742 vs 738) plus
+  engagement proof; extract-method refactor only, no behavior change.
+- **Falsifier**: standing totals move, trace numbers move, or the
+  patched control unexpectedly optimal (corridor no longer
+  load-bearing).
+- **Change** (agent.py extract _enters_blocked_corridor to module
+  level; tests/test_negative_control.py new; ADR-025): mock.patch to
+  False reproduces visits-only ordering (pre-cycle-20 semantics,
+  depth kept 4) from production code — zero duplication. No behavior
+  change; no new deps.
+- **Baseline** (cycle-25 pins re-verified): 89 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32.
+- **After**:
+  - code identical: 30-seed 466/240/217; all 89 carried tests pass
+    (refactor verified by corridor/holdout/trap/exhaustive suites).
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - control pinned: 91/91 with patched cut 479=12 + holdout T3=742
+    vs intact 10/738; call_count>0 engagement proven.
+- **Ablation**: the control test IS the standing ablation — patched
+  cut fails optimality with pinned signatures (12, 742); unpatched
+  full suite green. Routing-cut N/A by design for repro (variance
+  gate); value pins live in trap/range/holdout tests.
+- **Verdict**: harness win (failing side now gated, not ritual);
+  no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 91/91 OK (89 carried + 2 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_negative_control -v` -> 2 OK.
+  - `python -m unittest discover -s tests -t .` -> 89 OK before,
+    91 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical.
+- **Pinned regression baselines for cycle 27**: unittest 91 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; T3 400-499 675; holdout 500-599 1581/800/738;
+  exhaustive T3 3906/3906 total 27860; corridor-cut control 12/742;
+  pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0
+  n32; hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
+  variance 0.

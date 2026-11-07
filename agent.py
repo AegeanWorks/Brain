@@ -73,6 +73,30 @@ def _first_of_best_tour(pos, cells):
     return [first[0], first[1]]
 
 
+def _enters_blocked_corridor(nxt, goal, obstacles):
+    """True when stepping onto the goal's column/row while an obstacle
+    still lies between that cell and the goal: entering now forces a
+    later exit and re-entry (+2). Past-the-block entries (nothing
+    between) return False and stay preferred. Pure function of its
+    inputs; extracted to module level so tests can disable it as an
+    executable negative control (research-engine EVID-008/009)."""
+    try:
+        gx, gy = int(goal[0]), int(goal[1])
+        nx, ny = int(nxt[0]), int(nxt[1])
+    except (TypeError, ValueError, IndexError):
+        return False
+    for ob in (obstacles or []):
+        try:
+            ox, oy = int(ob[0]), int(ob[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if nx == gx and ox == gx and min(ny, gy) < oy < max(ny, gy):
+            return True
+        if ny == gy and oy == gy and min(nx, gx) < ox < max(nx, gx):
+            return True
+    return False
+
+
 def _step_toward(pos, goal, obstacles, visits=None):
     dx = goal[0] - pos[0]
     dy = goal[1] - pos[1]
@@ -124,25 +148,7 @@ def _step_toward(pos, goal, obstacles, visits=None):
     dead = [pair for pair in free_ordered if not _has_exit(pair[1])]
 
     def _enters_blocked(nxt):
-        # True when stepping onto the goal's column/row while an obstacle
-        # still lies between that cell and the goal: entering now forces a
-        # later exit and re-entry (+2). Past-the-block entries (nothing
-        # between) return False and stay preferred.
-        try:
-            gx, gy = int(goal[0]), int(goal[1])
-            nx, ny = int(nxt[0]), int(nxt[1])
-        except (TypeError, ValueError, IndexError):
-            return False
-        for ob in (obstacles or []):
-            try:
-                ox, oy = int(ob[0]), int(ob[1])
-            except (TypeError, ValueError, IndexError):
-                continue
-            if nx == gx and ox == gx and min(ny, gy) < oy < max(ny, gy):
-                return True
-            if ny == gy and oy == gy and min(nx, gx) < ox < max(nx, gx):
-                return True
-        return False
+        return _enters_blocked_corridor(nxt, goal, obstacles)
 
     for group in (viable, dead):
         group.sort(key=lambda pair: (_enters_blocked(pair[1]),
