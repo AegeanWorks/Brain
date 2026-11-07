@@ -128,3 +128,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Depth-2 viability entered blocked columns early on T3 seeds 202/272 (target behind a column obstacle), costing +2 detours each; 200-299 scan found exactly these 2 traps.
 - **Decision**: Generalize _has_exit depth 2 -> 3 (one constant; branching still <= 2; deterministic). No new deps; visits ordering unchanged.
 - **Consequences**: 74 tests OK; aikit check 5/5; T3 202 9 -> 7 and 272 16 -> 14 (both optimal); T3 200-299 total 722 -> 718 with all other 98 seeds byte-identical; 0-29 totals 466/240/217, 0-99 totals 1581/800/683, and 100-199 fully optimal unchanged; fixed-rig syn 0.0541 phi 0.0 unchanged; depth-3 lookahead alone suffices on these traps (blind == intact, like seeds 15/65); visit-memory coupling still carried by seed-74 blind truncation.
+
+### ADR-019: Four-step exit lookahead for adjacent column blocks
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Depth-3 still entered the column early on T3 seed 307 (target [1,5] directly behind obstacle [1,4]); the free cell (1,3) masked the trap within 3 ply. A 300-399 scan found exactly this 1 trap.
+- **Decision**: Generalize _has_exit depth 3 -> 4 (one constant; branching still <= 2; deterministic). No new deps; visits ordering unchanged.
+- **Consequences**: 77 tests OK; aikit check 5/5; T3 307 8 -> 6 (optimal); T3 300-399 total 673 -> 671 with all other 99 seeds byte-identical; 400/400 T3 seeds optimal across 0-399; all prior totals unchanged; fixed-rig syn 0.0541 phi 0.0 unchanged; depth-4 lookahead alone suffices here (blind == intact); visit-memory coupling still carried by seed-74 blind truncation.

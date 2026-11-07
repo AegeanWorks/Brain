@@ -853,3 +853,59 @@ only integration scores, cross-module dependencies, and ablation differentials.
   5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 total
   718; trap 16/8/13/6/9 plus column 7/14; fixed-rig syn 0.05411532
   phi 0.0 n32; hub0/m0 0.0 p0/s0 identical.
+
+## Cycle 19 — four-step exit lookahead for adjacent column blocks
+- **Baseline** (cycle-18 pins re-verified):
+  - canonical: 74 OK; aikit 5/5.
+  - code: T1-71 16, T2-3 8, T3-15 13, T3-65 6, T3-74 9, T3-202 7,
+    T3-272 14; 30-seed 466/240/217.
+  - trace: fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0 n32;
+    hub0/m0 0.0; p0/s0 identical.
+  - seam: visit-oracle 5/5; hidden-transient 13/16;
+    persistent-hidden 13/6.
+  - headroom scan (new, seeds 300-399): T1 0 non-optimal; T2 0;
+    T3 1 trap: 307 8 vs 6 (target [1,5] behind obstacle [1,4]);
+    current T3 300-399 total 673.
+  - dead ends: T1/T2 300-399 clean; mean_conf churn; hub no
+    behavior; persistent store reserved; phi/P/S refused; live
+    fine-tuning blocked; T2 wait kept; energy never binds; T1 items
+    persistent-hidden stale-list reserved.
+- **Gap**: depth-3 labels free cell (1,3) viable without seeing its
+  only exit (1,4) is blocked.
+- **Target delta**: depth 4; 307 8->6, 300-399 total 673->671, all
+  else identical.
+- **Falsifier**: 307 stays 8, or any 0-399 seed moves.
+- **Change** (agent.py one constant; tests/test_adjacent_block.py
+  new): _has_exit depth 3->4. No new deps.
+- **After**:
+  - code: 307 8->6/1.0; 30-seed 466/240/217; 0-99 1581/800/683;
+    T3 100-199 optimal; T3 200-299 718; T3 300-399 673->671 with
+    other 99 identical; 400/400 T3 0-399 optimal; 3x repeats
+    variance 0.
+  - trace: fixed-rig syn 0.05411532 phi 0.0 n32 unchanged; trap
+    trace 8->6 (S -2, M -2).
+  - seam carried: all oracles unchanged; depth-4 alone suffices
+    here (blind==intact); visits coupling pinned by 74 blind 200.
+- **Ablation** (depth revert 4->3 restores 8/673; seed-74 blind 200
+  carried):
+  - intact depth-4: 6 optimal.
+  - depth-3 cut: 8 detour (pre-change baseline).
+  - adjacent blind: 6 (lookahead suffices honestly recorded).
+- **Verdict**: efficiency win (-2 steps, 400/400 optimal 0-399); no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 77/77 OK (74 carried + 3 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_adjacent_block -v` -> 3 FAIL
+    (8 vs 6, 673 vs 671) before, 3 OK after (ablation corrected
+    with note).
+  - `python -m unittest discover -s tests -t .` -> 74 OK before,
+    77 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - 0-29 + 0-99 + 100-199 + 200-299 + 300-399 probes; optimality
+    scans 0/100/200/300 all 0 non-optimal after.
+  - fixed-rig recompute identical; 3x repeats + revert + blind.
+- **Pinned regression baselines for cycle 20**: unittest 77 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; trap 16/8/13/6/9 + column 7/14 + adjacent 6;
+  fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical.
