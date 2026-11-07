@@ -1619,3 +1619,73 @@ only integration scores, cross-module dependencies, and ablation differentials.
   +model; golden 9/9 paths; pins 16/8/13/6/9 + 7/14 + 6/10;
   fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest + repro determinism variance 0.
+
+## Cycle 33 — accurate policy citation after depth collapse
+- **Baseline** (cycle-32 pins re-verified, same rig/seeds):
+  - canonical: 105 OK; aikit 5/5 PASS.
+  - code behavior: T1-71 16, T2-3 8, T3-15 13, T3-65 6, T3-74 9,
+    T3-202 7, T3-272 14, T3-307 6, T3-479 10; 30-seed 466/240/217.
+  - trace internals: fixed-rig (T1 seed7) syn 0.05411532 syn_n
+    0.10814360 phi 0.0 n_records 32; hub0/m0 syn 0.0;
+    p0/s0 bit-identical.
+  - model-seam internals: PLANNER_POLICY cites lookahead_depth 4
+    (dead since cycle 32 leaf collapse); policy_digest
+    99d014313656292a6c3cee8f6acf199999e78f14b4856fff2de4b3dce1c95d3b;
+    manifest determinism True; visit-oracle 5/5; repro variance 0;
+    headers cite stale digest with chain verify ok.
+  - probe gap: tests/test_policy_accuracy.py absent (import error);
+    new 3-test accuracy probe FAILs 3/3 on intact tree (depth knob
+    present, viability missing, legacy digest equals current).
+- **Gap**: _has_exit is a leaf check, but the declared policy still
+  advertises a depth-4 tuner — evidence misbinding with zero
+  behavior effect.
+- **Target delta**: declare viability leaf, drop dead knob; digest
+  changes; behavior and trace byte-identical; accuracy 3/3 green.
+- **Falsifier**: standing totals move, trace numbers move, or
+  accuracy still red after the change.
+- **Change** (agent.py PLANNER_POLICY only: lookahead_depth 4 ->
+  viability leaf; tests/test_policy_accuracy.py new 3 tests;
+  tests/test_policy_binding.py sensitivity mutates viability):
+  no planner logic touched; no new deps. ADR-032.
+- **After** (identical battery, same seeds):
+  - code identical: 30-seed 466/240/217; all 105 carried tests pass.
+  - trace identical: syn 0.05411532 syn_n 0.10814360 phi 0.0 n32;
+    lesions unchanged.
+  - seam versioned: policy_digest
+    18edf1ca2b1e371a79701e1b89a76591cf35d0987f5884b352a1e9715a8393d5
+    (!= legacy 99d01431...); header cites grid-rule/planner +
+    new digest + rule with chain verify ok; accuracy 3/3 green;
+    viability-variant digest differs (sensitivity).
+- **Ablation** (legacy depth-4 policy, no source revert needed —
+  pre-change measurement is the cut):
+  - intact leaf policy: digest 18edf1ca..., accuracy 3/3 OK.
+  - legacy depth-4 cut: digest 99d01431..., accuracy 0/3 (all FAIL
+    on missing viability / dead knob / digest equality).
+  - Provenance dies with the cut, returns with the restore; routing
+    and trace identical under both (declared-only change, honestly
+    recorded — value pins live in trap/range/exhaustive suites).
+- **Verdict**: provenance win (declared config now matches shipped
+  code); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 108/108 OK (105 carried + 3 new); aikit 5/5
+  PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_policy_accuracy -v` -> 3 FAIL
+    before, 3 OK after.
+  - `python -m unittest tests.test_policy_binding -v` -> 4 OK after
+    (sensitivity re-pinned to viability).
+  - `python -m unittest discover -s tests -t .` -> 105 OK before,
+    108 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig recompute identical; header +
+    chain-verify probe identical except digest rotation.
+- **Pinned regression baselines for cycle 34**: unittest 108 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T1 100-199 1646;
+  T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499 675;
+  holdout 500-599 1581/800/738; exhaustive T3 3906/3906 total
+  27860; corridor-cut control 12/744 (leaf background); random
+  floor best 1271/5.0 vs rule 89/11.0 (margins x10/+5); chain
+  intact ok + 5 named tamper findings; headers cite
+  grid-rule/planner + 18edf1ca... + model; golden 9/9 paths; pins
+  16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
+  hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
+  variance 0.

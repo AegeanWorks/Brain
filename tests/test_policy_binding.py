@@ -39,7 +39,7 @@ class TestPolicyBinding(unittest.TestCase):
         self.assertEqual(policy_digest(), policy_digest())
         self.assertEqual(len(policy_digest()), 64)
         altered = dict(PLANNER_POLICY)
-        altered["lookahead_depth"] = 3
+        altered["viability"] = "depth-4"
         self.assertNotEqual(policy_digest(altered), policy_digest())
 
     def test_stub_backend_label(self):

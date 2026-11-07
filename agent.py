@@ -25,7 +25,7 @@ _LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
 
 PLANNER_POLICY = {
     "name": "grid-rule/planner",
-    "lookahead_depth": 4,
+    "viability": "leaf",
     "corridor_avoidance": True,
     "visits_tiebreak": True,
     "recall": "full-history+goal",

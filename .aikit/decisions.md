@@ -219,3 +219,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Prompted by lacon RLM's explicit depth caps: questioned whether Brain's depth-4 chain still carries weight now that corridor avoidance (cycle 20) decides entries distance-independently.
 - **Decision**: Replace recursive _has_exit(cell, depth) with the leaf check (free distance-reducing exit or goal); delete the depth parameter. Proven byte-identical action sequences on all 3906 T3 configs at depths 1, 2 and 4, plus T1 39711/39711 optimal and T2 structural.
 - **Consequences**: 105 tests OK; aikit check 5/5; standing behavior (466/240/217, all pins incl. 9 goldens) and trace (syn 0.0541 phi 0.0) byte-identical; -3 lines, dead tuning knob removed. Corridor-cut control re-pinned 742 -> 744 (without corridor, depth had fixed 2 more steps of traps) with the background change documented in the test. Revival condition honestly recorded: multi-obstacle layouts or larger grids, where leaf viability may no longer suffice.
+
+### ADR-032: Accurate policy citation after depth collapse
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Cycle 32 collapsed _has_exit to a leaf check but left PLANNER_POLICY advertising lookahead_depth 4, so run headers cited a tuner the code no longer reads.
+- **Decision**: Replace the dead lookahead_depth key with viability leaf in PLANNER_POLICY; re-pin the digest-sensitivity probe to the new key; add tests/test_policy_accuracy.py (no dead knob, leaf declared, digest differs from legacy depth-4). No planner logic touched; no new deps.
+- **Consequences**: 108 tests OK; aikit check 5/5; standing behavior (466/240/217) and trace (syn 0.0541 phi 0.0) byte-identical; policy_digest 99d01431... -> 18edf1ca...; headers cite the shipped configuration with chain verify ok; legacy depth-4 citation fails the new accuracy gate by construction.
