@@ -2075,3 +2075,72 @@ only integration scores, cross-module dependencies, and ablation differentials.
   4245d56e...; golden 9/9 + multi 5/5; pins 16/8/13/6/9 + 7/14 +
   6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest + repro variance 0.
+
+## Cycle 40 — declare the pool-corridor gate in run headers
+- **Baseline** (cycle-39 pins re-verified, same rig/seeds):
+  - canonical: 118 OK; aikit 5/5 PASS.
+  - code behavior: standing 466/240/217; multi 9/18/11/13/14 with
+    1.0; blind 9/200/200/200/200; exhaustive 27860.
+  - trace internals: fixed-rig syn 0.05411532 syn_n 0.10814360
+    phi 0.0 n32; hub0/m0 0.0; p0/s0 identical; errors zero.
+  - model-seam internals: PLANNER_POLICY without pool_corridor
+    (pre-gate citation); digest 4245d56ed814756b3691aa8cb156c483e84eb7b62a57d8dcc2684c4060de9729;
+    manifest True; headers cite stale config.
+  - probe gap: tests/test_pool_corridor_policy.py absent; new 3-test
+    probe FAILs 2/3 on intact tree (gate key missing, legacy digest
+    equals current).
+  - audit dead ends (one line): mean_conf churn still consumed by
+    nothing; hub last_action still written-not-read; persistent store
+    recall still zero headroom on current tasks; tracker/self_model
+    still unit-only; T2 wait still unreachable; energy still never
+    binds; phi/P/S still gameable if read; 3-blocker (6,5) 200/0.0
+    truncation documented for the routing track (no safe fix this
+    cycle without breaking seed-74/T1 pins).
+- **Gap**: cycle 37 gated corridor weighting in the pool on >=2
+  blockers but left the declared policy on pooling-visits only —
+  evidence misbinding with zero behavior effect on standing tasks.
+- **Target delta**: declare pool_corridor >=2; digest rotates;
+  behavior and trace byte-identical; gate accuracy 3/3 green.
+- **Falsifier**: standing totals move, trace numbers move, multi
+  numbers move, or accuracy still red after the change.
+- **Change** (agent.py PLANNER_POLICY only: add pool_corridor >=2;
+  tests/test_pool_corridor_policy.py new 3 tests): no planner logic
+  touched; no new deps. ADR-039.
+- **After** (identical battery, same seeds):
+  - code identical: 30-seed 466/240/217; multi 9/18/11/13/14; all
+    118 carried tests pass.
+  - trace identical: syn 0.05411532 syn_n 0.10814360 phi 0.0 n32;
+    lesions unchanged; errors zero.
+  - seam versioned: policy_digest
+    ffa19359a91b91d5dd5ccaba781fd73a6049e13037679b0a5af2c84f6ac22a49
+    (!= legacy 4245d56e...); header cites grid-rule/planner +
+    new digest + rule with chain verify ok; never-variant differs.
+- **Ablation** (pre-gate legacy policy without the key, no source
+  revert needed — pre-change measurement is the cut):
+  - intact gated policy: digest ffa19359..., accuracy 3/3 OK.
+  - legacy pre-gate cut: digest 4245d56e..., accuracy 0/3 on the
+    declaration/digest-equality assertions.
+  - Provenance dies with the cut, returns with the restore; routing
+    and trace identical under both (declared-only).
+- **Verdict**: provenance win (declared config now matches shipped
+  >=2 gate); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 121/121 OK (118 carried + 3 new); aikit 5/5
+  PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_pool_corridor_policy -v` -> 2 FAIL
+    before, 3 OK after.
+  - `python -m unittest discover -s tests -t .` -> 118 OK before,
+    121 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig recompute identical; multi carried;
+    header + chain-verify with digest rotation.
+- **Pinned regression baselines for cycle 41**: unittest 121 OK; aikit
+  5/5; standing 466/240/217; multi 9/18/11/13/14 with 1.0; multi
+  goldens 5/5 paths; blind 9/200/200/200/200; seed-74 9 intact / 200
+  blind; 0-99 1581/800/683; T1 100-199 1646; T3 100-199 732;
+  T3 200-299 718; T3 300-399 671; T3 400-499 675; holdout
+  1581/800/738; exhaustive 3906/3906 27860; corridor-cut 12/744;
+  random floor 1271/5.0 vs 89/11.0; chain ok + 5 findings; headers
+  grid-rule/planner + ffa19359...; golden 9/9 + multi 5/5; pins
+  16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
+  hub0/m0 0.0 p0/s0 identical; manifest + repro variance 0.
