@@ -2447,3 +2447,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0, warm store_reads 0.
 - **Pinned regression baselines for cycle 47**: unittest 132 OK; aikit 5/5; cold-first 200/200/200/200 then 16/8/13/6 with 3/1/1/1; cold-first layout absent after cold1 and complete after warm; warm-cold 16/8/13/6; ablation 200/0; probe store_reads 1 cold / 0 warm; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy f53f99a8...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 47 - bounded trust for legal backend proposals
+
+- **Baseline** (commit b1de6ca, cycle 46; same WaitingBackend, seeds, prompts and probes):
+  - canonical gate: 132 tests OK; aikit check 5/5; policy f53f99a8...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - stalled backend (`wait` every step): success 0/4; steps 200/200/200/200; reward 0; fallbacks 0; model calls 200; no `model_decision` probe; prompt hashes 6e19bc1d / 78c208fb / 816fa226 / ae3c4f52; gain 0; recovery 0; action hash 4b2b1802... for all four.
+- **Gap**: the planner returns any legal backend proposal forever, so a stalled but legal policy cannot be corrected. The hub's outcome fields are written but not load-bearing.
+- **Target delta**: success 0/4 -> 4/4; steps 200/200/200/200 -> <=40 each; rewards 0 -> 3/1/1/1; trace gains proposed/rule/steps_since_reward/distrusted/accepted and nonzero fallbacks; prompts stay byte-identical; ablation (`trust_window=None`) restores the stall.
+- **Falsifier**: any pin case remains at 200/0; the gate changes rule-only or good-backend actions; the prompts differ; or the ablation does not restore the stall.
+- **Change**: agent.py extracts the rule action before the backend decision, reads `steps_since_reward` from the hub, trusts legal proposals until the 20-step stall window, then keeps the backend match-only for the episode (`reset_trust` per episode); telemetry probe `model_decision`; PLANNER_POLICY `backend_trust: stall>=20->match-only`; README trust contract; evals/trust.py battery; tests for stall, ablation, good-backend, policy and validation; random-floor control disables the gate to keep measuring raw randomness.
+- **After** (same backend, seeds, prompts and probe code):
+  - success 4/4; steps 36/28/33/26; rewards 3/1/1/1; gain .82/.86/.835/.87; recovery 1.0 x4.
+  - trace: fallbacks 16/8/13/6; rejected_steps 16/8/13/6; model calls 36/28/33/26; last decision shows `distrusted: true`, `accepted: false`, `proposed: wait`, rule action at that step; prompt hashes unchanged (6e19bc1d / 78c208fb / 816fa226 / ae3c4f52).
+  - action hashes 90a61333 / 1736021f / 33d9f09c / 55e279bf (the first 20 waits differ from the rule-only paths by construction).
+  - intermediate prototype (trust reset on every reward) measured T1 76 steps; changed to episode-scoped match-only before pinning the final numbers.
+  - rule-only standing behavior and trace unchanged: 466/240/217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; good-backend replay still 0 fallbacks.
+- **Ablation** (`trust_window=None`, same backend/prompts/seeds):
+  - success 0/4; steps 200/200/200/200; rewards 0; fallbacks 0; model calls 200; decision accepted=true, distrusted=false; gain 0; recovery 0; prompt hashes identical; action hash 4b2b1802... equals baseline. Property and trace die with the cut.
+- **Verdict**: integration confirmed for backend stall safety. The model receives byte-identical prompts; only the planner's acceptance decision and its trace change, and the rule-only path is untouched.
+- **Gates**: unittest 137/137 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_backend -v` -> 8 OK.
+  - `python -m evals.trust` -> 4/4 recovered; `--ablate` -> 200/0 x4.
+  - `python -m unittest discover -s tests -t .` -> 137 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0, warm store_reads 0.
+- **Pinned regression baselines for cycle 48**: unittest 137 OK; aikit 5/5; trust after 36/28/33/26 with 3/1/1/1 and fallbacks 16/8/13/6; trust ablate 200/0 x4; prompt hashes 6e19bc1d/78c208fb/816fa226/ae3c4f52 unchanged; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy e400adcd...; goldens 9/9 + multi 5/5 + three 5/5.

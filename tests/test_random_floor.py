@@ -45,7 +45,9 @@ class RandomBackend(ModelBackend):
 
 
 def _run(task, seed, backend):
-    return Agent(planner=Planner(backend=backend)).run_task(task, seed)
+    # Raw floor: disable the stall-trust gate so this control measures
+    # the backend alone, not the planner's safety fallback.
+    return Agent(planner=Planner(backend=backend, trust_window=None)).run_task(task, seed)
 
 
 class TestRandomFloor(unittest.TestCase):

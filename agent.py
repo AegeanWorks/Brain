@@ -38,6 +38,7 @@ PLANNER_POLICY = {
     "visits_tiebreak": True,
     "recall": "full-history+goal",
     "recovery_recall": "persistent-layout",
+    "backend_trust": "stall>=20->match-only",
     "detour_pooling": "visits",
     "pool_corridor": ">=2",
 }
@@ -257,12 +258,26 @@ class Planner:
 
     An optional ModelBackend proposes the action first; any missing,
     invalid, or raising proposal falls back to the rule policy and is
-    counted in fallbacks. With backend None the rule path is exact.
+    counted in fallbacks. A legal proposal is trusted until the hub
+    reports ``steps_since_reward >= trust_window``; after that stall a
+    proposal not matching the rule action is rejected and the backend
+    stays match-only for the rest of the episode. With backend None the
+    rule path is exact. ``trust_window=None`` disables the gate so raw
+    backend controls can be measured.
     """
 
-    def __init__(self, backend=None):
+    def __init__(self, backend=None, trust_window=20):
+        if trust_window is not None:
+            if (isinstance(trust_window, bool)
+                    or not isinstance(trust_window, int)
+                    or trust_window < 1):
+                raise ValueError(
+                    "Why: trust_window must be a positive int or None. "
+                    "Fix: pass trust_window=20 or None.")
         self._get_hub = None
         self.backend = backend
+        self.trust_window = trust_window
+        self._backend_distrusted = False
         self.fallbacks = 0
         self._recall_source = None
         self._persistent_loaded = False
@@ -288,6 +303,10 @@ class Planner:
         self._persistent_loaded = False
         self._persistent_cache = None
         self._store_reads = 0
+
+    def reset_trust(self):
+        """Restore full trust in the backend at the start of an episode."""
+        self._backend_distrusted = False
 
     def read_hub(self):
         if self._get_hub is None:
@@ -405,29 +424,56 @@ class Planner:
                 obs["visits"] = [[int(px), int(py), int(visits[(px, py)])]
                                  for (px, py) in sorted(visits)]
             probe["model_obs_keys"] = sorted(obs)
+
+        def _rule_action():
+            if remaining:
+                if pos in [list(c) for c in remaining]:
+                    return "collect"
+                goal = _first_of_best_tour(pos, [list(c) for c in remaining])
+                return _toward(goal)
+            target = recalled_target
+            if target is not None:
+                target = list(target)
+                if pos == target:
+                    if state.get("task") == "T2_delayed_match" and steps < 2:
+                        return "wait"
+                    return "collect"
+                return _toward(target)
+            return "wait"
+
+        rule_action = _rule_action()
+        if self.backend is not None:
+            since = 0
+            if self.trust_window is not None:
+                try:
+                    since = int(self.read_hub().get("steps_since_reward", 0))
+                except Exception:
+                    since = 0
             try:
                 proposed = self.backend.generate(obs)
             except Exception:
                 proposed = None
+            accepted = False
             if isinstance(proposed, str) and proposed in _LEGAL_ACTIONS:
+                if self.trust_window is None or proposed == rule_action:
+                    accepted = True
+                elif not self._backend_distrusted and since < self.trust_window:
+                    accepted = True
+                elif since >= self.trust_window:
+                    self._backend_distrusted = True
+            probe["model_decision"] = {
+                "proposed": proposed,
+                "rule": rule_action,
+                "steps_since_reward": since,
+                "trust_window": self.trust_window,
+                "distrusted": self._backend_distrusted,
+                "accepted": accepted,
+            }
+            self.last_probe = probe
+            if accepted:
                 return proposed
             self.fallbacks += 1
-        if remaining:
-            if pos in [list(c) for c in remaining]:
-                return "collect"
-            goal = _first_of_best_tour(pos, [list(c) for c in remaining])
-            return _toward(goal)
-
-        target = recalled_target
-        if target is not None:
-            target = list(target)
-            if pos == target:
-                if state.get("task") == "T2_delayed_match" and steps < 2:
-                    return "wait"
-                return "collect"
-            return _toward(target)
-
-        return "wait"
+        return rule_action
 
 
 class SelfModel:
@@ -524,6 +570,7 @@ class Agent:
         self.self_model = self_model
         self.telemetry_log = telemetry_log
         self._hub = {}
+        self._steps_since_reward = 0
         self._substrate_errors = {
             "bind": 0,
             "memory_store": 0,
@@ -583,6 +630,10 @@ class Agent:
         reset_recall = getattr(self.planner, "reset_recall_cache", None)
         if callable(reset_recall):
             reset_recall()
+        reset_trust = getattr(self.planner, "reset_trust", None)
+        if callable(reset_trust):
+            reset_trust()
+        self._steps_since_reward = 0
         self._hub = {}
 
     def _persistent_layout(self):
@@ -737,6 +788,11 @@ class Agent:
         reset_recall = getattr(self.planner, "reset_recall_cache", None)
         if callable(reset_recall):
             reset_recall()
+        reset_trust = getattr(self.planner, "reset_trust", None)
+        if callable(reset_trust):
+            reset_trust()
+        self._steps_since_reward = 0
+        self.hub_write({"steps_since_reward": 0})
         trace = []
         state = self.world.reset()
         self._remember_layout(state)
@@ -747,7 +803,13 @@ class Agent:
             new_state, reward, done = self.world.step(action)  # act
             self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
             self.selfmodel.record(new_state, action, reward, done)
-            self.hub_write({"last_step": i, "last_action": action, "last_reward": reward})
+            if float(reward) > 0.0:
+                self._steps_since_reward = 0
+            else:
+                self._steps_since_reward += 1
+            self.hub_write({"last_step": i, "last_action": action,
+                            "last_reward": reward,
+                            "steps_since_reward": self._steps_since_reward})
             if action == "collect" and float(reward) > 0.0:
                 try:
                     cur = self.get_hub().get("collected_positions", [])

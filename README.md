@@ -15,6 +15,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.coldstart --capture
   ```
+- **Model-Trust Battery**:
+  ```bash
+  python -m evals.trust
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -44,7 +48,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart battery, tasks, verdict
+├── evals/                    <- estimators, recompute, coldstart + trust batteries, tasks
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -61,6 +65,17 @@ reach the model-seam observation. Cutting the source with
 `Planner.bind_recall_source(None)` restores the store-blind behavior; cutting
 the completeness gate restores cold-first poisoning. Property and trace share
 one ablation per scenario.
+
+## 🤝 Model-Seam Trust Contract
+
+A legal backend proposal is trusted while fewer than 20 consecutive steps
+have passed without reward. Once that stall window is reached, a proposal
+that differs from the rule action is rejected (counted in `fallbacks`) and
+the backend stays match-only for the rest of the episode. `trust_window=None`
+is the raw-backend ablation. Each step's action record carries
+`proposed/rule/steps_since_reward/distrusted/accepted`, and the hub carries
+`steps_since_reward`; rule-only runs and good-backend replays keep their exact
+actions and zero fallbacks.
 
 ## 📜 License
 

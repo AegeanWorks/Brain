@@ -1,15 +1,15 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle46-layout-completeness",
+    "task_id": "brain-cycle47-backend-trust",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794063106.1757197,
-    "owner": "opencode:cycle46",
-    "started_by": "opencode:cycle46",
+    "updated_at": 1794063643.6573308,
+    "owner": "opencode:cycle47",
+    "started_by": "opencode:cycle47",
     "continuations": [],
-    "completed_at": 1794063113.7970796
+    "completed_at": 1794063652.563167
   },
   "checkpoints": [
     {
@@ -133,6 +133,67 @@
       "timestamp": 1794063113.797081,
       "timestamp_str": "2026-11-07 17:51:53",
       "agent": "opencode:cycle46"
+    },
+    {
+      "task_id": "brain-cycle47-backend-trust",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: bounded trust for legal backend proposals using unrewarded-step stall",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063289.951827,
+      "timestamp_str": "2026-11-07 17:54:49",
+      "agent": "opencode:cycle47",
+      "impact_assessment": {
+        "why": "Planner returns any legal backend proposal forever; a stalled legal proposal truncates at 200/0, and the self-model outcome signal is not load-bearing.",
+        "benefits": "Bad legal proposals fall back to the rule after a 20-step stall; good backends and rule-only runs unchanged; trace records proposed/rule/accepted/fallback.",
+        "risks": "contract: Planner gains trust_window and a model_decision probe; dependency: stdlib only; concurrency: none; state: hub gains steps_since_reward, vectors unchanged.",
+        "mitigation": "Extract rule action before decision; default window 20; disable via trust_window=None for raw floor control; all goldens and standing pins re-run; failing-first tests."
+      },
+      "plan_digest": "2adb475e59dc4f3a2408e29df0fb4e958d9a6d3ceb17b037ac38ee7db94069c4"
+    },
+    {
+      "task_id": "brain-cycle47-backend-trust",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first stall tests; rule-first decision, hub steps_since_reward, 20-step trust window with episode match-only, model_decision probe, trust battery",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063634.352751,
+      "timestamp_str": "2026-11-07 18:00:34",
+      "agent": "opencode:cycle47"
+    },
+    {
+      "task_id": "brain-cycle47-backend-trust",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: stalled backend 200/0 -> 36/28/33/26 with 3/1/1/1 and fallbacks 16/8/13/6; trust_window=None restores 200/0; prompts unchanged; 137 tests OK; aikit 5/5; standing pins unchanged; ADR-045 and cycle 47 recorded",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063639.079397,
+      "timestamp_str": "2026-11-07 18:00:39",
+      "agent": "opencode:cycle47"
+    },
+    {
+      "task_id": "brain-cycle47-backend-trust",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit code, tests, trust harness, ADR-045, cycle 47",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063643.6573308,
+      "timestamp_str": "2026-11-07 18:00:43",
+      "agent": "opencode:cycle47"
+    },
+    {
+      "task_id": "brain-cycle47-backend-trust",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle47-backend-trust' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794063652.5631683,
+      "timestamp_str": "2026-11-07 18:00:52",
+      "agent": "opencode:cycle47"
     }
   ]
 }
