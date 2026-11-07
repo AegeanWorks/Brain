@@ -191,3 +191,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Lattice snapshot-diffing transfer, second half: audit found four ledger-verified totals with no test pins (T3 0-99 683, T3 100-199 732, T2 0-99 800, T1 100-199 1646), so a drift in the most-exercised ranges would pass all gates.
 - **Decision**: tests/test_range_pins_0_199.py asserts the four exact totals (400 episodes, 0.4s). No source change; no new deps.
 - **Consequences**: 94 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); memory-blind cut moves T3 0-99 683 -> 874 (+191, seed-74 truncation), proving the pins catch memory-coupling regressions while 200+ pins carry corridor-cut sensitivity.
+
+### ADR-028: Hash-chained telemetry with named-defect verifier
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Assay (hash-chained evidence ledger + retrospective review): telemetry records were tamper-silent — a hand-edited log read back without complaint, so evidence integrity was asserted, not checked.
+- **Decision**: Every record carries prev (previous digest, GENESIS for a new log, LEGACY-anchored continuation onto old tails) and digest (SHA-256 over canonical JSON without digest); verify_chain(path) returns ok/findings/records/head with first-defect naming (corrupt-line, unchained-record, edited-record, reordered-record, broken-link). Additive keys on schema 2; existing strict/corrupt-line/bin behavior unchanged. No new deps.
+- **Consequences**: 100 tests OK (6 new, 0.1s); aikit check 5/5; standing behavior and trace byte-identical (94 carried tests green incl. roundtrip/bins/strictness); real 32-record run verifies clean with head digest; all 5 tamper classes fail loudly with named findings.

@@ -1380,3 +1380,74 @@ only integration scores, cross-module dependencies, and ablation differentials.
   vs rule 89/11.0 (margins x10/+5); pins 16/8/13/6/9 + 7/14 +
   6/10; fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
   identical; manifest + repro determinism variance 0.
+
+## Cycle 29 — hash-chained telemetry (idea transfer)
+- **Source**: Assay hash-chained evidence ledger + retrospective
+  review (eighth transfer; remaining backlog re-audited below).
+- **Gap**: telemetry records were tamper-silent — recompute, bins,
+  and strict read_all never check integrity, so a hand-edited log
+  reads back without complaint.
+- **Target delta**: prev+digest on every record + verify_chain with
+  named-defect findings; standing behavior and trace byte-identical
+  (additive keys, schema stays 2).
+- **Falsifier**: standing totals move, trace numbers move, existing
+  telemetry tests break, or any tamper class passes verify
+  silently.
+- **Change** (telemetry/log.py: chain fields + _head tracking +
+  verify_chain; tests/test_chain.py new 6 tests; ADR-028): SHA-256
+  over canonical JSON without digest; GENESIS first link,
+  LEGACY-anchored continuation onto old tails; first-defect naming
+  (corrupt-line, unchained-record, edited-record,
+  reordered-record, broken-link); seq intentionally unchecked
+  (shared action/result seqs, verdict -1 — order rides the chain).
+  No new deps.
+- **Baseline** (cycle-28 pins re-verified): 94 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; gap proven:
+  verify_chain absent (import error), records digest-free.
+- **After**:
+  - code identical: 30-seed 466/240/217; all 94 carried tests pass
+    (roundtrip/bins/strictness untouched by additive keys).
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - evidence chained: intact 3-record log verifies ok with head ==
+    last digest and GENESIS-linked prevs; real 32-record run
+    verifies clean.
+- **Ablation** (5 tamper classes, no source revert needed — each is
+  a failing control by construction):
+  - edit middle record -> edited-record:1.
+  - delete middle -> broken-link (prev matches nothing).
+  - swap last two -> reordered-record (prev matches a later
+    digest).
+  - digest-free legacy line -> unchained-record:0.
+  - non-JSON line -> corrupt-line:1.
+  - All fail loudly with named findings; intact passes.
+- **Verdict**: provenance win (evidence integrity now checked, not
+  asserted); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 100/100 OK (94 carried + 6 new); aikit 5/5.
+- **Commands run**:
+  - `python -m unittest tests.test_chain -v` -> 6 OK.
+  - `python -m unittest discover -s tests -t .` -> 94 OK before,
+    100 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig + real-run verify identical.
+- **Pinned regression baselines for cycle 30**: unittest 100 OK;
+  aikit 5/5; standing 466/240/217; 0-99 1581/800/683; T1 100-199
+  1646; T3 100-199 732; T3 200-299 718; T3 300-399 671; T3 400-499
+  675; holdout 500-599 1581/800/738; exhaustive T3 3906/3906
+  total 27860; corridor-cut control 12/742; random floor best
+  1271/5.0 vs rule 89/11.0 (margins x10/+5); chain intact ok +
+  5 named tamper findings; pins 16/8/13/6/9 + 7/14 + 6/10;
+  fixed-rig syn 0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0
+  identical; manifest + repro determinism variance 0.
+- **Backlog re-audit (all 8 surveyed projects)**: implemented 8
+  (manifests, holdout, repro, exhaustive T3, negative controls,
+  random floor, range pins, hash chain). Dead on arrival for
+  stdlib Brain (re-confirmed): ModelDuck tune gate/quota ladder
+  and memory-fit (no tunable settings, no memory pressure);
+  Lattice token-frugal context (full-history recall carries all
+  goal keys on standing tasks — budgeting would save nothing);
+  Lacon budgets (2^4 search bound already caps planner);
+  ChatDuck/Atlas/NeuroCore server-side ideas (need
+  network/GPU/models); NeuroCore model_limits (prompts never near
+  any ceiling); Atlas quality scores (no gap to move one).
+  Blocked: anything needing torch/TRL (fine-tuning) or live-model
+  server runs as gates.
