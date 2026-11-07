@@ -240,3 +240,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Cycle-32 revival condition: leaf viability was proven only on single-obstacle layouts. Two-blocker probes truncate twice (200/0.0) with viable-first routing oscillating on dead goal steps and visited back-edges.
 - **Decision**: In _step_toward, open-field (no obstacles) keeps viable/dead/backup order; obstacle navigation pools viable goal steps with backup detours deduped by least-visited with dead last. No new deps; deterministic.
 - **Consequences**: 114 tests OK; aikit check 5/5; standing (466/240/217, T1-100 1581, exhaustive 3906/3906 total 27860, goldens) byte-identical; multi (5,0) 200->9, (7,5) 200->20, (3,6) 13->11 all complete; memory-blind restores 200/0.0 on all three, proving visit coupling. Two multis remain non-optimal (reserved).
+
+### ADR-035: Accurate pooling citation in run headers
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Cycle 35 pooled viable goal steps with backup detours for obstacle navigation but left PLANNER_POLICY on the pre-pool configuration, so run headers cited a planner the code no longer matches.
+- **Decision**: Add detour_pooling visits to PLANNER_POLICY; add tests/test_pool_policy.py (pooling declared, digest differs from pre-pool legacy, value-sensitive). No planner logic touched; no new deps.
+- **Consequences**: 117 tests OK; aikit check 5/5; standing behavior (466/240/217, multi 9/20/11) and trace (syn 0.0541 phi 0.0) byte-identical; policy_digest 18edf1ca... -> 4245d56e...; headers cite the shipped pooling configuration with chain verify ok; pre-pool citation fails the new accuracy gate by construction.

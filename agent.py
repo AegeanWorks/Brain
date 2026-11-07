@@ -29,6 +29,7 @@ PLANNER_POLICY = {
     "corridor_avoidance": True,
     "visits_tiebreak": True,
     "recall": "full-history+goal",
+    "detour_pooling": "visits",
 }
 
 

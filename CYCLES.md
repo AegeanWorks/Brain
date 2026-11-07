@@ -1830,3 +1830,67 @@ only integration scores, cross-module dependencies, and ablation differentials.
   chain ok + 5 findings; headers 18edf1ca...; golden 9/9; pins
   16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical; manifest + repro variance 0.
+
+## Cycle 36 — accurate pooling citation in run headers
+- **Baseline** (cycle-35 pins re-verified, same rig/seeds):
+  - canonical: 114 OK; aikit 5/5 PASS.
+  - code behavior: standing 466/240/217; T1-100 1581; multi
+    9/20/11 with 1.0; blind multi 200/0.0 x3; exhaustive 27860.
+  - trace internals: fixed-rig syn 0.05411532 syn_n 0.10814360
+    phi 0.0 n32; hub0/m0 0.0; p0/s0 identical; errors zero.
+  - model-seam internals: PLANNER_POLICY without detour_pooling
+    (pre-pool citation); digest 18edf1ca2b1e371a79701e1b89a76591cf35d0987f5884b352a1e9715a8393d5;
+    manifest True; visit-oracle 5/5; headers cite stale digest.
+  - probe gap: tests/test_pool_policy.py absent; new 3-test probe
+    FAILs 2/3 on intact tree (pooling key missing, legacy digest
+    equals current).
+- **Gap**: cycle 35 pooled viable with backup for obstacle navigation
+  but left the declared policy on the pre-pool configuration —
+  evidence misbinding with zero behavior effect on standing tasks.
+- **Target delta**: declare detour_pooling visits; digest rotates;
+  behavior and trace byte-identical; pool accuracy 3/3 green.
+- **Falsifier**: standing totals move, trace numbers move, multi
+  numbers move, or accuracy still red after the change.
+- **Change** (agent.py PLANNER_POLICY only: add detour_pooling visits;
+  tests/test_pool_policy.py new 3 tests): no planner logic touched;
+  no new deps. ADR-035.
+- **After** (identical battery, same seeds):
+  - code identical: 30-seed 466/240/217; T1-100 1581; multi
+    9/20/11; all 114 carried tests pass.
+  - trace identical: syn 0.05411532 syn_n 0.10814360 phi 0.0 n32;
+    lesions unchanged; errors zero.
+  - seam versioned: policy_digest
+    4245d56ed814756b3691aa8cb156c483e84eb7b62a57d8dcc2684c4060de9729
+    (!= legacy 18edf1ca...); header cites grid-rule/planner +
+    new digest + rule with chain verify ok; pooling sensitivity
+    via none-variant differs.
+- **Ablation** (pre-pool legacy policy without the key, no source
+  revert needed — pre-change measurement is the cut):
+  - intact pooled policy: digest 4245d56e..., accuracy 3/3 OK.
+  - legacy pre-pool cut: digest 18edf1ca..., accuracy 0/3 on the
+    declaration/digest-equality assertions.
+  - Provenance dies with the cut, returns with the restore; routing
+    and trace identical under both (declared-only, honestly
+    recorded — value pins live in trap/range/exhaustive/multi suites).
+- **Verdict**: provenance win (declared config now matches shipped
+  pooling); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 117/117 OK (114 carried + 3 new); aikit 5/5
+  PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_pool_policy -v` -> 2 FAIL
+    before, 3 OK after.
+  - `python -m unittest discover -s tests -t .` -> 114 OK before,
+    117 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + T1-100 + fixed-rig recompute identical;
+    multi 9/20/11 carried; header + chain-verify with digest rotation.
+- **Pinned regression baselines for cycle 37**: unittest 117 OK; aikit
+  5/5; standing 466/240/217; multi 9/20/11 with 1.0; blind multi
+  200/0.0 x3; seed-74 9 intact / 200 blind; 0-99 1581/800/683;
+  T1 100-199 1646; T3 100-199 732; T3 200-299 718; T3 300-399 671;
+  T3 400-499 675; holdout 1581/800/738; exhaustive 3906/3906
+  27860; corridor-cut 12/744; random floor 1271/5.0 vs 89/11.0;
+  chain ok + 5 findings; headers grid-rule/planner + 4245d56e...;
+  golden 9/9; pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn
+  0.05411532 phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; manifest +
+  repro variance 0.
