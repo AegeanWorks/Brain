@@ -505,3 +505,25 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Pinned regression baselines for cycle 13**: unittest 60 OK; aikit
   5/5; model battery numbers above; rule pins unchanged; parse/build
   protocol pinned.
+
+## Cycle 13 — few-shot prompt attempt: negative, model line paused (STOP)
+
+- **Baseline**: cycle-12 model numbers (1/5 success, 4 truncations at
+  200/0.0; T2 identical via 8/8 fallbacks).
+- **Gap**: zero-shot outputs echo lists and ramble; first-legal-token
+  parsing latches onto state-independent words. One bounded fix
+  attempted: 2-shot state->action examples in the prompt.
+- **Probe**: few-shot output echoes the prompt tail with no action
+  token in 24 tokens (parse None -> fallback). Worse parsability,
+  zero state-response. No full battery warranted.
+- **Verdict**: full cycle, zero verified improvements. Prompt line
+  closed; remaining lever is fine-tuning on rule traces (needs
+  training-dep approval — TRl/torch training stack not installed —
+  and a user call). No code change; no ADR. Verdict UNKNOWN.
+- **Gates re-verified on the committed tree**: unittest 60/60 OK;
+  aikit check 5/5 PASS.
+- **Commands run**:
+  - few-shot single-probe (2-shot, T3 state): echo, no action token.
+  - `python -m unittest discover -s tests -t .` -> 60 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Final pins**: unittest 60 OK; aikit 5/5; all cycle-12 pins carried.
