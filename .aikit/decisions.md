@@ -156,3 +156,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from Crucible (frozen splits, train/holdout separation): probe seeds 0-499 drove every planner fix, but nothing pinned the verified-optimal wider ranges, so a future change could silently move them while all probe tests stay green.
 - **Decision**: Freeze seeds 500-599 as holdout with exact totals (T1 1581 / T2 800 / T3 738) in tests/test_holdout_500s.py; probe work continues on 0-499. No source change; no new deps.
 - **Consequences**: 87 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); corridor-cut ablation moves holdout T3 738 -> 742 (+4 across 11 blocked-corridor layouts incl. 560, a 307-twin) and kills 479/400-499 pins, proving the holdout is load-bearing for shipped integrations.
+
+### ADR-023: Triple-run repro gate for standing pins
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from ModelDuck determinism lockdown (IDEA-1627 batch-1 + triple-run) and its --deterministic repro mode: Brain recorded variance-0 notes ad hoc per cycle, but nothing gated replay determinism, so future nondeterminism (ordering, clock, RNG) could hide.
+- **Decision**: tests/test_repro.py replays all 9 pin seeds 3x and asserts byte-identical step counts, rewards, and SHA-256 over canonical action sequences. No source change; no new deps.
+- **Consequences**: 88 tests OK; aikit check 5/5; standing behavior and trace byte-identical (no source diff); single-action perturbation flips the fingerprint (sensitivity proven); decision paths verified RNG/clock/set-iteration free by grep; routing-cut ablation N/A by design (gate checks variance, value pins live in trap/range tests).

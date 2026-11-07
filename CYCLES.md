@@ -1135,3 +1135,52 @@ only integration scores, cross-module dependencies, and ablation differentials.
   T3 200-299 718; T3 300-399 671; T3 400-499 675; pins
   16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
   hub0/m0 0.0 p0/s0 identical.
+
+## Cycle 24 — triple-run repro gate (idea transfer)
+- **Source**: ModelDuck determinism lockdown (IDEA-1627 batch-1 +
+  triple-run) and its --deterministic repro mode (each variant 3x
+  with noise-floor report); third transfer after cycle-22 manifests
+  and cycle-23 frozen split.
+- **Gap**: variance-0 replay was recorded ad hoc per cycle but never
+  gated; future nondeterminism (ordering, clock, RNG) could hide.
+- **Target delta**: 9 pin seeds x 3 runs byte-identical action
+  sequences (counts, rewards, SHA-256); no source change.
+- **Falsifier**: standing totals move, trace numbers move, or any
+  repeat diverges.
+- **Change** (tests/test_repro.py new only; ADR-023): hashed
+  canonical action sequences over 27 episodes (0.034s). No source
+  diff; no new deps.
+- **Baseline** (cycle-23 pins re-verified): 87 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32.
+- **After**:
+  - code identical: 30-seed 466/240/217; all 87 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - repro pinned: 88/88 with 27/27 repeats byte-identical
+    (variance 0).
+- **Ablation / sensitivity** (honestly recorded):
+  - routing-cut (corridor removal) does NOT break this gate by
+    design (deterministic 12-step vs 10-step replays agree with
+    themselves) — value pins live in trap/range tests.
+  - single-action perturbation flips the fingerprint
+    (99aa6b.. vs 21dcfa.., differ True): the exact-equality check
+    is action-sensitive, not vacuous.
+  - decision paths verified RNG/clock/set-iteration free by grep
+    (no import random/time, no set()/hash() in agent.py).
+- **Verdict**: harness win (replay determinism now gated, not just
+  noted); no emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 88/88 OK (87 carried + 1 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_repro -v` -> 1 OK (27 episodes).
+  - corridor-cut check: repro still OK (variance gate, not value
+    gate — recorded, not hidden).
+  - single-action fingerprint flip probe (differ True).
+  - `python -m unittest discover -s tests -t .` -> 87 OK before,
+    88 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed identical; git status shows test file only.
+- **Pinned regression baselines for cycle 25**: unittest 88 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; T3 400-499 675; holdout 500-599 1581/800/738;
+  pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0
+  n32; hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
+  variance 0.
