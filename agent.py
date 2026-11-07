@@ -183,6 +183,14 @@ class Planner:
         if self.backend is not None:
             obs = {"task": state.get("task"), "x": x, "y": y,
                    "steps": steps, "legal": list(_LEGAL_ACTIONS)}
+            if state.get("target") is not None:
+                obs["target"] = list(state.get("target"))
+            if remaining is not None:
+                obs["items_positions"] = [list(c) for c in remaining]
+            if obstacles is not None:
+                obs["obstacles"] = [list(c) for c in obstacles]
+            if "cue" in state:
+                obs["cue"] = state.get("cue")
             try:
                 proposed = self.backend.generate(obs)
             except Exception:

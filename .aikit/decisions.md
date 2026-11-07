@@ -93,3 +93,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: User-approved fetch: llama.cpp b12110 win-cpu server plus bartowski SmolLM2-135M-Instruct-Q8_0 GGUF, both in user-local cache outside the repo. Raw /completion skips the chat template so an instruct model rambles; the chat-completions endpoint applies it.
 - **Decision**: LlamaCppBackend drives llama-server over /v1/chat/completions (temperature 0, fixed seed, n_predict 24, 60s timeout) with first-legal-token parsing. No weights, binaries, or network clients in the repo.
 - **Consequences**: 60 tests OK; aikit check 5/5. Rule-vs-model on identical seeds: task success 5/5 -> 1/5, model contributes nothing measurable (T2 identical via 8/8 fallbacks); valid-but-useless tokens bypass fallback and truncate the rest at 200 steps with 0.0 reward. Determinism repeat identical (variance 0). Negative result kept: no tuning, no prompt search beyond endpoint/template fix.
+
+### ADR-014: Goal-complete model-seam observations and prompts
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Planner.plan built backend obs with only task/x/y/steps/legal and build_prompt rendered only those, so distinct goal states collided to identical obs/prompt and any obs-limited backend had zero steering signal.
+- **Decision**: Planner includes target, items_positions, obstacles, and cue copies in obs when present in state; build_prompt appends deterministic Target/Items/Obstacles/Cue lines when those keys are present, leaving minimal-obs prompts byte-identical. No new deps; backend None rule path unchanged.
+- **Consequences**: 63 tests OK; aikit check 5/5; rule totals byte-identical (T1 466 / T2 240 / T3 217, trap seeds 16/8/13/6/9); fixed-rig syn 0.1246 phi 0.0 and hub0/m0 kill with p0/s0 no-op unchanged; obs-oracle on 4 steerable seeds 200/0.0 truncated -> 16/8/13/6 optimal with variance 0; minimal-obs ablation restores truncation.

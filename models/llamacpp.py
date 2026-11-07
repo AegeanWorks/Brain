@@ -20,7 +20,7 @@ LEGAL = ("up", "down", "left", "right", "collect", "wait")
 def build_prompt(observation):
     """Render a compact deterministic action prompt for an observation."""
     legal = list(observation.get("legal", LEGAL))
-    return (
+    base = (
         "Grid task %(task)s. You are at [%(x)s, %(y)s] after %(steps)s steps. "
         "Reply with exactly one action word, nothing else. "
         "Legal actions: %(legal)s."
@@ -28,6 +28,18 @@ def build_prompt(observation):
            "y": observation.get("y"), "steps": observation.get("steps"),
            "legal": ", ".join(legal)}
     )
+    extras = []
+    if observation.get("target") is not None:
+        extras.append("Target: %s." % ([int(v) for v in observation.get("target")],))
+    if observation.get("items_positions") is not None:
+        extras.append("Items: %s." % ([[int(v) for v in c] for c in observation.get("items_positions")],))
+    if observation.get("obstacles") is not None:
+        extras.append("Obstacles: %s." % ([[int(v) for v in c] for c in observation.get("obstacles")],))
+    if "cue" in observation and observation.get("cue") is not None:
+        extras.append("Cue: %s." % (observation.get("cue"),))
+    if extras:
+        return base + " " + " ".join(extras)
+    return base
 
 
 def parse_action(text):

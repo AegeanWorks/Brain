@@ -527,3 +527,82 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 60 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Final pins**: unittest 60 OK; aikit 5/5; all cycle-12 pins carried.
+
+## Cycle 14 — goal-complete model-seam observations and prompts
+
+- **Baseline** (same rig both runs, seeds 0-29 + trap seeds 71/15/65/74):
+  - canonical gate: 60 tests OK; aikit check 5/5 PASS.
+  - code behavior (backend None): T1-71 16/3.0; T2-3 8/1.0; T3-15 13/1.0;
+    T3-65 6/1.0; T3-74 9/1.0; 30-seed totals T1 466 / T2 240 / T3 217.
+  - trace internals (fixed rig T1 seed7, 30-step wiring run = 15 steps):
+    syn 0.1246, syn_n 0.2489, phi 0.0, n_records 32; hub0/m0 lesion syn
+    -> 0.0 exactly; p0/s0 lesion bit-identical to intact.
+  - model-seam internals: obs keys {task,x,y,steps,legal} only, no
+    target/items_positions/obstacles/cue; build_prompt renders only
+    [x,y] + legal with zero goal tokens; collision probe: T3 states
+    (target [6,7]/ob [[6,1]]) vs (target [0,0]/ob [[1,1]]) at same
+    [5,0]/step 7 produce byte-identical obs and prompt; obs-oracle
+    (policy limited to obs channel) truncates 4/4 steerable seeds at
+    200 steps with 0.0 reward.
+  - model versioning: SmolLM2-135M Q4_K_M present in user-local
+    scratch/llm-probe/models (outside repo, hash not pinned in repo);
+    live-model battery from cycle 12 (Q8_0, 1/5 success) carried as
+    prior; this cycle uses deterministic obs-oracle as the
+    seam-integration probe, no live-server run.
+- **Gap**: Planner.plan obs omits all goal state and build_prompt
+  renders none, so the model integration point carries zero steering
+  signal by construction. Targeted audit (grep generate/build_prompt):
+  only agent.py constructs obs and only llamacpp.py renders it.
+- **Target delta**: obs carries target/items_positions/obstacles/cue;
+  prompt mentions them; obs-oracle 200/0.0 x4 -> 16/8/13/6 optimal;
+  rule totals and trace numbers byte-identical.
+- **Falsifier**: any rule total moves, any trace number moves, or
+  oracle still truncates after the change; emergence falsifier:
+  minimal-obs ablation must restore truncation or the gain is not
+  seam-carried.
+- **Change** (agent.py Planner.plan obs build + models/llamacpp.py
+  build_prompt only; tests/test_obs_coverage.py new): obs adds target,
+  items_positions, obstacles, cue copies when present; prompt appends
+  deterministic Target/Items/Obstacles/Cue lines when those keys are
+  present, minimal-obs prompts byte-identical. No new deps.
+- **After** (identical battery, same seeds):
+  - code behavior identical: T1-71 16, T2-3 8, T3-15 13, T3-65 6,
+    T3-74 9; 30-seed totals 466/240/217 byte-identical; all runs
+    complete with reward.
+  - trace identical: fixed-rig syn 0.12455861, syn_n 0.24891688,
+    phi 0.0, n_records 32; lesion differentials unchanged
+    (hub0/m0 -> 0.0, p0/s0 bit-identical).
+  - model-seam fixed: obs carries goal copies; prompt contains
+    "[6, 7]" and "[6, 1]" on T3 rig and item coords on T1 rig;
+    collision pair now distinct obs and distinct prompts.
+  - obs-oracle: T1-71 200 -> 16, T2-3 200 -> 8, T3-15 200 -> 13,
+    T3-65 200 -> 6, all done with full reward; 3x repeat on
+    T1-71/T3-15 byte-identical (variance 0).
+- **Ablation** (integration cut: MinimalStrip removes enriched keys
+  before the oracle, same geometry):
+  - intact enriched obs: 16/8/13/6 with full reward.
+  - stripped minimal obs: 200/200/200/200 with 0.0 reward on all 4.
+  - Gain dies with the cut, returns with the restore: the enriched
+    obs channel is load-bearing for obs-limited steering.
+  - Rule-path control: backend None totals unchanged, so the change
+    adds signal without altering the rule policy.
+- **Verdict**: seam win with proven obs-integration coupling; no
+  emergent claim. Live-model steering still reserved (needs
+  fine-tuning per cycle 13). Verdict UNKNOWN.
+- **Gates**: unittest 63/63 OK (60 carried + 3 new); aikit check 5/5
+  PASS (test, hygiene, guidelines, secrets, compat).
+- **Commands run**:
+  - `python -m unittest tests.test_obs_coverage -v` -> 3 FAIL before,
+    3 OK after.
+  - `python -m unittest discover -s tests -t .` -> 60 OK before,
+    63 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - rule 5-seed + 30-seed totals probes before/after (identical).
+  - fixed-rig recompute probe before/after (syn 0.1246 phi 0.0 both).
+  - obs collision probe before (identical) / after (distinct).
+  - oracle battery + 3x determinism repeat + MinimalStrip ablation.
+- **Pinned regression baselines for cycle 15**: unittest 63 OK; aikit
+  5/5; rule totals T1 466 T2 240 T3 217 (30 seeds); trap seeds
+  16/8/13/6/9; fixed-rig syn 0.12455861 phi 0.0 n_records 32;
+  hub0/m0 syn 0.0 p0/s0 bit-identical; obs-oracle T1-71 16 T2-3 8
+  T3-15 13 T3-65 6; minimal-obs ablation 200/0.0 x4.
