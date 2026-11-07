@@ -2979,3 +2979,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 211 OK.
   - `python aikit.py check brain` -> 5/5 after removing the log↔merkle import cycle.
 - **Pinned regression baselines for cycle 65**: unittest 211 OK; aikit 5/5; Merkle batch 12-20/count 8 root/proof 3 siblings; truncated `truncated-batch:20>15`; tampered root/digest/proof/missing detected; prompt T3 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 anchors seq 11/16; single anchor 4/4; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 65 - opt-in execution budgets (neurocore transfer)
+
+- **Baseline** (commit 0d09d42, cycle 64; same T3:15 and budgets absent):
+  - canonical gate: 211 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - `Agent.run` had only `max_steps`; `SelfModel` recorded cost after the fact; no shared step/LLM/token/time allowance, pressure snapshot or pre-action stop.
+- **Gap**: a run could not be bounded across dimensions or stopped before the next action/call with a named limit and usage. `neurocore/core/execution_budget.py:51` provides the missing pattern.
+- **Target delta**: a generous budget keeps T3:15 at 13 steps / 1.0 with actions identical to rule-only; a 3-step budget stops after 3 actions with `steps` used 4/3; a 2-call budget stops after 2 backend calls with `llm_calls` used 3/2; an 8-token budget stops after 2 calls with `tokens` used 10/8; a zero-second budget stops before the first action. `budget=None` remains a no-op.
+- **Falsifier**: a tight budget lets the next action/call through; the error does not name the dimension/limit/usage; a generous budget changes actions; no-budget runs change; any standing/policy pin moves.
+- **Change**: add `budget.py` with `DEFAULT_LIMITS`, `BudgetExceeded`, `ExecutionBudget` (remaining/spend/check_time/pressure/snapshot), a ContextVar, `use_budget`, `spend`, `push_budget`/`pop_budget` and `budget_from_limits`. `Agent.run(max_steps, budget=None)` installs it; `_run_loop` spends a step before each action; `Planner` spends an LLM call before `backend.generate` and prompt tokens from `last_prompt_stats`, re-raising `BudgetExceeded` outside the fallback catch. `run_task`/`run_task_logged` accept `budget`. Tests cover direct spend/pressure/limits, context scope, generous parity, step/LLM/token/time exhaustion and invalid values; `evals/execution_budget.py` measures all five modes. README and ADR-059 record the contract. No new dependencies; no policy change.
+- **After** (same T3:15 and backends):
+  - generous: 13 steps / 1.0 reward, actions match rule-only, steps used 13, pressure 0.065.
+  - step cap 3: `BudgetExceeded(steps, 3, 4)`, 3 logged actions, pressure 1.0.
+  - LLM cap 2: `BudgetExceeded(llm_calls, 2, 3)`, 2 backend calls, 2 logged steps.
+  - token cap 8: `BudgetExceeded(tokens, 8, 10)`, 2 backend calls, 1 logged step.
+  - time cap 0: `BudgetExceeded(seconds, 0, elapsed)` before the first action.
+  - no-budget/standing behavior, T1 0-99, holdout, fixed-rig, trust, escape, cold-start, telemetry, prompt and Merkle pins unchanged; 221 tests OK; policy unchanged.
+- **Ablation** (same T3:15):
+  - `budget=None`: the 13-step/1.0 rule run returns with no spend accounting; the tight caps disappear. The runtime budget property dies with the cut.
+  - over-limit spending is counted (`used` 4/3, 3/2, 10/8), matching the neurocore increment-then-raise pattern.
+- **Verdict**: runtime cost-control extension. A generous budget is behavior-identical; tight budgets stop before the next action/call and name the dimension, limit and usage. No emergence claim.
+- **Gates**: unittest 221/221 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_budget.TestExecutionBudget.test_step_limit_raises -v` -> before: ModuleNotFoundError (`budget`); after: OK.
+  - `python -m unittest tests.test_budget -v` -> 10 OK.
+  - `python -m evals.execution_budget` -> generous 13/1.0/actions match; step 4/3; LLM 3/2; token 10/8; time 0.
+  - `python -m unittest discover -s tests -t .` -> 221 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 66**: unittest 221 OK; aikit 5/5; generous budget T3 13/1.0/actions match, steps 13, pressure 0.065; step cap 3 -> BudgetExceeded(steps,3,4) with 3 actions; LLM cap 2 -> (llm_calls,2,3) 2 calls; token cap 8 -> (tokens,8,10) 2 calls; time cap 0 -> seconds; Merkle batch 12-20/count 8 proof 3 siblings; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

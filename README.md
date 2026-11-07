@@ -55,6 +55,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.merkle_anchor
   ```
+- **Execution-Budget Battery**:
+  ```bash
+  python -m evals.execution_budget
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -84,7 +88,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -225,6 +229,19 @@ batch membership; run `verify_chain` separately for order/authorship.
 `python -m evals.merkle_anchor` shows the intact 8-record batch
 (12–20), a 3-sibling proof for record 15, and truncation/tamper
 findings.
+
+## 🧮 Execution Budgets
+
+`budget_from_limits({...})` builds an `ExecutionBudget` with
+`max_steps`, `max_llm_calls`, `max_tokens` and `max_seconds`.
+`Agent.run(..., budget=...)` installs it through a context variable;
+the loop spends one step before each action, the planner spends one
+LLM call before each backend call and prompt tokens after it, and the
+budget checks wall time on every spend. A tight limit raises
+`BudgetExceeded(kind, limit, used)` naming the dimension, limit and
+attempted usage; a generous budget leaves actions byte-identical, and
+`budget=None` is a no-op. `python -m evals.execution_budget` shows the
+generous 13-step/1.0 run and the step/LLM/token/time caps.
 
 ## 🧾 Verdict Facts
 

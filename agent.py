@@ -20,6 +20,8 @@ import itertools
 import json
 from collections import deque
 
+from budget import BudgetExceeded, spend, use_budget
+
 SIZE = 8
 
 _LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
@@ -627,13 +629,22 @@ class Planner:
                 return rule_action
             manifest_sha = None
             try:
+                spend("llm_calls")
                 proposed = self.backend.generate(obs)
+                stats = getattr(self.backend, "last_prompt_stats", None)
+                if isinstance(stats, dict):
+                    tokens = stats.get("tokens")
+                    if (isinstance(tokens, (int, float))
+                            and not isinstance(tokens, bool)):
+                        spend("tokens", tokens)
                 if self.probe_manifest:
                     manifest = getattr(self.backend, "last_manifest", None)
                     if isinstance(manifest, dict):
                         value = manifest.get("sha256")
                         if isinstance(value, str):
                             manifest_sha = value
+            except BudgetExceeded:
+                raise
             except Exception:
                 proposed = None
                 manifest_sha = None
@@ -982,7 +993,19 @@ class Agent:
         hub_vec = [hx, hy, float(reward)]
         return m_vec, p_vec, s_vec, hub_vec
 
-    def run(self, max_steps=200):
+    def run(self, max_steps=200, budget=None):
+        """Run the loop; optionally install an execution budget.
+
+        A budget caps steps, LLM calls, tokens and wall time. It is
+        opt-in: with ``None`` every spend call is a no-op and actions are
+        unchanged. Exhaustion raises :class:`BudgetExceeded`.
+        """
+        if budget is None:
+            return self._run_loop(max_steps)
+        with use_budget(budget):
+            return self._run_loop(max_steps)
+
+    def _run_loop(self, max_steps):
         """Run perceive/plan/act/observe loop; return trace list."""
         if self.world is None:
             raise ValueError("Agent.world is None; pass a world or use run_task")
@@ -1000,6 +1023,7 @@ class Agent:
         state = self.world.reset()
         self._remember_layout(state)
         for i in range(int(max_steps)):
+            spend("steps")
             self.memory.save(state)  # perceive
             memories = self.memory.recall(limit=None)  # recall for planner
             action = self.planner.plan(state, memories)  # plan
@@ -1090,13 +1114,13 @@ class Agent:
                 break
         return trace
 
-    def run_task(self, task_id, seed, max_steps=200):
+    def run_task(self, task_id, seed, max_steps=200, budget=None):
         """Build GridWorld(task_id, seed) and run the loop."""
         from worlds.grid import GridWorld
 
         self.world = GridWorld(task_id, seed)
         self._reset_episode()
-        return self.run(max_steps=max_steps)
+        return self.run(max_steps=max_steps, budget=budget)
 
     def _episode_verdict(self, trace, max_steps):
         """Return (verdict, reason) without mistaking the cap for success.
@@ -1113,7 +1137,8 @@ class Agent:
         verdict = "done" if ended and not at_cap else "truncated"
         return verdict, "steps=%d reward=%.1f" % (steps, reward)
 
-    def run_task_logged(self, task_id, seed, max_steps=200, log_path=None):
+    def run_task_logged(self, task_id, seed, max_steps=200, log_path=None,
+                        budget=None):
         """Run task with header, per-step actions+results, and verdict.
 
         Writes header (seq 0), one kind "step" action plus one result
@@ -1136,7 +1161,7 @@ class Agent:
 
         self.world = GridWorld(task_id, seed)
         self._reset_episode()
-        trace = self.run(max_steps=max_steps)
+        trace = self.run(max_steps=max_steps, budget=budget)
         verdict, reason = self._episode_verdict(trace, max_steps)
         try:
             self.telemetry_log.write_verdict(verdict, reason)

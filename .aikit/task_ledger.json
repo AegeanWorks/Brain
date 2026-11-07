@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle64-merkle-anchor",
+    "task_id": "brain-cycle65-execution-budget",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794074704.0472746,
-    "owner": "opencode:cycle64",
-    "started_by": "opencode:cycle64",
+    "updated_at": 1794075259.604293,
+    "owner": "opencode:cycle65",
+    "started_by": "opencode:cycle65",
     "continuations": [],
-    "completed_at": 1794074704.2888596
+    "completed_at": 1794075260.0302353
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle61-anchor-journal",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: add an append-only anchor journal (assay transfer) so each run's head commits to the previous anchor",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794072553.9074795,
-      "timestamp_str": "2026-11-07 20:29:13",
-      "agent": "opencode:cycle61",
-      "impact_assessment": {
-        "why": "Cycle 58 added a single mutable .anchor sidecar; deleting or rewinding it is detectable only if an external copy exists. assay/anchor.py:210 AnchorJournal chains each anchor to the previous anchor hash, so a rolled-back or deleted anchor is detectable.",
-        "benefits": "Two or more run heads form a verified journal; verify_chain(journal_path=...) detects a truncated log against the latest anchor; tampered/deleted anchors are named by prev/hash findings; the single .anchor API stays compatible.",
-        "risks": "contract: new .anchors JSONL sidecar and verify_chain keyword; dependency: stdlib only; concurrency: append under the existing telemetry lock discipline; state: sidecar only, not committed.",
-        "mitigation": "Keep the single anchor unchanged; validate schema/head/seq/prev/hash on read; append atomically with fsync; test intact, truncated, deleted-anchor, backwards-seq and legacy single-anchor paths; full 179-test and AIKit gates."
-      },
-      "plan_digest": "0d9ce8e347b56017843a0066d0f2c101591c8396296b219195e040c034a63938"
-    },
-    {
-      "task_id": "brain-cycle61-anchor-journal",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: 2 anchors seq 11/16; intact 16/16 ok; truncated 13/16 truncated-tail:13<16; deleted anchor prev error; tampered head hash error; backwards seq rejected; 186 tests OK; aikit 5/5; standing unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794072882.9789379,
-      "timestamp_str": "2026-11-07 20:34:42",
-      "agent": "opencode:cycle61"
-    },
-    {
-      "task_id": "brain-cycle61-anchor-journal",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first journal import; append_anchor/verify_anchor_journal, Telemetry.write_anchor_journal, verify_chain journal_path, eval, tests, README/ADR-055",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794072882.9811952,
-      "timestamp_str": "2026-11-07 20:34:42",
-      "agent": "opencode:cycle61"
-    },
-    {
-      "task_id": "brain-cycle61-anchor-journal",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit anchor journal, eval, tests, ADR-055, cycle 61",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794072895.6717563,
-      "timestamp_str": "2026-11-07 20:34:55",
-      "agent": "opencode:cycle61"
-    },
-    {
-      "task_id": "brain-cycle61-anchor-journal",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle61-anchor-journal' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794072895.9704528,
-      "timestamp_str": "2026-11-07 20:34:55",
-      "agent": "opencode:cycle61"
-    },
     {
       "task_id": "brain-cycle62-hmac-telemetry",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794074704.2888613,
       "timestamp_str": "2026-11-07 21:05:04",
       "agent": "opencode:cycle64"
+    },
+    {
+      "task_id": "brain-cycle65-execution-budget",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: opt-in execution budgets for steps, LLM calls, tokens and wall time (neurocore transfer)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794074806.1744978,
+      "timestamp_str": "2026-11-07 21:06:46",
+      "agent": "opencode:cycle65",
+      "impact_assessment": {
+        "why": "Brain has max_steps and SelfModel counters, but no shared budget that stops a run before a dimension is exceeded. neurocore/core/execution_budget.py:51 provides limits, spend, time checks, pressure and a context variable.",
+        "benefits": "A budget can cap steps, backend calls, prompt tokens and wall time; Agent.run installs it around the loop, Planner spends per backend call/prompt, and a tight budget raises BudgetExceeded before the next action. Default None keeps behavior and actions byte-identical.",
+        "risks": "contract: Agent.run/run_task gain budget, Planner spends llm_calls/tokens; dependency: stdlib contextvars only; concurrency: budget is per-run context; state: no schema change.",
+        "mitigation": "Keep budget opt-in; re-raise BudgetExceeded outside the backend fallback catch; test generous and tight step/LLM/token/time budgets, context scoping and snapshot; re-run 211 tests and AIKit gates."
+      },
+      "plan_digest": "afe06baf472092b17a3019949743cf4b459c904c30070e70f63d57f97cda578c"
+    },
+    {
+      "task_id": "brain-cycle65-execution-budget",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first budget module; ExecutionBudget/context/spend, Agent.run budget, Planner llm_calls/tokens spends, tests/eval, README/ADR-059",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794075249.8117352,
+      "timestamp_str": "2026-11-07 21:14:09",
+      "agent": "opencode:cycle65"
+    },
+    {
+      "task_id": "brain-cycle65-execution-budget",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: generous 13/1.0/actions match steps 13 pressure .065; caps steps 4/3, llm 3/2, tokens 10/8, seconds 0; 221 tests OK; aikit 5/5; standing unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794075249.815438,
+      "timestamp_str": "2026-11-07 21:14:09",
+      "agent": "opencode:cycle65"
+    },
+    {
+      "task_id": "brain-cycle65-execution-budget",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit execution budgets, eval, tests, ADR-059, cycle 65",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794075259.604293,
+      "timestamp_str": "2026-11-07 21:14:19",
+      "agent": "opencode:cycle65"
+    },
+    {
+      "task_id": "brain-cycle65-execution-budget",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle65-execution-budget' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794075260.0302374,
+      "timestamp_str": "2026-11-07 21:14:20",
+      "agent": "opencode:cycle65"
     }
   ]
 }
