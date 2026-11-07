@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle57-dead-pool",
+    "task_id": "brain-cycle58-chain-anchor",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794069439.3030457,
-    "owner": "opencode:cycle57",
-    "started_by": "opencode:cycle57",
+    "updated_at": 1794069798.0119846,
+    "owner": "opencode:cycle58",
+    "started_by": "opencode:cycle58",
     "continuations": [],
-    "completed_at": 1794069443.2279716
+    "completed_at": 1794069806.2028403
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle54-cycle-escape",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: memory-gated repeated-position cycle escape for multi-obstacle routing",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794066899.177231,
-      "timestamp_str": "2026-11-07 18:54:59",
-      "agent": "opencode:cycle54",
-      "impact_assessment": {
-        "why": "The documented 3-blocker config (target [6,5], obstacles [6,4],[5,5],[3,5]) loops 200 steps with 0 reward in a 6-cell cycle; a 300-config seeded scan found 2 truncations, both from the same repeated-position loop.",
-        "benefits": "Recover both configs to 19/18 steps with 1.0 reward, preserve all standing/single-obstacle/multi pins, keep the blind memory-cut at 200/0, and add a cycle_escape probe readout.",
-        "risks": "contract: Planner behavior and PLANNER_POLICY change; dependency: stdlib collections.deque only; concurrency: none; state: no schema change, new telemetry probe key.",
-        "mitigation": "Gate on obstacles>=2, no remaining items, full-episode repeat count>=2; BFS avoids obstacles; executable ablation via cycle_escape=False; blind cut via memories=None; re-run 300-config scan and all standing pins."
-      },
-      "plan_digest": "150f8e9042fd6a1ff435ea13b16ae7611f43463b7c291422190885a51495868e"
-    },
-    {
-      "task_id": "brain-cycle54-cycle-escape",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first recovery test; memory-gated BFS escape, cycle_escape probe, policy key, eval battery, three-blocker pins/goldens, README/ADR",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794067402.0167646,
-      "timestamp_str": "2026-11-07 19:03:22",
-      "agent": "opencode:cycle54"
-    },
-    {
-      "task_id": "brain-cycle54-cycle-escape",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: cycle-a 200/0 -> 19/1.0, cycle-b 200/0 -> 18/1.0, gain .905/.91, prompts 398a93d3/aa934aba unchanged; escape-off and memory-blind restore 200/0; 156 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; ADR-050 and cycle 54 recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794067425.303559,
-      "timestamp_str": "2026-11-07 19:03:45",
-      "agent": "opencode:cycle54"
-    },
-    {
-      "task_id": "brain-cycle54-cycle-escape",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit repeated-position cycle escape, eval battery, probe, pins, ADR-050, cycle 54",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794067432.3276567,
-      "timestamp_str": "2026-11-07 19:03:52",
-      "agent": "opencode:cycle54"
-    },
-    {
-      "task_id": "brain-cycle54-cycle-escape",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle54-cycle-escape' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794067529.9877648,
-      "timestamp_str": "2026-11-07 19:05:29",
-      "agent": "opencode:cycle54"
-    },
     {
       "task_id": "brain-cycle55-distrust-skip",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794069443.2279735,
       "timestamp_str": "2026-11-07 19:37:23",
       "agent": "opencode:cycle57"
+    },
+    {
+      "task_id": "brain-cycle58-chain-anchor",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: anchor the telemetry head/count so a truncated tail is detectable",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794069498.6064258,
+      "timestamp_str": "2026-11-07 19:38:18",
+      "agent": "opencode:cycle58",
+      "impact_assessment": {
+        "why": "verify_chain validates internal links only; deleting trailing records leaves a valid prefix, so a log can hide its last actions and verdict while still returning ok=true. The run has no terminal head/count witness.",
+        "benefits": "Telemetry.write_anchor writes head+count; verify_chain(path, anchor_path=...) reports truncated-tail; the intact log still passes; the anchor-off control leaves the truncation undetected. Trace-integrity only, no action change.",
+        "risks": "contract: verify_chain gains an optional anchor argument and Telemetry a write_anchor method; dependency: stdlib only; concurrency: anchor write is atomic replace; state: new sidecar file, not committed.",
+        "mitigation": "Keep the anchor separate from the chain, write it atomically, compare both head and count, and test intact/truncated/anchored/missing-anchor cases; re-run the 170-test gate and standing pins."
+      },
+      "plan_digest": "bc99b4f987dc16d876a5081140fc81531e0e6666f97ec060d0342d908211c925"
+    },
+    {
+      "task_id": "brain-cycle58-chain-anchor",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first anchor import; atomic write_anchor/read_anchor, verify_chain anchor_path, Telemetry.write_anchor, chain-anchor battery, tests, README/ADR-054",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794069723.6617095,
+      "timestamp_str": "2026-11-07 19:42:03",
+      "agent": "opencode:cycle58"
+    },
+    {
+      "task_id": "brain-cycle58-chain-anchor",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: intact 8/8 ok, truncated 8->6 truncated-tail:6<8, unanchored 8->6 ok; missing/mismatch fail; 177 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794069797.9438858,
+      "timestamp_str": "2026-11-07 19:43:17",
+      "agent": "opencode:cycle58"
+    },
+    {
+      "task_id": "brain-cycle58-chain-anchor",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit terminal anchor, verifier, battery, tests, ADR-054, cycle 58",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794069798.0119846,
+      "timestamp_str": "2026-11-07 19:43:18",
+      "agent": "opencode:cycle58"
+    },
+    {
+      "task_id": "brain-cycle58-chain-anchor",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle58-chain-anchor' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794069806.2028418,
+      "timestamp_str": "2026-11-07 19:43:26",
+      "agent": "opencode:cycle58"
     }
   ]
 }

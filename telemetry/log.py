@@ -9,7 +9,10 @@ previous record's digest, ``"GENESIS"`` for the first record of a new
 log) and ``digest`` (SHA-256 over the canonical JSON of the record
 without ``digest``). ``verify_chain`` recomputes the chain and names
 the defect (edited / deleted / reordered / unchained / corrupt), so a
-hand-edited log fails loudly instead of reading back silently.
+hand-edited log fails loudly instead of reading back silently. A
+terminal anchor sidecar (``write_anchor``) records the final head and
+record count; ``verify_chain(path, anchor_path=...)`` also reports a
+truncated tail, a mismatched witness, or a missing anchor.
 
 Durability: each append writes one line, calls ``flush`` + ``os.fsync``
 on the file descriptor, then fsyncs the containing directory when the
@@ -310,6 +313,22 @@ class Telemetry:
             }
         )
 
+    def write_anchor(self, anchor_path=None):
+        """Write a head/count witness for the current log.
+
+        The sidecar is written atomically and is not part of the chain;
+        ``verify_chain(path, anchor_path=...)`` compares against it.
+        """
+        records = self.read_all()
+        head = GENESIS
+        for record in reversed(records):
+            value = record.get("digest") if isinstance(record, dict) else None
+            if isinstance(value, str):
+                head = value
+                break
+        return write_anchor(self.path, head, len(records),
+                            anchor_path=anchor_path)
+
     def read_all(self):
         """Return list of decoded JSON objects in file order."""
         if not self.path.exists():
@@ -352,7 +371,51 @@ class Telemetry:
         return result
 
 
-def verify_chain(path):
+def _anchor_path(path):
+    return Path(str(path) + ".anchor")
+
+
+def write_anchor(path, head, records, anchor_path=None):
+    """Write a terminal head/count witness beside the log.
+
+    The anchor is a separate JSON sidecar; it is written atomically with
+    its own fsync and directory fsync. It is not part of the hash chain,
+    so callers must keep it outside the tampered log's control (the
+    anchored verifier reports a missing or mismatched witness).
+    """
+    target = Path(anchor_path) if anchor_path is not None else _anchor_path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    body = json.dumps({"head": str(head), "records": int(records)},
+                      sort_keys=True) + "\n"
+    tmp = target.with_name(target.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as handle:
+        handle.write(body)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, target)
+    _dir_fsync(target.parent)
+    return str(target)
+
+
+def read_anchor(anchor_path):
+    """Return the decoded anchor mapping, or None when missing/malformed."""
+    try:
+        with open(str(anchor_path), "r", encoding="utf-8") as handle:
+            value = json.load(handle)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(value, dict):
+        return None
+    head = value.get("head")
+    records = value.get("records")
+    if not isinstance(head, str):
+        return None
+    if isinstance(records, bool) or not isinstance(records, int):
+        return None
+    return {"head": head, "records": records}
+
+
+def verify_chain(path, anchor_path=None):
     """Verify the hash chain of the JSONL log at ``path``.
 
     Returns ``{"ok": bool, "findings": [...], "records": n, "head": hex|None}``.
@@ -363,6 +426,13 @@ def verify_chain(path):
     deletion or edited prefix). Sequence numbers are intentionally not
     checked: actions/results legitimately share a seq and the verdict
     uses -1; order is carried by the chain, not by seq.
+
+    When ``anchor_path`` is given, the verified head and record count
+    must match the separate ``write_anchor`` witness. A shorter log is
+    ``truncated-tail:<count><<anchor_count>``; a different head/count is
+    ``anchor-mismatch``; a missing or malformed witness is
+    ``missing-anchor``. Without an anchor, a truncated prefix remains
+    internally valid by design.
     """
     findings = []
     digests = []
@@ -410,6 +480,13 @@ def verify_chain(path):
         digests.append(record["digest"])
         head = record["digest"]
         count += 1
-    if findings:
-        return {"ok": False, "findings": findings, "records": count, "head": head}
-    return {"ok": True, "findings": [], "records": count, "head": head}
+    if anchor_path is not None:
+        anchor = read_anchor(anchor_path)
+        if anchor is None:
+            findings.append("missing-anchor")
+        elif count < anchor["records"]:
+            findings.append("truncated-tail:%d<%d" % (count, anchor["records"]))
+        elif count != anchor["records"] or head != anchor["head"]:
+            findings.append("anchor-mismatch")
+    return {"ok": not findings, "findings": findings,
+            "records": count, "head": head}

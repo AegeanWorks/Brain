@@ -2784,3 +2784,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.escape` -> 19/18 intact, 200/200 ablate and blind; `python -m evals.coldstart --capture` -> 16/8/13/6.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 58**: unittest 170 OK; aikit 5/5; multi (7,5) 16/1.0 action 1c9552d3... with probe [7,0]/down [7,1]/live 8/dead 10; dead-pool ablate 18/1.0 action de1154e1...; other multi 9/11/13/14; three 15/12/10/13/19; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; manifest intact coverage 1.0, ablate 0.0; trust 16/8/13/6, ablate-noop 36/28/33/26 with 21 calls; both-off 200/0; escape 19/18; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 58 - terminal telemetry head/count anchor
+
+- **Baseline** (commit 82dc85d, cycle 57; same log builder and verifier):
+  - canonical gate: 170 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - chain trace: a 5-record log verified `ok=true`, records 5, head e735d8e0...; deleting the last two lines still verified `ok=true`, records 3, head 4a2b4b01...; `Telemetry` had no `write_anchor`.
+- **Gap**: `verify_chain` validates internal links only. A truncated tail leaves a valid prefix, so trailing actions and the verdict can be hidden while the log reads back as valid. There is no terminal head/count witness.
+- **Target delta**: intact 8-record log with an anchor -> ok 8/8; truncate to 6 -> ok false with `truncated-tail:6<8`; the same truncation without the anchor -> ok true (control); missing anchor -> `missing-anchor`; edited anchor -> `anchor-mismatch`; no behavior or standing change.
+- **Falsifier**: the truncated anchored log still returns ok; the intact anchored log fails; the anchor-off control detects the cut; missing/mismatched anchors pass; any standing or behavior pin moves.
+- **Change**: telemetry/log.py adds `write_anchor` (atomic temp+fsync+replace sidecar `path + ".anchor"`), `read_anchor`, an optional `anchor_path` argument to `verify_chain`, and `Telemetry.write_anchor()`. `evals/chain_anchor.py` adds intact/truncated/unanchored modes; `tests/test_chain_anchor.py` covers intact, detected truncation, anchor-off exposure, missing/mismatch, atomic determinism and helper roundtrip. README and ADR-054 record the contract. No new dependencies; no schema change; the planner policy digest is unchanged.
+- **After** (same log builder and verifier):
+  - intact: 8 records before and after, ok true, no findings.
+  - truncated: 8 -> 6 records, ok false, findings `["truncated-tail:6<8"]`, verified head 52cd39d9... vs anchor head 36a364f7....
+  - unanchored control: 8 -> 6 records, ok true, no findings.
+  - missing anchor: ok false, `missing-anchor`; mismatched anchor: ok false, `anchor-mismatch`; the sidecar write leaves no `.tmp` and is deterministic across rewrites.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, ranges 683/732/800/1646, fixed syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16 and cold-start 16/8/13/6 are unchanged; 177 tests OK.
+- **Ablation** (same log builder):
+  - anchor off (`verify_chain(path)`): the 8 -> 6 truncation returns ok true, records 6, no findings. The detection and the anchor evidence die with the cut; this is the documented residual exposure.
+  - missing/mismatched anchor: the anchored verifier fails separately, so a missing or edited witness is not silently accepted.
+- **Verdict**: trace-integrity instrumentation. Behavior is unchanged by design; the measured deltas are truncation detection (0 -> 1 class), records covered (3/5 unanchored -> 6/6 anchored verified), and the separate missing/mismatch findings. No action or emergence claim.
+- **Gates**: unittest 177/177 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - baseline probe -> full 5 records ok; truncated 3 records ok; `has_write_anchor` false.
+  - `python -m unittest tests.test_chain_anchor -v` -> before: ImportError (`write_anchor`); after: 7 OK.
+  - `python -m unittest discover -s tests -t .` -> 177 OK.
+  - `python -m evals.chain_anchor` -> intact 8/8 ok; truncated 8->6 `truncated-tail:6<8`; unanchored 8->6 ok.
+  - `python -m evals.trust` / `--ablate-noop` -> 16/8/13/6 and 36/28/33/26 with 21 calls; `python -m evals.escape` -> 19/18 intact, 200/200 ablate/blind; `python -m evals.coldstart --capture` -> 16/8/13/6.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 59**: unittest 177 OK; aikit 5/5; chain intact 8/8 ok, truncated 8->6 `truncated-tail:6<8`, unanchored 8->6 ok, missing/mismatch fail; multi (7,5) 16/1.0 with probe; dead-pool ablate 18; other multi 9/11/13/14; three 15/12/10/13/19; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; manifest intact coverage 1.0, ablate 0.0; trust 16/8/13/6, ablate-noop 36/28/33/26 with 21 calls; both-off 200/0; escape 19/18; exhaustive 3906/3906; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

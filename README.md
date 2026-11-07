@@ -35,6 +35,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.dead_pool
   ```
+- **Chain-Anchor Battery**:
+  ```bash
+  python -m evals.chain_anchor
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -64,7 +68,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -141,6 +145,19 @@ ablation. Single-blocker and open-field paths keep their existing
 rules. `python -m evals.escape` shows both recovered three-blocker
 layouts, the escape-off and memory-blind controls, and the unchanged
 first prompt hash.
+
+## 🧷 Terminal Telemetry Anchor
+
+A run can write a separate `.anchor` sidecar with the final head digest
+and record count via `Telemetry.write_anchor()`. Anchored verification
+compares both: a shorter log reports
+`truncated-tail:<count><<anchor_count>`, a different head/count reports
+`anchor-mismatch`, and a missing witness reports `missing-anchor`.
+Without the anchor, a truncated prefix remains internally valid; the
+anchor is a separate witness and must be kept outside the tampered
+log's control. `python -m evals.chain_anchor` shows intact (pass),
+truncated (detected) and anchor-off (the old exposure). The sidecar
+contains hashes and counts only and is never committed.
 
 ## 🧾 Verdict Facts
 
