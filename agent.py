@@ -100,20 +100,36 @@ class Planner:
         return self._get_hub()
 
     def plan(self, state, memories=None):
-        _ = memories
+        hub = self.read_hub()
+        _ = hub.get("last_action") if hub else None
+        recent = list(memories)[-4:] if memories else []
+        positions = []
+        for m in recent:
+            if isinstance(m, dict) and "x" in m and "y" in m:
+                positions.append((m["x"], m["y"]))
         x, y = state["x"], state["y"]
         pos = [x, y]
+        stuck = positions.count((x, y)) >= 2
         steps = state.get("steps", 0)
         obstacles = list(state.get("obstacles", []))
         if "obstacle" in state and state["obstacle"] not in obstacles:
             obstacles.append(state["obstacle"])
+
+        def _toward(goal):
+            if stuck:
+                dx = goal[0] - pos[0]
+                dy = goal[1] - pos[1]
+                for name, nxt in (("down", [pos[0], pos[1] + 1]) if dy > 0 else ("up", [pos[0], pos[1] - 1]),) if dy != 0 else ():
+                    if 0 <= nxt[0] < SIZE and 0 <= nxt[1] < SIZE and tuple(nxt) not in {tuple(o) for o in obstacles}:
+                        return name
+            return _step_toward(pos, goal, obstacles)
 
         remaining = state.get("items_positions")
         if remaining:
             if pos in [list(c) for c in remaining]:
                 return "collect"
             goal = _nearest(pos, [list(c) for c in remaining])
-            return _step_toward(pos, goal, obstacles)
+            return _toward(goal)
 
         target = state.get("target")
         if target is not None:
@@ -122,7 +138,7 @@ class Planner:
                 if state.get("task") == "T2_delayed_match" and steps < 2:
                     return "wait"
                 return "collect"
-            return _step_toward(pos, target, obstacles)
+            return _toward(target)
 
         return "wait"
 

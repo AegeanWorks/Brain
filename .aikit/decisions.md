@@ -23,3 +23,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Agent loop needs deterministic per-step hub sharing; persistent store needs cross-run recall.
 - **Decision**: agent.py holds in-memory episode buffers with hub binding; memory/store.py, planner/plan.py, self_model/model.py hold persistent counters; integration via hub + telemetry log.
 - **Consequences**: No emergence claim in Stage 3; cross-episode persistence wiring verified by unit tests only.
+
+### ADR-004: Planner reads memory and hub for loop avoidance (negative result)
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Stage 4 calibration showed planner ignored memories (`_ = memories`), limiting cross-module coupling by construction.
+- **Decision**: Planner.plan reads hub via read_hub and recent positions from memories; stuck repeats switch to y-first step. Deterministic, rule-based, no new deps.
+- **Consequences**: Gate stays 38 OK; T1 pooled phi 0.0226 vs null 0.0106, syn 0.0265 vs null 0.0773 — E1' still FAIL; verdict stays UNKNOWN. No threshold moved.
