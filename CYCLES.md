@@ -676,3 +676,62 @@ only integration scores, cross-module dependencies, and ablation differentials.
   fixed-rig syn 0.12455861 phi 0.0 n_records 32; hub0/m0 0.0 p0/s0
   identical; visit-oracle 16/8/13/6/9; visits-stripped ablation
   200/0.0 on 74 only.
+
+## Cycle 16 — episode-memory goal recall for transient dropout
+
+- **Baseline** (same rig/seeds, cycle-15 pins re-verified):
+  - canonical: 66 OK; aikit 5/5 PASS.
+  - code behavior: T1-71 16/3.0; T2-3 8/1.0; T3-15 13/1.0; T3-65
+    6/1.0; T3-74 9/1.0; 30-seed 466/240/217.
+  - trace: fixed-rig syn 0.12455861 syn_n 0.24891688 phi 0.0
+    n_records 32; hub0/m0 0.0; p0/s0 identical.
+  - seam: visit-oracle 5/5 (16/8/13/6/9); goal-oracle 4/4.
+  - hidden-dropout probe (new this cycle, plan-time strip with
+    memories intact): T3-15 target-stripped 200/0.0 vs intact
+    13/1.0; T1-71 items-stripped 200/0.0 vs 16/3.0.
+  - dead ends: mean_conf churn; hub no failing behavior; persistent
+    recall zero headroom (reserved); phi/P/S gaming refused; live
+    fine-tuning blocked; T2 wait kept; energy never binds.
+- **Gap**: Planner reads goal keys only from current state; episode
+  memory holds ground truth but is ignored for goals (positions
+  only for visits).
+- **Target delta**: recall missing target/items/obstacles/cue from
+  memories; hidden 200 -> 13/16 with standing identical.
+- **Falsifier**: standing totals move, any trace number moves, or
+  hidden stays 200; emergence falsifier: memory-blind ablation must
+  restore 200/0.0.
+- **Change** (agent.py Planner.plan only; tests/test_hidden_goal.py
+  new): _recall searches provided memories most-recent-first for
+  missing keys (absent or None only; empty lists stay); recalled
+  values drive rule geometry and backend obs. No world change; no
+  new deps.
+- **After** (identical battery, same seeds):
+  - code identical: 16/8/13/6/9; 466/240/217.
+  - trace identical: syn 0.12455861 phi 0.0 n32; lesions unchanged.
+  - seam carried: prior oracles unchanged (visit 5/5, goal 4/4).
+  - hidden fixed: T3-15 200 -> 13/1.0; T1-71 200 -> 16/3.0; 3x
+    repeats byte-identical (variance 0).
+- **Ablation** (memory-blind: empty memories with same strip):
+  - intact: 13/1.0 with full memories.
+  - blind: 200/0.0 with no memories.
+  - Gain dies with the cut, returns with the restore: episode
+    memory channel load-bearing. Standing None control unchanged.
+  - Boundary honestly recorded: probe keeps saved memories full
+    (transient dropout); persistent hidden worlds need full-history
+    recall plus a new task family — reserved, not claimed.
+- **Verdict**: robustness win with proven memory coupling; no
+  emergent claim. Verdict UNKNOWN.
+- **Gates**: unittest 69/69 OK (66 carried + 3 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_hidden_goal -v` -> 3 FAIL (200/
+    0.0) before, 3 OK after.
+  - `python -m unittest discover -s tests -t .` -> 66 OK before,
+    69 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 5-seed + 30-seed probes before/after (identical).
+  - fixed-rig recompute before/after (identical).
+  - hidden 2-seed + 3x determinism + memory-blind ablation.
+- **Pinned regression baselines for cycle 17**: unittest 69 OK; aikit
+  5/5; standing 466/240/217 trap 16/8/13/6/9; fixed-rig syn
+  0.12455861 phi 0.0 n32; hub0/m0 0.0 p0/s0 identical; visit-oracle
+  5/5; hidden-target 13 hidden-items 16; blind ablation 200/0.0.

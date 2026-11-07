@@ -172,7 +172,21 @@ class Planner:
         for px, py in positions:
             visits[(px, py)] = visits.get((px, py), 0) + 1
         steps = state.get("steps", 0)
-        obstacles = list(state.get("obstacles", []))
+        mem_list = list(memories) if memories else []
+
+        def _recall(key):
+            if state.get(key) is not None:
+                return state.get(key)
+            for m in reversed(mem_list):
+                if isinstance(m, dict) and m.get(key) is not None:
+                    return m.get(key)
+            return None
+
+        if state.get("obstacles") is not None:
+            obstacles = list(state.get("obstacles", []))
+        else:
+            recalled_ob = _recall("obstacles")
+            obstacles = list(recalled_ob) if recalled_ob is not None else []
         if "obstacle" in state and state["obstacle"] not in obstacles:
             obstacles.append(state["obstacle"])
 
@@ -180,17 +194,26 @@ class Planner:
             return _step_toward(pos, goal, obstacles, visits)
 
         remaining = state.get("items_positions")
+        if remaining is None:
+            remaining = _recall("items_positions")
+        recalled_target = _recall("target")
+        if "cue" in state:
+            cue_val = state.get("cue")
+        else:
+            cue_val = _recall("cue")
         if self.backend is not None:
             obs = {"task": state.get("task"), "x": x, "y": y,
                    "steps": steps, "legal": list(_LEGAL_ACTIONS)}
-            if state.get("target") is not None:
-                obs["target"] = list(state.get("target"))
+            if recalled_target is not None:
+                obs["target"] = list(recalled_target)
             if remaining is not None:
                 obs["items_positions"] = [list(c) for c in remaining]
             if obstacles is not None:
                 obs["obstacles"] = [list(c) for c in obstacles]
-            if "cue" in state:
-                obs["cue"] = state.get("cue")
+            if cue_val is not None or "cue" in state or any(
+                    isinstance(m, dict) and "cue" in m for m in mem_list):
+                if cue_val is not None:
+                    obs["cue"] = cue_val
             if visits:
                 obs["visits"] = [[int(px), int(py), int(visits[(px, py)])]
                                  for (px, py) in sorted(visits)]
@@ -207,7 +230,7 @@ class Planner:
             goal = _first_of_best_tour(pos, [list(c) for c in remaining])
             return _toward(goal)
 
-        target = state.get("target")
+        target = recalled_target
         if target is not None:
             target = list(target)
             if pos == target:
