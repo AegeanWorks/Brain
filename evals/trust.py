@@ -1,11 +1,13 @@
 """Backend-trust battery: stalled legal proposals versus the rule fallback.
 
-A deterministic backend returns the legal token "wait" every step. With
-the default trust window the planner accepts it until the hub reports
-20 consecutive unrewarded steps, then rejects it in favor of the rule
-action and stays match-only for the rest of the episode. ``trust_window=None``
-is the ablation: the same backend and prompts run, but every legal
-proposal is accepted, so the run stalls at the cap.
+A deterministic backend returns the legal token "wait" every step. The
+no-op guard rejects it immediately whenever the rule has a productive
+action. The independent trust window remains for movement stalls; with
+``noop_guard=False`` the wait is accepted until 20 unrewarded steps,
+then rejected and held match-only. ``trust_window=None`` plus
+``noop_guard=False`` is the raw control: every legal proposal is
+accepted and the run stalls at the cap. All variants use the same
+backend, seeds and prompts.
 
 Reports behavior (success, steps, reward, transfer, recovery) and the
 model-seam trace (proposed/rule/steps_since_reward/accepted, fallback
@@ -75,9 +77,10 @@ def _prompt_sha256(observation, seed):
 
 
 def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
-                 max_steps=200):
+                 noop_guard=True, max_steps=200):
     backend = WaitingBackend()
-    planner = Planner(backend=backend, trust_window=trust_window)
+    planner = Planner(backend=backend, trust_window=trust_window,
+                      noop_guard=noop_guard)
     agent = Agent(planner=planner, world=GridWorld(task, seed))
     log_path = os.path.join(directory, "%s-%d.jsonl" % (task, seed))
     tel = Telemetry(log_path)
@@ -109,6 +112,7 @@ def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
         "success": success,
         "fallbacks": planner.fallbacks,
         "model_calls": backend.calls,
+        "noop_guard": noop_guard,
         "rejected_steps": sum(1 for item in decisions if not item["accepted"]),
         "decision_first": decisions[0] if decisions else None,
         "decision_last": decisions[-1] if decisions else None,
@@ -118,17 +122,20 @@ def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
     }
 
 
-def run_battery(cases=CASES, trust_window=DEFAULT_TRUST_WINDOW, max_steps=200):
+def run_battery(cases=CASES, trust_window=DEFAULT_TRUST_WINDOW,
+                noop_guard=True, max_steps=200):
     """Measure every case in one temporary directory."""
     with tempfile.TemporaryDirectory() as directory:
         results = [measure_case(task, seed, directory,
                                 trust_window=trust_window,
+                                noop_guard=noop_guard,
                                 max_steps=max_steps)
                    for task, seed in cases]
         return {
             "policy_sha256": policy_digest(),
             "model": "WaitingBackend",
             "trust_window": trust_window,
+            "noop_guard": noop_guard,
             "max_steps": max_steps,
             "cases": results,
         }
@@ -147,12 +154,24 @@ def main():
     parser.add_argument("--case", action="append", default=[],
                         help="task:seed; repeatable (default: all cases)")
     parser.add_argument("--ablate", action="store_true",
-                        help="disable the trust window (raw backend control)")
+                        help="disable both guards (raw backend control)")
+    parser.add_argument("--ablate-noop", action="store_true",
+                        help="disable the no-op guard only; stall trust remains")
+    parser.add_argument("--ablate-trust", action="store_true",
+                        help="disable the trust window only; no-op guard remains")
     parser.add_argument("--max-steps", type=int, default=200)
     args = parser.parse_args()
     cases = tuple(_parse_case(text) for text in args.case) if args.case else CASES
-    trust_window = None if args.ablate else DEFAULT_TRUST_WINDOW
+    trust_window = DEFAULT_TRUST_WINDOW
+    noop_guard = True
+    if args.ablate:
+        trust_window, noop_guard = None, False
+    elif args.ablate_noop:
+        noop_guard = False
+    elif args.ablate_trust:
+        trust_window = None
     print(json.dumps(run_battery(cases, trust_window=trust_window,
+                                 noop_guard=noop_guard,
                                  max_steps=args.max_steps),
                      indent=2, sort_keys=True))
 

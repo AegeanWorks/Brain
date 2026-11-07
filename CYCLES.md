@@ -2539,3 +2539,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `git -C projects/brain grep -n "steps_since_reward|model_decision|save_layout|get_layout|_layout_complete|fallbacks" -- "*.py"` -> all channels have live consumers.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
 - **Pinned regression baselines carried (no new pins)**: unittest 140 OK; aikit 5/5; cold-start 16/8/13/6; cold-first 200 then 16/8/13/6; trust 36/28/33/26 with fallbacks 16/8/13/6; trust ablate 200/0; verdict cap truncated/reward 0.0; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy e400adcd...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 50 - reject legal no-op backend proposals immediately
+
+- **Baseline** (commit 1430c4c, cycle 49; same WaitingBackend, seeds, prompts and probes):
+  - canonical gate: 140 tests OK; aikit check 5/5; policy e400adcd...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - stalled backend (`wait` every step, trust on): success 4/4 but steps 36/28/33/26; rewards 3/1/1/1; fallbacks 16/8/13/6; first decision accepted=true, last rejected with distrusted=true; prompt hashes 6e19bc1d / 78c208fb / 816fa226 / ae3c4f52; gain .82/.86/.835/.87.
+- **Gap**: the trust gate waits 20 unrewarded steps before rejecting `wait`, even when the rule has a productive move. `wait` is a legal but dominated no-op; the 20-step delay is pure cost (T1 36 vs rule-optimal 16).
+- **Target delta**: steps 36/28/33/26 -> 16/8/13/6; gain .82/.86/.835/.87 -> .92/.96/.935/.97; first decision rejected with reason `no-op`; prompts unchanged; ablation with `noop_guard=False` restores 36/28/33/26.
+- **Falsifier**: any case stays above the rule-optimal step count; the no-op guard changes a rule-only or good-backend run; prompts differ; the no-op-off ablation does not restore the stall.
+- **Change**: Planner `noop_guard` (default on, independent of `trust_window`); reject `wait` when the rule action is not wait, and `collect` when the rule action is not collect; `model_decision.reason`; PLANNER_POLICY `backend_noop_guard: on`; trust battery adds `--ablate-noop`, `--ablate-trust`, `--ablate`; random-floor control disables both guards; three new tests and two updated setup tests.
+- **After** (same backend, seeds, prompts and probe code):
+  - success 4/4; steps 16/8/13/6; rewards 3/1/1/1; gain .92/.96/.935/.97; recovery 1.0 x4; action hashes match the four standing goldens (bafe50ff, 8d077e83, 63c67660, 8484f2ab).
+  - trace: fallbacks 16/8/13/6; first and last decision accepted=false, reason `no-op`, distrusted=false; prompt hashes identical to baseline.
+  - rule-only standing behavior and trace unchanged: 466/240/217; T1 seeds 0-99 1581; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; good-backend replay 0 fallbacks; policy e400adcd... -> 180ba03d....
+- **Ablation** (same backend/prompts/seeds):
+  - no-op guard off, trust on: 36/28/33/26, first accepted=true, last `stall`/distrusted=true; exactly the baseline.
+  - trust off, no-op guard on: 16/8/13/6, first/last `no-op`; the guard works without the stall window.
+  - both off: 200/200/200/200 with 0 reward, accepted=true; raw backend control.
+- **Verdict**: integration confirmed for the no-op guard. The model receives byte-identical prompts; the planner rejects a dominated legal token immediately, and the two-level ablation separates the no-op guard from the stall gate.
+- **Gates**: unittest 143/143 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_backend tests.test_random_floor -v` -> 13 OK.
+  - `python -m evals.trust` -> 16/8/13/6; `--ablate-noop` -> 36/28/33/26; `--ablate-trust` -> 16/8/13/6; `--ablate` -> 200/0 x4.
+  - `python -m unittest discover -s tests -t .` -> 143 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
+- **Pinned regression baselines for cycle 51**: unittest 143 OK; aikit 5/5; trust 16/8/13/6 with 3/1/1/1 and fallbacks 16/8/13/6; ablate-noop 36/28/33/26; ablate-trust 16/8/13/6; ablate-both 200/0; prompt hashes 6e19bc1d/78c208fb/816fa226/ae3c4f52; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.

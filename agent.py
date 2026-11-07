@@ -39,6 +39,7 @@ PLANNER_POLICY = {
     "recall": "full-history+goal",
     "recovery_recall": "persistent-layout",
     "backend_trust": "stall>=20->match-only",
+    "backend_noop_guard": "on",
     "detour_pooling": "visits",
     "pool_corridor": ">=2",
 }
@@ -261,12 +262,15 @@ class Planner:
     counted in fallbacks. A legal proposal is trusted until the hub
     reports ``steps_since_reward >= trust_window``; after that stall a
     proposal not matching the rule action is rejected and the backend
-    stays match-only for the rest of the episode. With backend None the
-    rule path is exact. ``trust_window=None`` disables the gate so raw
+    stays match-only for the rest of the episode. Independently, a
+    no-op proposal (``wait`` or a premature ``collect``) is rejected
+    immediately whenever the rule action is productive. With backend
+    None the rule path is exact. ``trust_window=None`` disables the
+    stall gate and ``noop_guard=False`` disables the no-op guard so raw
     backend controls can be measured.
     """
 
-    def __init__(self, backend=None, trust_window=20):
+    def __init__(self, backend=None, trust_window=20, noop_guard=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -274,9 +278,13 @@ class Planner:
                 raise ValueError(
                     "Why: trust_window must be a positive int or None. "
                     "Fix: pass trust_window=20 or None.")
+        if not isinstance(noop_guard, bool):
+            raise ValueError(
+                "Why: noop_guard must be a bool. Fix: pass noop_guard=True or False.")
         self._get_hub = None
         self.backend = backend
         self.trust_window = trust_window
+        self.noop_guard = noop_guard
         self._backend_distrusted = False
         self.fallbacks = 0
         self._recall_source = None
@@ -454,20 +462,33 @@ class Planner:
             except Exception:
                 proposed = None
             accepted = False
+            reason = "invalid"
             if isinstance(proposed, str) and proposed in _LEGAL_ACTIONS:
-                if self.trust_window is None or proposed == rule_action:
+                noop = (self.noop_guard and (
+                    (proposed == "wait" and rule_action != "wait")
+                    or (proposed == "collect" and rule_action != "collect")))
+                if noop:
+                    reason = "no-op"
+                elif self.trust_window is None or proposed == rule_action:
                     accepted = True
+                    reason = "accepted"
                 elif not self._backend_distrusted and since < self.trust_window:
                     accepted = True
+                    reason = "accepted"
                 elif since >= self.trust_window:
                     self._backend_distrusted = True
+                    reason = "stall"
+                else:
+                    reason = "distrusted"
             probe["model_decision"] = {
                 "proposed": proposed,
                 "rule": rule_action,
                 "steps_since_reward": since,
                 "trust_window": self.trust_window,
+                "noop_guard": self.noop_guard,
                 "distrusted": self._backend_distrusted,
                 "accepted": accepted,
+                "reason": reason,
             }
             self.last_probe = probe
             if accepted:

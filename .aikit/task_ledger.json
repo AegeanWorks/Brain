@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle49-zero-audit",
+    "task_id": "brain-cycle50-noop-guard",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794064167.3862193,
-    "owner": "opencode:cycle49",
-    "started_by": "opencode:cycle49",
+    "updated_at": 1794064941.6046019,
+    "owner": "opencode:cycle50",
+    "started_by": "opencode:cycle50",
     "continuations": [],
-    "completed_at": 1794064242.360386
+    "completed_at": 1794064950.5816362
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle45-layout-recovery",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit code, tests, probe, harness, ADR-043, cycle 45",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794062604.632749,
-      "timestamp_str": "2026-11-07 17:43:24",
-      "agent": "opencode:cycle45"
-    },
-    {
-      "task_id": "brain-cycle45-layout-recovery",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle45-layout-recovery' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794062613.1633677,
-      "timestamp_str": "2026-11-07 17:43:33",
-      "agent": "opencode:cycle45"
-    },
-    {
-      "task_id": "brain-cycle46-layout-completeness",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: reject incomplete layout writes and heal poisoned layouts",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794062734.0956247,
-      "timestamp_str": "2026-11-07 17:45:34",
-      "agent": "opencode:cycle46",
-      "impact_assessment": {
-        "why": "A cold-first run with no prior warm layout writes a stripped state; first-write-wins then keeps it, so a later full run cannot restore recovery.",
-        "benefits": "Cold-first then warm then cold recovers; existing incomplete layouts heal; trace shows layout completeness and persistent source.",
-        "risks": "contract: save_layout gains optional replace; dependency: stdlib only; concurrency: none; state: layouts table unchanged, content replacement only when current is complete and existing is incomplete.",
-        "mitigation": "Completeness gate before any write; replace only complete-over-incomplete; executable negative control patches the gate; all cycle 45 pins re-run."
-      },
-      "plan_digest": "77e87d82c377c600552f17887ecd46f56eed85c216b99fc26b1aef76dded391f"
-    },
-    {
-      "task_id": "brain-cycle46-layout-completeness",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first cold-first tests; completeness gate, complete-over-incomplete replace, cold-first harness scenario",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063097.345327,
-      "timestamp_str": "2026-11-07 17:51:37",
-      "agent": "opencode:cycle46"
-    },
-    {
-      "task_id": "brain-cycle46-layout-completeness",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Cold-first verified: cold1 200/0, layout absent, warm 16/8/13/6, cold2 16/8/13/6 with 3/1/1/1; gate-patch ablation 200/0; 132 tests OK; aikit 5/5; standing pins unchanged; ADR-044 and cycle 46 recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063101.4789991,
-      "timestamp_str": "2026-11-07 17:51:41",
-      "agent": "opencode:cycle46"
-    },
     {
       "task_id": "brain-cycle46-layout-completeness",
       "phase": "verification",
@@ -254,6 +193,67 @@
       "timestamp": 1794064242.3603876,
       "timestamp_str": "2026-11-07 18:10:42",
       "agent": "opencode:cycle49"
+    },
+    {
+      "task_id": "brain-cycle50-noop-guard",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: reject legal no-op proposals immediately when the rule has a productive action",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794064519.6289213,
+      "timestamp_str": "2026-11-07 18:15:19",
+      "agent": "opencode:cycle50",
+      "impact_assessment": {
+        "why": "A stalled backend proposing wait is accepted for 20 steps before the trust window, costing 20 wasted steps per episode; wait is a legal but dominated no-op whenever the rule can move or collect.",
+        "benefits": "Stalled backend completes in rule-optimal steps (16/8/13/6) instead of 36/28/33/26; trace records reason=no-op; trust window remains for movement stalls.",
+        "risks": "contract: Planner gains noop_guard and model_decision.reason; dependency: stdlib only; concurrency: none; state: no persistent schema change.",
+        "mitigation": "Keep noop_guard independent of trust_window; raw control disables both; update pinned trust numbers deliberately; re-run all standing goldens."
+      },
+      "plan_digest": "232bc79be3b5dc1fbe35fb1ac9de7b2b5d73dd2913df2737ed19664bf21ab595"
+    },
+    {
+      "task_id": "brain-cycle50-noop-guard",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first no-op tests; noop_guard independent of trust_window, model_decision.reason, two-level trust-battery ablations",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794064932.748571,
+      "timestamp_str": "2026-11-07 18:22:12",
+      "agent": "opencode:cycle50"
+    },
+    {
+      "task_id": "brain-cycle50-noop-guard",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: stalled backend 36/28/33/26 -> 16/8/13/6 with rewards 3/1/1/1; ablate-noop restores 36/28/33/26; ablate-trust stays 16/8/13/6; both off 200/0; prompts unchanged; 143 tests OK; aikit 5/5; standing unchanged; ADR-047 and cycle 50 recorded",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794064937.0055723,
+      "timestamp_str": "2026-11-07 18:22:17",
+      "agent": "opencode:cycle50"
+    },
+    {
+      "task_id": "brain-cycle50-noop-guard",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit no-op guard, tests, trust battery ablations, ADR-047, cycle 50",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794064941.6046019,
+      "timestamp_str": "2026-11-07 18:22:21",
+      "agent": "opencode:cycle50"
+    },
+    {
+      "task_id": "brain-cycle50-noop-guard",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle50-noop-guard' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794064950.5816374,
+      "timestamp_str": "2026-11-07 18:22:30",
+      "agent": "opencode:cycle50"
     }
   ]
 }
