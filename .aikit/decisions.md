@@ -177,3 +177,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: Transferred idea from research-engine kill tests (EVID-008 warns on a verified test without a control; EVID-009 errors when a control never fails): trap/range/holdout tests pinned intact optimality, but the failing side lived only in one-off manual cut runs, so a future change could neuter a probe silently.
 - **Decision**: Extract _enters_blocked_corridor to module level (pure extract-method, behavior-identical refactor) and add tests/test_negative_control.py: mock.patch it to False (visits-only ordering = pre-cycle-20 semantics, depth kept 4) and pin the reproducibly-failing signatures (479 12 vs intact 10; holdout-500s T3 742 vs 738) with call_count>0 engagement proof. No behavior change; no new deps.
 - **Consequences**: 91 tests OK; aikit check 5/5; standing behavior and trace byte-identical (refactor verified by corridor/holdout/trap/exhaustive suites pre-commit); control fails reproducibly with pinned signatures; intact side green.
+
+### ADR-026: Random-policy floor as a verdict control
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: Transferred idea from Crucible random-patch controls (a win must beat the best of 3 randoms): blind ablations sever memory but keep lookahead, so nothing quantified how far the shipped planner stands above chance on the pin battery.
+- **Decision**: tests/test_random_floor.py plays the 9 pin seeds with 3 seeded uniform-random policies (9001-9003) and requires rule 89 steps / 11.0 reward to beat the best random (1271 steps / 5.0) by pre-registered margins (steps x10, reward +5). No source change; no new deps.
+- **Consequences**: 93 tests OK (27 random episodes + determinism check, ~4s); aikit check 5/5; standing behavior and trace byte-identical (no source diff); degraded (memory-blind) planner fails the steps margin (280x10 > 1271), proving the verdict discriminates planner quality, not just code presence.

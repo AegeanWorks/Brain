@@ -1282,3 +1282,52 @@ only integration scores, cross-module dependencies, and ablation differentials.
   pins 16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0
   n32; hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
   variance 0.
+
+## Cycle 27 — random-policy floor as a verdict control (idea transfer)
+- **Source**: Crucible random-patch controls (sixth transfer; remaining
+  backlog: ModelDuck tune gate/quota ladder, Lattice token-frugal
+  context + snapshot diffing, Lacon budgets — all dead on arrival for
+  stdlib Brain: no tunable settings, no memory pressure, no
+  unmeasured tokens; training-stack items blocked).
+- **Gap**: blind ablations sever memory but keep lookahead, so nothing
+  quantified how far the shipped planner stands above chance.
+- **Target delta**: best-of-3 seeded randoms on 9 pins; rule must win
+  by pre-registered margins (steps x10, reward +5). No source change.
+- **Falsifier**: standing totals move, trace numbers move, or random
+  meets the margins.
+- **Change** (tests/test_random_floor.py new only; ADR-026): uniform
+  RandomBackend over legal actions, seeds 9001-9003, 27 episodes +
+  determinism check (~4s). Pre-registered thresholds, not fitted.
+  No source diff; no new deps.
+- **Baseline** (cycle-26 pins re-verified): 91 OK; 5/5; 30-seed
+  466/240/217; fixed-rig syn 0.05411532 phi 0.0 n32; random floor
+  measured: best 1271 steps / 5.0 reward vs rule 89 / 11.0.
+- **After**:
+  - code identical: 30-seed 466/240/217; all 91 carried tests pass.
+  - trace identical: syn 0.05411532 phi 0.0 n32; lesions unchanged.
+  - floor pinned: 93/93 with rule 89/11.0 beating best random
+    1271/5.0 by 14x steps and +6 reward (margins x10/+5 held).
+- **Ablation / sensitivity** (no source touched):
+  - memory-blind planner as degraded variant: 280 steps / 10.0
+    reward — fails the steps margin (280x10 > 1271) while passing
+    reward: the verdict binds on efficiency, exactly as designed,
+    proving it discriminates planner quality, not just code
+    presence.
+- **Verdict**: control win (chance floor now gated); no emergent
+  claim. Verdict UNKNOWN.
+- **Gates**: unittest 93/93 OK (91 carried + 2 new); aikit 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_random_floor -v` -> 2 OK.
+  - blind-vs-random margin probe (fails steps margin as designed).
+  - `python -m unittest discover -s tests -t .` -> 91 OK before,
+    93 OK after.
+  - `python aikit.py check brain` -> 5/5 before and after.
+  - standing 30-seed + fixed-rig identical.
+- **Pinned regression baselines for cycle 28**: unittest 93 OK; aikit
+  5/5; standing 466/240/217; 0-99 1581/800/683; T3 200-299 718;
+  T3 300-399 671; T3 400-499 675; holdout 500-599 1581/800/738;
+  exhaustive T3 3906/3906 total 27860; corridor-cut control 12/742;
+  random floor best 1271/5.0 vs rule 89/11.0 (margins x10/+5); pins
+  16/8/13/6/9 + 7/14 + 6/10; fixed-rig syn 0.05411532 phi 0.0 n32;
+  hub0/m0 0.0 p0/s0 identical; manifest + repro determinism
+  variance 0.
