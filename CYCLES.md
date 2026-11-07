@@ -268,3 +268,56 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Final pins**: unittest 49 OK; aikit 5/5; T1 100-seed 1581;
   T2 100-seed 800; T3 100-seed 683 (0-99) with 100-199 fully optimal;
   trap/tour/ablation pins carried; phi 0.0 x3; syn 0.1167/0.1000/0.1229.
+
+## Cycle 7 — measurement-integrity audit and lesion-differential pins
+
+- **Baseline**: 49 tests OK; aikit 5/5; no committed test pins the
+  lesion-differential structure (hub/M lesions kill syn; P/S change
+  nothing) — verified only in throwaway probes.
+- **Gap**: two unexamined risks: (a) an estimator bug would silently
+  invalidate every reported number; (b) the integration structure has
+  no regression guard — a future change could sever hub/M coupling
+  with the suite staying green.
+- **Target delta**: estimators match analytic references within stated
+  tolerances; 3 new committed tests pin intact/lesioned syn/phi on a
+  fixed rig (49 -> 52 tests).
+- **Falsifier**: any estimator deviating from its reference, or any pin
+  failing on the current tree for a reason other than the intended
+  structural assertion.
+- **Change** (tests/test_integration_differentials.py only, new file):
+  fixed rig (T1 seed 7, 30-step wiring run = 15 steps) asserting signal
+  presence (syn 0.1246 > 0.05), phi floor (0.0), hub/M lesion kills
+  (syn 0.0 exactly), P/S lesion no-ops (bit-identical to intact).
+  No production-code change: estimators verified, not modified.
+- **Estimator verification** (probe, N=4000 Gaussian unless noted):
+  - MI identical series == marginal entropy (1.6131 == 1.6131).
+  - MI independent pair 0.0075 (finite-sample bias, ~0).
+  - phi lagged-copy construction 0.5001 == theoretical 1-(1/2)
+    (one of two channels coupled); white noise 0.0002 (~0).
+  - synergy XOR target 0.6931 == ln 2 exactly; independent target 0.0.
+  - gbi(0.2,0.6)=0.5, transfer_gain(10,6)=0.4, recovery(2,10)=0.8 exact.
+  - logistic_k perfect step: r2 0.995. permutation_null: constant
+    passthrough; uniform-95th 0.9498 (~0.95).
+  - Verdict: no deviations; references and implementation agree.
+- **After**: 52/52 tests OK; pins green on first run (values measured on
+  the fixed rig, then pinned). Sensitivity: the kill assertions fail
+  against unlesioned rows by construction (0.1246 vs 0.0); the no-op
+  assertions fail if any P/S variance ever enters syn.
+- **Ablation**: not a substrate claim; the lesion ops themselves are the
+  cuts, now pinned: hub_zero/m0 kill syn to 0.0 while p0/s0 preserve it
+  bit-identically — the same differentials the ledger previously
+  reported from probes, now regress-proof.
+- **Verdict**: harness win (3 pins guarding integration structure) plus
+  estimator verification with zero deviations; no emergence claim.
+  Verdict UNKNOWN.
+- **Gates**: unittest 52/52 OK; aikit check 5/5 PASS (new file clean:
+  no opens, no swallows, tempdir + finally).
+- **Commands run**:
+  - estimator sanity probe (9 analytic checks): all match.
+  - lesion pin-measurement probe (fixed rig): structure confirmed.
+  - `python -m unittest tests.test_integration_differentials -v` -> 3 OK.
+  - `python -m unittest discover -s tests -t .` -> 52 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 8**: unittest 52 OK; aikit 5/5;
+  all cycle-6 pins carried; fixed-rig (T1 seed7) syn 0.1246 phi 0.0;
+  hub0/m0 syn 0.0; p0/s0 syn bit-identical to intact.
