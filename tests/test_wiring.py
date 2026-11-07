@@ -81,7 +81,7 @@ class TestWiring(unittest.TestCase):
             finally:
                 try:
                     store.close()
-                except Exception:
+                except Exception:  # hygiene: allow [silent-except] best-effort tempdir cleanup
                     pass
 
     def test_hub_zero_null_and_lesion_isolates(self):
@@ -127,7 +127,7 @@ class TestWiring(unittest.TestCase):
             finally:
                 try:
                     store.close()
-                except Exception:
+                except Exception:  # hygiene: allow [silent-except] best-effort tempdir cleanup
                     pass
 
 

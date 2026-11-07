@@ -200,6 +200,14 @@ class Telemetry:
 class Agent:
     """Closed loop over a GridWorld instance.
 
+    Persistent outcome accounting: each loop step records cost 1.0 into
+    self_model with ok True only when that step's reward is positive
+    (reward > 0.0); unrewarded steps record ok False. Snapshot error_rate
+    is therefore the fraction of unrewarded steps, and S vectors carry
+    reward-timing variance. Failures inside persistent updates never raise:
+    each is counted in substrate_errors() by module key and the loop
+    continues. substrate_errors() returns all-zero counts on clean runs.
+
     Args:
         memory: Memory instance or None (a default is created).
         planner: Planner instance or None.
@@ -229,6 +237,14 @@ class Agent:
         self.self_model = self_model
         self.telemetry_log = telemetry_log
         self._hub = {}
+        self._substrate_errors = {
+            "bind": 0,
+            "memory_store": 0,
+            "planner_tracker": 0,
+            "self_model": 0,
+            "telemetry_log": 0,
+            "verdict": 0,
+        }
         for mod in (self.memory, self.planner, self.selfmodel, self.telemetry,
                     self.memory_store, self.planner_tracker, self.self_model,
                     self.telemetry_log):
@@ -239,7 +255,7 @@ class Agent:
                 try:
                     bind(self.get_hub)
                 except Exception:
-                    pass
+                    self._substrate_errors["bind"] += 1
 
     @property
     def log_path(self):
@@ -356,20 +372,21 @@ class Agent:
                     _conf = 1.0 if float(reward) > 0.0 else 0.5
                     self.memory_store.save(_key, _content, _conf)
                 except Exception:
-                    pass
+                    self._substrate_errors["memory_store"] += 1
             if self.planner_tracker is not None:
                 try:
                     nxt = self.planner_tracker.next()
                     if nxt is not None:
                         self.planner_tracker.mark_ok()
                 except Exception:
-                    pass
+                    self._substrate_errors["planner_tracker"] += 1
             if self.self_model is not None:
                 try:
                     _conf_sm = 1.0 if float(reward) > 0.0 else 0.5
-                    self.self_model.record(1.0, True, _conf_sm)
+                    _ok_sm = float(reward) > 0.0
+                    self.self_model.record(1.0, _ok_sm, _conf_sm)
                 except Exception:
-                    pass
+                    self._substrate_errors["self_model"] += 1
             m_vec, p_vec, s_vec, hub_vec = self._step_vectors(i, new_state, reward, memories)
             if self.telemetry_log is not None:
                 args = {
@@ -391,7 +408,7 @@ class Agent:
                         M=list(m_vec), P=list(p_vec), S=list(s_vec), hub=list(hub_vec),
                     )
                 except Exception:
-                    pass
+                    self._substrate_errors["telemetry_log"] += 1
             trace.append(
                 {"step": i, "state": copy.deepcopy(new_state), "action": action,
                  "reward": reward, "done": done}
@@ -433,5 +450,9 @@ class Agent:
         try:
             self.telemetry_log.write_verdict(verdict, reason)
         except Exception:
-            pass
+            self._substrate_errors["verdict"] += 1
         return trace
+
+    def substrate_errors(self):
+        """Return a copy of per-module persistent-substrate failure counts."""
+        return dict(self._substrate_errors)
