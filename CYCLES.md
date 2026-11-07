@@ -341,6 +341,9 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - Calibration, P/M redefinition, hub reads, phi floor: rejections
     from cycle 6 stand; nothing changed under them.
   - No estimator, gate, or contract deviation found.
+  - NOTE (corrected by cycle 9): this audit covered recall paths but
+    not the store open path; corruption recovery was unprobed and
+    turned out to be a real gap — see cycle 9.
 - **Verdict**: full cycle, zero verified improvements. Stop condition
   met. No code change; no ADR (no decision taken). Verdict UNKNOWN.
 - **Gates re-verified on the committed tree**: unittest 52/52 OK;
@@ -350,3 +353,39 @@ only integration scores, cross-module dependencies, and ablation differentials.
     grep for mean_conf/recall call sites: no downstream consumers.
   - `python -m unittest discover -s tests -t .` -> 52 OK.
   - `python aikit.py check brain` -> 5/5.
+
+## Cycle 9 — corrupt-store quarantine-and-reopen recovery
+
+- **Baseline**: 52 tests OK; aikit 5/5. Corrupt-file fixture (garbage
+  bytes): open raises sqlite3.DatabaseError ("file is not a database"),
+  recovery 0/1 — plus the failed connection leaks its handle so
+  Windows tempdir cleanup fails with PermissionError.
+- **Gap**: MemoryStore has no corrupt-quarantine path (PRINCIPLE-013
+  requires corrupt -> quarantine for state files). Target: corrupt
+  fixture recovers 1/1 with byte-identical quarantine preserved and a
+  functional store; healthy files byte-identical behavior.
+- **Falsifier**: any existing test red, quarantine bytes differing, or
+  recovered store non-functional.
+- **Change** (memory/store.py: factored _connect_validated with
+  quick_check + _quarantine_corrupt moving file and WAL sidecars,
+  recovery_notes() accessor; tests/test_store_recovery.py new):
+  open validates, closes the failed connection, quarantines, reopens
+  fresh. No new deps; deterministic names (.corrupt, numbered).
+- **After**: corrupt fixture opens with count 0, save/recall works,
+  quarantine bytes identical, notes record the move; tempdir cleanup
+  succeeds (leak gone). Healthy reopen: count preserved, no quarantine
+  file, notes empty.
+- **Ablation**: not an emergence claim; cut evidence is the pre-change
+  tree raising DatabaseError on the identical fixture (measured).
+- **Verdict**: robustness win (recovery 0/1 -> 1/1 + leak fixed);
+  no emergence claim. Verdict UNKNOWN.
+- **Gates**: unittest 54/54 OK; aikit check 5/5 PASS.
+- **Commands run**:
+  - corrupt-before probe: DatabaseError + PermissionError cascade.
+  - `python -m unittest tests.test_store_recovery -v` -> 2 ERROR
+    (DatabaseError; missing accessor) before; 2 OK after.
+  - `python -m unittest discover -s tests -t .` -> 54 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 10**: unittest 54 OK; aikit
+  5/5; all cycle-7 pins carried; corrupt fixture recovers 1/1;
+  healthy reopen unchanged.

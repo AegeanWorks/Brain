@@ -49,15 +49,66 @@ class MemoryStore:
     """
 
     def __init__(self, path):
-        """Open or create the store at path. Uses WAL mode."""
+        """Open or create the store at path. Uses WAL mode.
+
+        A file that fails SQLite validation is quarantined beside the
+        original (``path + ".corrupt"``, numbered on collision) and a
+        fresh store is opened in its place: opening never raises for
+        corruption, the failed connection is always closed (no handle
+        leak), and the corrupt bytes stay available for forensics.
+        """
         self._path = path
-        self._conn = sqlite3.connect(path)
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute(_SCHEMA_BASE)
-        self._conn.execute(_SCHEMA_FTS)
-        for stmt in _TRIGGERS:
-            self._conn.execute(stmt)
+        self._recovery_notes = []
+        try:
+            self._conn = self._connect_validated()
+        except sqlite3.DatabaseError as exc:
+            self._quarantine_corrupt(str(exc))
+            self._conn = self._connect_validated()
         self._persist()
+
+    def _connect_validated(self):
+        """Connect, apply the schema, and reject files failing checks."""
+        conn = sqlite3.connect(self._path)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(_SCHEMA_BASE)
+            conn.execute(_SCHEMA_FTS)
+            for stmt in _TRIGGERS:
+                conn.execute(stmt)
+            checked = conn.execute("PRAGMA quick_check").fetchall()
+            if any(row[0] != "ok" for row in checked):
+                raise sqlite3.DatabaseError("quick_check failed: %r" % (checked[:3],))
+            return conn
+        except Exception:
+            try:
+                conn.close()
+            except sqlite3.Error as close_exc:
+                self._recovery_notes.append("close after failure: %s" % close_exc)
+            raise
+
+    def _quarantine_corrupt(self, reason):
+        """Move the unreadable database file (plus WAL sidecars) aside."""
+        if self._path == ":memory:":
+            self._recovery_notes.append("in-memory open failed: %s" % reason)
+            return
+        target = self._path + ".corrupt"
+        n = 0
+        while os.path.exists(target):
+            n += 1
+            target = "%s.corrupt.%d" % (self._path, n)
+        os.replace(self._path, target)
+        for suffix in ("-wal", "-shm"):
+            sidecar = self._path + suffix
+            if os.path.exists(sidecar):
+                try:
+                    os.replace(sidecar, target + suffix)
+                except OSError as side_exc:
+                    self._recovery_notes.append("sidecar left in place: %s" % side_exc)
+        self._recovery_notes.append("quarantined to %s: %s" % (target, reason))
+
+    def recovery_notes(self):
+        """Return a copy of the recovery log (empty on a clean open)."""
+        return list(self._recovery_notes)
 
     def _persist(self):
         """Commit then flush the database file to storage."""

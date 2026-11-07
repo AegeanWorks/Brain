@@ -69,6 +69,13 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 ### ADR-010: Remove the inert stuck-override backstop from the planner
 - **Date**: 2026-11-07
 - **Status**: Accepted
-- **Context**: ADR-004 added a stuck detector (position repeated >=2 in recent memories forces one y-first step). After cycles 2-3, 2-ply lookahead plus least-visited ordering handles all traps; the override fired 238 times in 3064 plan calls (mostly collect dwells, where it never routes) without changing any outcome.
-- **Decision**: Delete the stuck computation and the y-first override branch. positions/visits stay: visit counts remain load-bearing (seed-74 ablation). T2 delayed-match wait rule stays: it is task-contract semantics, unreachable today (min target distance 7 > 2) but falsifiable by layout change.
+- **Context**: ADR-004 added a stuck detector (position repeated >=2 in recent memories forces one y-first step). After cycles 2-3, 2-ply lookahead plus least-visited ordering handles all traps; the override fired 238 times in 3064 plan calls without changing any outcome.
+- **Decision**: Delete the stuck computation and the y-first override branch in _toward. positions and visit counts stay: visit ordering remains load-bearing (seed-74 ablation). T2 delayed-match wait rule stays: it is task-contract semantics, unreachable today (min target distance 7 > 2) but falsifiable by layout change.
 - **Consequences**: 49 tests OK; aikit check 5/5; -6 lines; 100-seed totals per task byte-identical (T1 1581, T2 800, T3 683), all runs complete.
+
+### ADR-011: Quarantine-and-reopen recovery for corrupt store files
+- **Date**: 2026-11-07
+- **Status**: Accepted
+- **Context**: MemoryStore opened a corrupt file into DatabaseError at first execute and leaked the connection handle (Windows tempdir cleanup then failed with PermissionError). PRINCIPLE-013 requires corrupt -> quarantine for state files.
+- **Decision**: Open validates via schema setup plus PRAGMA quick_check; on sqlite3.DatabaseError the failed connection is closed, the file (plus WAL sidecars) is moved to path + ".corrupt" (numbered on collision), and a fresh store opens. recovery_notes() exposes the log, empty on clean opens.
+- **Consequences**: 54 tests OK; aikit check 5/5; corrupt fixture recovery 0/1 -> 1/1 with byte-identical quarantine preserved; no behavior change on healthy files.
