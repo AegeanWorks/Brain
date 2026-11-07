@@ -13,6 +13,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 from agent import Agent
 from evals.coldstart import CASES, cold_run, warm_run
@@ -23,6 +24,13 @@ from telemetry.log import Telemetry
 def _steps(log_path):
     return [record for record in Telemetry(log_path).read_all()
             if record.get("type") == "action" and record.get("kind") == "step"]
+
+
+def _layout_keys(store, task, seed):
+    content = store.get_layout(task, seed)
+    if content is None:
+        return None
+    return sorted(json.loads(content))
 
 
 class TestColdStartRecovery(unittest.TestCase):
@@ -123,6 +131,74 @@ class TestColdStartRecovery(unittest.TestCase):
                     self.assertIsNone(fresh.get_layout("T3_navigate", 15))
                 finally:
                     fresh.close()
+            finally:
+                store.close()
+
+    def test_cold_first_does_not_poison_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for task, seed, want_steps, want_reward in CASES:
+                path = os.path.join(tmp, "%s-%d.db" % (task, seed))
+                store = MemoryStore(path)
+                try:
+                    _agent, cold1, _backend = cold_run(store, task, seed)
+                    self.assertEqual(len(cold1), 200, "%s:%d cold-first" % (task, seed))
+                    self.assertIsNone(store.get_layout(task, seed),
+                                      "%s:%d stored an incomplete layout" % (task, seed))
+                    warm = warm_run(store, task, seed)
+                    self.assertEqual(len(warm), want_steps)
+                    keys = _layout_keys(store, task, seed)
+                    self.assertIsNotNone(keys, "%s:%d warm layout" % (task, seed))
+                finally:
+                    store.close()
+                store = MemoryStore(path)
+                try:
+                    _agent, cold2, _backend = cold_run(store, task, seed)
+                    self.assertEqual(len(cold2), want_steps, "%s:%d cold-second" % (task, seed))
+                    self.assertEqual(sum(record["reward"] for record in cold2),
+                                     want_reward, "%s:%d cold-second" % (task, seed))
+                finally:
+                    store.close()
+
+    def test_warm_run_heals_incomplete_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mem.db")
+            stripped = json.dumps({"x": 0, "y": 0, "task": "T3_navigate"})
+            store = MemoryStore(path)
+            try:
+                store.save_layout("T3_navigate", 15, stripped)
+                self.assertEqual(store.get_layout("T3_navigate", 15), stripped)
+                warm = warm_run(store, "T3_navigate", 15)
+                self.assertEqual(len(warm), 13)
+                keys = _layout_keys(store, "T3_navigate", 15)
+                self.assertIn("target", keys)
+                self.assertIn("obstacles", keys)
+            finally:
+                store.close()
+            store = MemoryStore(path)
+            try:
+                _agent, cold, _backend = cold_run(store, "T3_navigate", 15)
+                self.assertEqual(len(cold), 13)
+                self.assertEqual(sum(record["reward"] for record in cold), 1.0)
+            finally:
+                store.close()
+
+    def test_completeness_gate_ablation_repoisons(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mem.db")
+            store = MemoryStore(path)
+            try:
+                with mock.patch.object(Agent, "_layout_complete", return_value=True):
+                    _agent, cold1, _backend = cold_run(store, "T3_navigate", 15)
+                    self.assertEqual(len(cold1), 200)
+                    keys = _layout_keys(store, "T3_navigate", 15)
+                    self.assertIsNotNone(keys)
+                    self.assertNotIn("target", keys)
+                    warm = warm_run(store, "T3_navigate", 15)
+                    self.assertEqual(len(warm), 13)
+                    self.assertNotIn("target", _layout_keys(store, "T3_navigate", 15))
+                    _agent, cold2, _backend = cold_run(store, "T3_navigate", 15)
+                    self.assertEqual(len(cold2), 200)
+                    self.assertEqual(sum(record["reward"] for record in cold2), 0.0)
             finally:
                 store.close()
 

@@ -617,15 +617,34 @@ class Agent:
             return None
         return value if isinstance(value, dict) else None
 
-    def _remember_layout(self, state):
-        """Persist the initial state once; first write wins.
+    def _layout_complete(self, state):
+        """True when a state carries every goal field its task consumes.
 
-        Only stores that expose save_layout participate. A failure is
-        counted and never interrupts the episode.
+        Unknown task names keep the generic all-field fallback, so
+        custom worlds are not blocked by the known-task map.
+        """
+        if not isinstance(state, dict):
+            return False
+        task = state.get("task")
+        if task is None and self.world is not None:
+            task = getattr(self.world, "task_id", None)
+        fields = _TASK_FIELDS.get(task)
+        if fields is None:
+            return True
+        return all(state.get(key) is not None for key in fields)
+
+    def _remember_layout(self, state):
+        """Persist the initial state once; never store an incomplete one.
+
+        A cold-first run must not poison the first-write-wins row: only
+        task-complete states are written, and a complete state may
+        replace an existing incomplete row. Only stores that expose
+        save_layout participate. A failure is counted and never
+        interrupts the episode.
         """
         store = self.memory_store
         world = self.world
-        if store is None or world is None or not isinstance(state, dict):
+        if store is None or world is None or not self._layout_complete(state):
             return
         save_layout = getattr(store, "save_layout", None)
         if not callable(save_layout):
@@ -634,8 +653,25 @@ class Agent:
         seed = getattr(world, "seed", None)
         if task is None or seed is None:
             return
+        replace = False
+        get_layout = getattr(store, "get_layout", None)
+        if callable(get_layout):
+            try:
+                existing = get_layout(task, seed)
+            except Exception:
+                self._substrate_errors["memory_store"] += 1
+                existing = None
+            if existing is not None:
+                try:
+                    existing_state = json.loads(existing)
+                except (TypeError, ValueError):
+                    existing_state = None
+                if self._layout_complete(existing_state):
+                    return
+                replace = True
         try:
-            save_layout(task, seed, json.dumps(state, sort_keys=True))
+            save_layout(task, seed, json.dumps(state, sort_keys=True),
+                        replace=replace)
         except Exception:
             self._substrate_errors["memory_store"] += 1
 

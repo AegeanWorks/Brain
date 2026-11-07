@@ -52,12 +52,15 @@ brain/
 ## 🧊 Cold-Start Recovery Contract
 
 A warm run stores one full initial state per `(task, seed)` in the additive
-`layouts` table (first write wins). A cold run whose observations omit goal
-fields reads that layout once per episode; the planner probe records
-`store_reads` plus the fields supplied by `state`, `memory`, or `persistent`,
-and the same fields reach the model-seam observation. Cutting the source with
-`Planner.bind_recall_source(None)` restores the store-blind behavior, so the
-recovery property and its trace share one ablation.
+`layouts` table (first write wins). Only task-complete states are written: a
+cold-first run cannot poison the row, and a later complete run replaces an
+incomplete one. A cold run whose observations omit goal fields reads that
+layout once per episode; the planner probe records `store_reads` plus the
+fields supplied by `state`, `memory`, or `persistent`, and the same fields
+reach the model-seam observation. Cutting the source with
+`Planner.bind_recall_source(None)` restores the store-blind behavior; cutting
+the completeness gate restores cold-first poisoning. Property and trace share
+one ablation per scenario.
 
 ## 📜 License
 

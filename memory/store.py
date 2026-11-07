@@ -154,13 +154,15 @@ class MemoryStore:
         ).fetchone()
         return int(row[0])
 
-    def save_layout(self, task, seed, content):
-        """Persist one initial task state; first write wins.
+    def save_layout(self, task, seed, content, replace=False):
+        """Persist one initial task state; first write wins by default.
 
-        Returns True when this call inserted the row and False when an
-        existing (task, seed) layout was kept. Later writes never
-        overwrite the recovered initial state, so a cold restart can
-        re-read the layout after the episode itself has advanced.
+        Returns True when this call inserted or replaced a row and
+        False when an existing (task, seed) layout was kept. ``replace``
+        is reserved for a complete layout replacing an incomplete one;
+        later routine writes never overwrite the recovered initial
+        state, so a cold restart can re-read the layout after the
+        episode itself has advanced.
         """
         if not isinstance(task, str) or not task:
             raise ValueError("Why: task must be a non-empty string. Fix: pass task=str.")
@@ -168,13 +170,18 @@ class MemoryStore:
             raise ValueError("Why: seed must be an int. Fix: pass seed=int.")
         if not isinstance(content, str):
             raise ValueError("Why: content must be a string. Fix: pass content=str.")
-        cur = self._conn.execute(
-            "INSERT OR IGNORE INTO layouts(task, seed, content, ts) VALUES(?, ?, ?, ?)",
-            (task, int(seed), content, time.time()),
-        )
-        inserted = cur.rowcount > 0
+        if replace:
+            sql = (
+                "INSERT INTO layouts(task, seed, content, ts) VALUES(?, ?, ?, ?) "
+                "ON CONFLICT(task, seed) DO UPDATE SET "
+                "content=excluded.content, ts=excluded.ts"
+            )
+        else:
+            sql = "INSERT OR IGNORE INTO layouts(task, seed, content, ts) VALUES(?, ?, ?, ?)"
+        cur = self._conn.execute(sql, (task, int(seed), content, time.time()))
+        written = cur.rowcount > 0
         self._persist()
-        return inserted
+        return written
 
     def get_layout(self, task, seed):
         """Return the stored initial-state content for (task, seed), or None."""

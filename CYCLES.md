@@ -2415,3 +2415,35 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0, warm store_reads 0.
 - **Pinned regression baselines for cycle 46**: unittest 129 OK; aikit 5/5; cold-start 16/8/13/6 with 3/1/1/1; cold ablate/before 200/200/200/200 with 0; probe store_reads 1 cold / 0 warm; model obs keys include the recovered fields; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy f53f99a8...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 46 - layout completeness gate and incomplete-row healing
+
+- **Baseline** (commit cdd5479, cycle 45; identical cold-first harness, model label, seeds and probes):
+  - canonical gate: 129 tests OK; aikit check 5/5; policy f53f99a8...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - cold-first battery (cold with empty store -> warm -> cold; T1:71, T2:3, T3:15, T3:65): cold1 200/200/200/200 with 0 reward; layout after cold1 stripped (energy/items/steps/task/x/y only); warm 16/8/13/6 with 3/1/1/1; layout after warm still stripped; cold2 200/200/200/200 with 0 reward; cold2 probe persistent []; model observations lacked goal fields; cold2 action hash 4b2b1802... for all four.
+- **Gap**: a cold-first run writes an incomplete layout, and first-write-wins then prevents a later complete warm run from replacing it. Recovery is permanently disabled for that (task, seed).
+- **Target delta**: cold2 success 0/4 -> 4/4; cold2 steps 200/200/200/200 -> 16/8/13/6; cold2 rewards 0 -> 3/1/1/1; layout after cold1 stripped -> absent; layout after warm stripped -> complete; cold2 probe persistent [] -> task fields; model observations gain the recovered fields; gate-patch ablation restores the baseline.
+- **Falsifier**: cold-first still writes a layout, warm still cannot heal it, cold2 stays at 200/0, or any standing pin moves.
+- **Change**: agent.py `_layout_complete` gate and complete-over-incomplete healing in `_remember_layout`; memory/store.py `save_layout(..., replace=True)` upsert path (default remains first-write-wins); evals/coldstart.py `cold-first` scenario; tests/test_coldstart_recovery.py three new failing-first tests.
+- **After** (same harness, same model label CaptureBackend, same seeds, same probes):
+  - cold1: 200/200/200/200 with 0 reward (expected: no layout exists yet); layout after cold1 absent for all four.
+  - warm: 16/8/13/6 with 3/1/1/1; layout after warm contains items_positions for T1, cue+target for T2, target+obstacles for T3.
+  - cold2: success 4/4; steps 16/8/13/6; rewards 3/1/1/1; gain .92/.96/.935/.97; recovery 1.0 x4; action hashes match the four standing goldens (bafe50ff..., 8d077e83..., 63c67660..., 8484f2ab...).
+  - trace: cold2 probe store_reads 1; persistent [items_positions] / [cue,target] / [obstacles,target] / [obstacles,target]; model first-observation keys include those fields; prompt hashes 53ff78c8 / d8da4712 / d0447fba / 34fd0e2f (same as the cycle-45 recovered runs).
+  - cold2 recompute syn/phi: 0.0/0.0 (terminal-sparse reward; no synergy claim).
+  - warm-cold cycle-45 battery unchanged: 16/8/13/6 with 3/1/1/1; ablation 200/200/200/200 with 0.
+  - standing behavior and trace: 466/240/217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; warm probe store_reads 0 and persistent [].
+- **Ablation** (patch `Agent._layout_complete` to always True, same seeds and store):
+  - cold1 writes a stripped layout; warm cannot heal; cold2 200/200/200/200 with 0 reward; probe persistent []; model observations lack goal fields; cold2 action hash 4b2b1802..., equal to baseline. Property and trace die with the cut.
+- **Verdict**: integration confirmed for layout durability. The cycle fixes a self-inflicted recovery loss without changing the planner policy digest; the claim rests on the cold-first behavior quadruple plus the completeness-gate ablation.
+- **Gates**: unittest 132/132 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_coldstart_recovery -v` -> before: 2 failures, 1 error; after: 8 OK.
+  - `python -m evals.coldstart --scenario cold-first --capture` -> 4/4 recovered after warm.
+  - `python -m evals.coldstart --scenario cold-first --capture --ablate` -> 200/0 x4, stripped layout.
+  - `python -m evals.coldstart --capture` -> cycle-45 warm-cold battery unchanged.
+  - `python -m unittest discover -s tests -t .` -> 132 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0, warm store_reads 0.
+- **Pinned regression baselines for cycle 47**: unittest 132 OK; aikit 5/5; cold-first 200/200/200/200 then 16/8/13/6 with 3/1/1/1; cold-first layout absent after cold1 and complete after warm; warm-cold 16/8/13/6; ablation 200/0; probe store_reads 1 cold / 0 warm; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy f53f99a8...; goldens 9/9 + multi 5/5 + three 5/5.

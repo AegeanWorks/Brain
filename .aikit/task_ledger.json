@@ -1,15 +1,15 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle45-layout-recovery",
+    "task_id": "brain-cycle46-layout-completeness",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794062604.632749,
-    "owner": "opencode:cycle45",
-    "started_by": "opencode:cycle45",
+    "updated_at": 1794063106.1757197,
+    "owner": "opencode:cycle46",
+    "started_by": "opencode:cycle46",
     "continuations": [],
-    "completed_at": 1794062613.163366
+    "completed_at": 1794063113.7970796
   },
   "checkpoints": [
     {
@@ -72,6 +72,67 @@
       "timestamp": 1794062613.1633677,
       "timestamp_str": "2026-11-07 17:43:33",
       "agent": "opencode:cycle45"
+    },
+    {
+      "task_id": "brain-cycle46-layout-completeness",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: reject incomplete layout writes and heal poisoned layouts",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794062734.0956247,
+      "timestamp_str": "2026-11-07 17:45:34",
+      "agent": "opencode:cycle46",
+      "impact_assessment": {
+        "why": "A cold-first run with no prior warm layout writes a stripped state; first-write-wins then keeps it, so a later full run cannot restore recovery.",
+        "benefits": "Cold-first then warm then cold recovers; existing incomplete layouts heal; trace shows layout completeness and persistent source.",
+        "risks": "contract: save_layout gains optional replace; dependency: stdlib only; concurrency: none; state: layouts table unchanged, content replacement only when current is complete and existing is incomplete.",
+        "mitigation": "Completeness gate before any write; replace only complete-over-incomplete; executable negative control patches the gate; all cycle 45 pins re-run."
+      },
+      "plan_digest": "77e87d82c377c600552f17887ecd46f56eed85c216b99fc26b1aef76dded391f"
+    },
+    {
+      "task_id": "brain-cycle46-layout-completeness",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first cold-first tests; completeness gate, complete-over-incomplete replace, cold-first harness scenario",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063097.345327,
+      "timestamp_str": "2026-11-07 17:51:37",
+      "agent": "opencode:cycle46"
+    },
+    {
+      "task_id": "brain-cycle46-layout-completeness",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Cold-first verified: cold1 200/0, layout absent, warm 16/8/13/6, cold2 16/8/13/6 with 3/1/1/1; gate-patch ablation 200/0; 132 tests OK; aikit 5/5; standing pins unchanged; ADR-044 and cycle 46 recorded",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063101.4789991,
+      "timestamp_str": "2026-11-07 17:51:41",
+      "agent": "opencode:cycle46"
+    },
+    {
+      "task_id": "brain-cycle46-layout-completeness",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit code, tests, cold-first harness, ADR-044, cycle 46",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794063106.1757197,
+      "timestamp_str": "2026-11-07 17:51:46",
+      "agent": "opencode:cycle46"
+    },
+    {
+      "task_id": "brain-cycle46-layout-completeness",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle46-layout-completeness' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794063113.797081,
+      "timestamp_str": "2026-11-07 17:51:53",
+      "agent": "opencode:cycle46"
     }
   ]
 }
