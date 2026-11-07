@@ -12,7 +12,11 @@ the defect (edited / deleted / reordered / unchained / corrupt), so a
 hand-edited log fails loudly instead of reading back silently. A
 terminal anchor sidecar (``write_anchor``) records the final head and
 record count; ``verify_chain(path, anchor_path=...)`` also reports a
-truncated tail, a mismatched witness, or a missing anchor.
+truncated tail, a mismatched witness, or a missing anchor. An optional
+anchor journal (``append_anchor``/``verify_anchor_journal``) chains
+each run's anchor to the previous anchor hash, so a deleted or rewound
+middle anchor is named; ``verify_chain(path, journal_path=...)``
+compares the log with the latest journal anchor.
 
 Durability: each append writes one line, calls ``flush`` + ``os.fsync``
 on the file descriptor, then fsyncs the containing directory when the
@@ -362,6 +366,24 @@ class Telemetry:
         return write_anchor(self.path, head, len(records),
                             anchor_path=anchor_path)
 
+    def write_anchor_journal(self, journal_path=None, created_at=None):
+        """Append the current log head/count to an anchor journal.
+
+        Each journal record commits to the previous anchor hash, so
+        deleting or rewinding a middle anchor is detectable. The
+        single-anchor API is unchanged.
+        """
+        records = self.read_all()
+        head = GENESIS
+        for record in reversed(records):
+            value = record.get("digest") if isinstance(record, dict) else None
+            if isinstance(value, str):
+                head = value
+                break
+        return append_anchor(self.path, head, len(records),
+                             journal_path=journal_path,
+                             created_at=created_at)
+
     def read_all(self):
         """Return list of decoded JSON objects in file order."""
         if not self.path.exists():
@@ -448,7 +470,165 @@ def read_anchor(anchor_path):
     return {"head": head, "records": records}
 
 
-def verify_chain(path, anchor_path=None):
+ANCHOR_JOURNAL_SCHEMA = 1
+_ANCHOR_FIELDS = frozenset(
+    {"schema", "ledger", "seq", "head", "created_at", "prev", "hash"})
+
+
+def _anchor_journal_path(path):
+    return Path(str(path) + ".anchors")
+
+
+def _valid_digest(value):
+    return (isinstance(value, str) and len(value) == 64
+            and all(ch in "0123456789abcdef" for ch in value))
+
+
+def _anchor_payload(record):
+    return _canonical({key: record[key] for key in
+                       ("schema", "ledger", "seq", "head", "created_at",
+                        "prev")})
+
+
+def _anchor_hash(record):
+    return hashlib.sha256(_anchor_payload(record)).hexdigest()
+
+
+def _validate_anchor_record(value, line_number=0):
+    """Validate one journal record; raise ValueError with a named defect."""
+    if not isinstance(value, dict):
+        raise ValueError("anchor %d is not an object" % line_number)
+    unknown = set(value) - _ANCHOR_FIELDS
+    missing = _ANCHOR_FIELDS - set(value)
+    if unknown:
+        raise ValueError("anchor %d has unknown fields: %s"
+                         % (line_number, sorted(unknown)))
+    if missing:
+        raise ValueError("anchor %d is missing fields: %s"
+                         % (line_number, sorted(missing)))
+    if value["schema"] != ANCHOR_JOURNAL_SCHEMA:
+        raise ValueError("anchor %d has unsupported schema" % line_number)
+    ledger = value["ledger"]
+    if (not isinstance(ledger, str) or not ledger
+            or any(ord(ch) < 32 for ch in ledger)):
+        raise ValueError("anchor %d has an invalid ledger label" % line_number)
+    seq = value["seq"]
+    if isinstance(seq, bool) or not isinstance(seq, int) or seq < 0:
+        raise ValueError("anchor %d has an invalid seq" % line_number)
+    head = value["head"]
+    if not (head == GENESIS and seq == 0) and not _valid_digest(head):
+        raise ValueError("anchor %d has an invalid head" % line_number)
+    prev = value["prev"]
+    if prev != GENESIS and not _valid_digest(prev):
+        raise ValueError("anchor %d has an invalid prev" % line_number)
+    created_at = value["created_at"]
+    if not isinstance(created_at, str) or not created_at:
+        raise ValueError("anchor %d has an invalid created_at" % line_number)
+    stored = value["hash"]
+    if stored != _anchor_hash(value):
+        raise ValueError("anchor %d hash does not match its payload"
+                         % line_number)
+    return dict(value)
+
+
+def append_anchor(path, head, records, journal_path=None, created_at=None):
+    """Append one anchor to a JSONL journal and return the stored record.
+
+    ``head`` is the log's last digest and ``records`` its record count.
+    The previous anchor hash is read from the journal tail; a seq that
+    moves backwards is refused. The single-line append is fsynced and
+    the containing directory is fsynced where the platform allows it.
+    """
+    if not (head == GENESIS and records == 0) and not _valid_digest(head):
+        raise ValueError("head must be a lowercase SHA-256 digest")
+    if isinstance(records, bool) or not isinstance(records, int) or records < 0:
+        raise ValueError("records must be a non-negative integer")
+    target = (Path(journal_path) if journal_path is not None
+              else _anchor_journal_path(path))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    prev = GENESIS
+    last_seq = -1
+    if target.exists():
+        try:
+            tail = _last_nonempty_line(target)
+        except OSError as exc:
+            raise ValueError("anchor journal tail is unreadable: %s" % exc)
+        if tail:
+            try:
+                value = json.loads(tail)
+            except ValueError:
+                raise ValueError("anchor journal tail is not valid JSON")
+            anchor = _validate_anchor_record(value)
+            prev = anchor["hash"]
+            last_seq = anchor["seq"]
+    if records < last_seq:
+        raise ValueError("anchor seq %d moves backwards from %d"
+                         % (records, last_seq))
+    stamp = created_at or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    record = {
+        "schema": ANCHOR_JOURNAL_SCHEMA,
+        "ledger": Path(str(path)).name,
+        "seq": records,
+        "head": head,
+        "created_at": stamp,
+        "prev": prev,
+    }
+    record["hash"] = _anchor_hash(record)
+    line = json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+    with open(target, "a", encoding="utf-8", newline="\n") as handle:
+        handle.write(line)
+        handle.flush()
+        os.fsync(handle.fileno())
+    _dir_fsync(target.parent)
+    return record
+
+
+def verify_anchor_journal(journal_path):
+    """Verify every anchor's hash and its link to the previous anchor."""
+    target = Path(journal_path)
+    if not target.exists():
+        return {"ok": False, "anchors": 0, "head": None,
+                "latest": None, "errors": ["missing-journal"]}
+    try:
+        lines = target.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        return {"ok": False, "anchors": 0, "head": None,
+                "latest": None, "errors": ["unreadable-journal: %s" % exc]}
+    errors = []
+    records = []
+    expected_prev = GENESIS
+    last_seq = -1
+    for number, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        try:
+            value = json.loads(line)
+        except ValueError:
+            errors.append("line %d: invalid JSON" % number)
+            continue
+        try:
+            anchor = _validate_anchor_record(value, number)
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
+        if anchor["prev"] != expected_prev:
+            errors.append("line %d: prev does not match the previous anchor"
+                          % number)
+        if anchor["seq"] < last_seq:
+            errors.append("line %d: seq %d moves backwards from %d"
+                          % (number, anchor["seq"], last_seq))
+        records.append(anchor)
+        expected_prev = anchor["hash"]
+        last_seq = max(last_seq, anchor["seq"])
+    if not records and not errors:
+        errors.append("empty-journal")
+    latest = records[-1] if records else None
+    return {"ok": not errors, "anchors": len(records),
+            "head": latest["hash"] if latest else None,
+            "latest": latest, "errors": errors}
+
+
+def verify_chain(path, anchor_path=None, journal_path=None):
     """Verify the hash chain of the JSONL log at ``path``.
 
     Returns ``{"ok": bool, "findings": [...], "records": n, "head": hex|None}``.
@@ -464,8 +644,13 @@ def verify_chain(path, anchor_path=None):
     must match the separate ``write_anchor`` witness. A shorter log is
     ``truncated-tail:<count><<anchor_count>``; a different head/count is
     ``anchor-mismatch``; a missing or malformed witness is
-    ``missing-anchor``. Without an anchor, a truncated prefix remains
-    internally valid by design.
+    ``missing-anchor``.
+
+    When ``journal_path`` is given, the journal itself is verified first
+    (``anchor-journal:<error>`` on failure), then the log must match the
+    latest anchor: a shorter log is ``truncated-tail``, and a different
+    head/count is ``anchor-mismatch``. Without an anchor or journal, a
+    truncated prefix remains internally valid by design.
     """
     findings = []
     digests = []
@@ -521,5 +706,19 @@ def verify_chain(path, anchor_path=None):
             findings.append("truncated-tail:%d<%d" % (count, anchor["records"]))
         elif count != anchor["records"] or head != anchor["head"]:
             findings.append("anchor-mismatch")
+    if journal_path is not None:
+        journal = verify_anchor_journal(journal_path)
+        if not journal["ok"]:
+            for error in journal["errors"]:
+                findings.append("anchor-journal:%s" % error)
+        else:
+            latest = journal["latest"]
+            empty_genesis = (count == 0 and latest["seq"] == 0
+                             and latest["head"] == GENESIS)
+            if not empty_genesis and count < latest["seq"]:
+                findings.append("truncated-tail:%d<%d" % (count, latest["seq"]))
+            elif not empty_genesis and (
+                    count != latest["seq"] or head != latest["head"]):
+                findings.append("anchor-mismatch")
     return {"ok": not findings, "findings": findings,
             "records": count, "head": head}

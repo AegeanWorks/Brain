@@ -2871,3 +2871,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
   - 1,000-record fresh-append chain check -> `ok=true`, 1,001 records.
 - **Pinned regression baselines for cycle 61**: unittest 179 OK; aikit 5/5; 200k head lookup < 120 ms (after 0.764 ms, before 381.8 ms); head/legacy equivalence; 1,001-record chain ok; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 61 - append-only anchor journal (assay transfer)
+
+- **Baseline** (commit 8ae9750, cycle 60; same telemetry format):
+  - canonical gate: 179 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - the only terminal witness was one mutable `.anchor` sidecar (`{head, records}`); there was no journal of previous heads, so deleting or rewinding the sidecar left no internal evidence.
+- **Gap**: a single anchor cannot show that an earlier run's head existed. A JSONL journal in which each anchor commits to the previous anchor hash makes a deleted/rewound middle anchor and a rewound seq detectable, and lets a later anchor verify an earlier log head.
+- **Target delta**: two anchors form a verified chain (`prev` links, 2 anchors); an intact 16-record log verifies against the latest anchor; truncating it to 13 reports `truncated-tail:13<16`; deleting the first anchor is detected by the second `prev`; editing a head is detected by its hash; a backwards seq is refused; the single-anchor API remains valid.
+- **Falsifier**: the journal accepts a broken prev/hash/seq; the intact log fails; truncation is not reported; the single-anchor path changes; any standing or policy pin moves.
+- **Change**: telemetry/log.py adds `ANCHOR_JOURNAL_SCHEMA`, `append_anchor(path, head, records, journal_path=None, created_at=None)`, `verify_anchor_journal(journal_path)`, `Telemetry.write_anchor_journal()`, and `verify_chain(path, journal_path=...)`. Each record carries `schema/ledger/seq/head/created_at/prev/hash`; `hash` is SHA-256 over the canonical payload; `prev` links to the previous anchor or `GENESIS`; seq is the log record count and may not move backwards; validation names schema/field/head/prev/hash/seq defects; appends fsync the line and directory. `evals/anchor_journal.py` adds intact/truncated modes; `tests/test_anchor_journal.py` covers chaining, truncation, deleted anchor, tampered head, backwards seq, missing journal and the unchanged single-anchor path. README and ADR-055 record the contract. No new dependencies; the log schema is unchanged.
+- **After** (same log builder and timestamps):
+  - intact: 16 records, 2 anchors at seq 11 and 16, journal `ok=true`, `verify_chain` `ok=true` with 16/16 records.
+  - truncated: 16 -> 13 records, journal still 2 anchors, latest seq 16, `verify_chain` `ok=false`, findings `["truncated-tail:13<16"]`.
+  - deleted first anchor: journal `ok=false` with a `prev` error; tampered head: `hash` error; backwards seq: `ValueError` on append; missing journal: `missing-journal`; single anchor: 4-record log still `ok=true`.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6 and the 200k tail-read bound are unchanged; 186 tests OK; policy unchanged.
+- **Ablation** (same log builder):
+  - without the journal, the 16 -> 13 truncation returns `ok=true` (a valid prefix); with the journal it is `truncated-tail:13<16`. The journal and its finding die with the cut.
+  - deleting tail anchors yields a shorter but internally valid journal; the latest anchor must be known externally to detect that. This is the recorded boundary, not a solved case.
+- **Verdict**: trace-integrity extension. Behavior is unchanged by design; the measured deltas are anchor-chain integrity (2 anchors, seq 11/16), truncated-log detection (13<16), and named deleted/tampered anchor findings. No action or emergence claim.
+- **Gates**: unittest 186/186 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_anchor_journal.TestAnchorJournal.test_journal_chains_two_anchors -v` -> before: ImportError (`append_anchor`); after: OK.
+  - `python -m unittest tests.test_anchor_journal -v` -> 7 OK.
+  - `python -m evals.anchor_journal` -> intact 16/16, 2 anchors, latest seq 16, ok; truncated 13/16, `truncated-tail:13<16`.
+  - `python -m unittest discover -s tests -t .` -> 186 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 62**: unittest 186 OK; aikit 5/5; anchor journal 2 anchors seq 11/16; intact 16/16 ok; truncated 13/16 `truncated-tail:13<16`; deleted first anchor prev error; tampered head hash error; backwards seq ValueError; missing journal; single anchor 4/4 ok; 200k head lookup < 120 ms (0.764 ms); standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 with blind 9/200/200/200/200; three 15/12/10/13/19 with blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.

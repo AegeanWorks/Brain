@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle60-tail-head",
+    "task_id": "brain-cycle61-anchor-journal",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794072174.1079755,
-    "owner": "opencode:cycle60",
-    "started_by": "opencode:cycle60",
+    "updated_at": 1794072895.6717563,
+    "owner": "opencode:cycle61",
+    "started_by": "opencode:cycle61",
     "continuations": [],
-    "completed_at": 1794072174.3397624
+    "completed_at": 1794072895.9704502
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle56-manifest-binding",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit manifest binding, battery, tests, ADR-052, cycle 56",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068822.8791854,
-      "timestamp_str": "2026-11-07 19:27:02",
-      "agent": "opencode:cycle56"
-    },
-    {
-      "task_id": "brain-cycle56-manifest-binding",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle56-manifest-binding' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794068826.393169,
-      "timestamp_str": "2026-11-07 19:27:06",
-      "agent": "opencode:cycle56"
-    },
-    {
-      "task_id": "brain-cycle57-dead-pool",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: drop a dead goal step from the multi-obstacle pool only when a live candidate is at least as close by BFS",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794068928.6854327,
-      "timestamp_str": "2026-11-07 19:28:48",
-      "agent": "opencode:cycle57",
-      "impact_assessment": {
-        "why": "Config (7,5) with obstacles [6,1],[7,2] enters the dead goal step (7,1) even though the live backup (6,0) is closer, costing 18 steps vs BFS 12. A plain dead-step exclusion improved (7,5) 18->16 but regressed a sampled (3,0) config 11->21 because the live backup was farther; the BFS-distance guard avoids that.",
-        "benefits": "(7,5) 18 -> 16 with 1.0 reward; all other multi/three pins unchanged; blind kills still truncate 200/0; trace gains a dead_pool probe with excluded/live/dead distances; dead_pool_filter=False restores 18.",
-        "risks": "contract: planner pool ordering and PLANNER_POLICY change; dependency: stdlib _bfs_step already present; concurrency: none; state: no schema change.",
-        "mitigation": "Gate on >=2 obstacles and only filter when best live BFS distance <= best dead BFS distance; 300-config scan showed 0 regressions; re-run standing, exhaustive T3, multi/three goldens, escape, trust and cold-start."
-      },
-      "plan_digest": "c3b1280c6d35d79cdae5a001e9433677ebac09ade9e57457d0c4175cdcd9e6b7"
-    },
-    {
-      "task_id": "brain-cycle57-dead-pool",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first 18 != 16; BFS-distance dead-pool guard, dead_pool probe, flag/policy key, eval battery, tests, (7,5) pin/golden, README/ADR-053",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794069381.8712718,
-      "timestamp_str": "2026-11-07 19:36:21",
-      "agent": "opencode:cycle57"
-    },
-    {
-      "task_id": "brain-cycle57-dead-pool",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: (7,5) 18 -> 16 with probe [7,0]/down [7,1]/live 8/dead 10; ablate 18 with old hash; blind 200/0; other multi and three pins/goldens unchanged; 300-config scan 0 regressions; 170 tests OK; aikit 5/5; standing 466/240/217, holdout 1581/800/738, fixed syn 0.05411532 phi 0.0; policy d097b97b",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794069439.2908487,
-      "timestamp_str": "2026-11-07 19:37:19",
-      "agent": "opencode:cycle57"
-    },
     {
       "task_id": "brain-cycle57-dead-pool",
       "phase": "in_progress",
@@ -254,6 +193,67 @@
       "timestamp": 1794072174.339764,
       "timestamp_str": "2026-11-07 20:22:54",
       "agent": "opencode:cycle60"
+    },
+    {
+      "task_id": "brain-cycle61-anchor-journal",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: add an append-only anchor journal (assay transfer) so each run's head commits to the previous anchor",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072553.9074795,
+      "timestamp_str": "2026-11-07 20:29:13",
+      "agent": "opencode:cycle61",
+      "impact_assessment": {
+        "why": "Cycle 58 added a single mutable .anchor sidecar; deleting or rewinding it is detectable only if an external copy exists. assay/anchor.py:210 AnchorJournal chains each anchor to the previous anchor hash, so a rolled-back or deleted anchor is detectable.",
+        "benefits": "Two or more run heads form a verified journal; verify_chain(journal_path=...) detects a truncated log against the latest anchor; tampered/deleted anchors are named by prev/hash findings; the single .anchor API stays compatible.",
+        "risks": "contract: new .anchors JSONL sidecar and verify_chain keyword; dependency: stdlib only; concurrency: append under the existing telemetry lock discipline; state: sidecar only, not committed.",
+        "mitigation": "Keep the single anchor unchanged; validate schema/head/seq/prev/hash on read; append atomically with fsync; test intact, truncated, deleted-anchor, backwards-seq and legacy single-anchor paths; full 179-test and AIKit gates."
+      },
+      "plan_digest": "0d9ce8e347b56017843a0066d0f2c101591c8396296b219195e040c034a63938"
+    },
+    {
+      "task_id": "brain-cycle61-anchor-journal",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: 2 anchors seq 11/16; intact 16/16 ok; truncated 13/16 truncated-tail:13<16; deleted anchor prev error; tampered head hash error; backwards seq rejected; 186 tests OK; aikit 5/5; standing unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072882.9789379,
+      "timestamp_str": "2026-11-07 20:34:42",
+      "agent": "opencode:cycle61"
+    },
+    {
+      "task_id": "brain-cycle61-anchor-journal",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first journal import; append_anchor/verify_anchor_journal, Telemetry.write_anchor_journal, verify_chain journal_path, eval, tests, README/ADR-055",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072882.9811952,
+      "timestamp_str": "2026-11-07 20:34:42",
+      "agent": "opencode:cycle61"
+    },
+    {
+      "task_id": "brain-cycle61-anchor-journal",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit anchor journal, eval, tests, ADR-055, cycle 61",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794072895.6717563,
+      "timestamp_str": "2026-11-07 20:34:55",
+      "agent": "opencode:cycle61"
+    },
+    {
+      "task_id": "brain-cycle61-anchor-journal",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle61-anchor-journal' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794072895.9704528,
+      "timestamp_str": "2026-11-07 20:34:55",
+      "agent": "opencode:cycle61"
     }
   ]
 }

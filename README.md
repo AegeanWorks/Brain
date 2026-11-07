@@ -39,6 +39,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.chain_anchor
   ```
+- **Anchor-Journal Battery**:
+  ```bash
+  python -m evals.anchor_journal
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -68,7 +72,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -158,6 +162,16 @@ anchor is a separate witness and must be kept outside the tampered
 log's control. `python -m evals.chain_anchor` shows intact (pass),
 truncated (detected) and anchor-off (the old exposure). The sidecar
 contains hashes and counts only and is never committed.
+
+`Telemetry.write_anchor_journal()` appends the same head/count to a
+`.anchors` JSONL journal where each anchor's `prev` links to the
+previous anchor hash. `verify_anchor_journal()` checks every schema,
+hash and prev link; `verify_chain(path, journal_path=...)` compares the
+log with the latest anchor. A deleted middle anchor, a rewound seq or a
+truncated log is named; deleting tail anchors still yields a shorter
+valid journal unless the latest anchor is known externally. `python -m
+evals.anchor_journal` shows the intact and truncated cases. The journal
+is a separate, non-committed witness.
 
 ## 🧾 Verdict Facts
 
