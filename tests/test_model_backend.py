@@ -4,6 +4,7 @@ import unittest
 
 from agent import PLANNER_POLICY, Agent, Planner as RulePlanner, policy_digest
 from models.backend import ModelBackend, StubBackend
+from worlds.grid import SIZE
 
 
 class RaisingBackend(ModelBackend):
@@ -19,6 +20,24 @@ class WaitingBackend(ModelBackend):
 
     def generate(self, observation):
         self.calls += 1
+        return "wait"
+
+
+class BlockedBackend(ModelBackend):
+    """Propose a boundary/obstacle-blocked direction when one exists."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def generate(self, observation):
+        self.calls += 1
+        x, y = int(observation["x"]), int(observation["y"])
+        obstacles = {tuple(cell) for cell in observation.get("obstacles", [])}
+        for action, dx, dy in (("up", 0, -1), ("down", 0, 1),
+                               ("left", -1, 0), ("right", 1, 0)):
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < SIZE and 0 <= ny < SIZE) or (nx, ny) in obstacles:
+                return action
         return "wait"
 
 
@@ -95,6 +114,31 @@ class TestModelBackendSeam(unittest.TestCase):
         self.assertEqual(decision["reason"], "no-op")
         self.assertFalse(decision["distrusted"])
         self.assertTrue(decision["noop_guard"])
+
+    def test_blocked_movement_rejected_immediately(self):
+        backend = BlockedBackend()
+        planner = RulePlanner(backend=backend)
+        trace = Agent(planner=planner).run_task("T3_navigate", 15, max_steps=200)
+        self.assertTrue(trace[-1]["done"])
+        self.assertEqual(len(trace), 13)
+        self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+        self.assertEqual(planner.fallbacks, 13)
+        self.assertEqual(backend.calls, 13)
+        decision = planner.last_probe["model_decision"]
+        self.assertFalse(decision["accepted"])
+        self.assertEqual(decision["reason"], "no-op")
+        self.assertFalse(decision["distrusted"])
+
+    def test_blocked_movement_without_guard_uses_stall_window(self):
+        backend = BlockedBackend()
+        planner = RulePlanner(backend=backend, noop_guard=False)
+        trace = Agent(planner=planner).run_task("T3_navigate", 15, max_steps=200)
+        self.assertEqual(len(trace), 33)
+        self.assertEqual(sum(r["reward"] for r in trace), 1.0)
+        self.assertEqual(planner.fallbacks, 13)
+        decision = planner.last_probe["model_decision"]
+        self.assertFalse(decision["accepted"])
+        self.assertTrue(decision["distrusted"])
 
     def test_noop_guard_independent_of_trust_window(self):
         backend = WaitingBackend()

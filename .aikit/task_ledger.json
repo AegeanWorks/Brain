@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle50-noop-guard",
+    "task_id": "brain-cycle51-movement-noop",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794064941.6046019,
-    "owner": "opencode:cycle50",
-    "started_by": "opencode:cycle50",
+    "updated_at": 1794065246.4212234,
+    "owner": "opencode:cycle51",
+    "started_by": "opencode:cycle51",
     "continuations": [],
-    "completed_at": 1794064950.5816362
+    "completed_at": 1794065258.2454026
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle46-layout-completeness",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit code, tests, cold-first harness, ADR-044, cycle 46",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063106.1757197,
-      "timestamp_str": "2026-11-07 17:51:46",
-      "agent": "opencode:cycle46"
-    },
-    {
-      "task_id": "brain-cycle46-layout-completeness",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle46-layout-completeness' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794063113.797081,
-      "timestamp_str": "2026-11-07 17:51:53",
-      "agent": "opencode:cycle46"
-    },
-    {
-      "task_id": "brain-cycle47-backend-trust",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: bounded trust for legal backend proposals using unrewarded-step stall",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063289.951827,
-      "timestamp_str": "2026-11-07 17:54:49",
-      "agent": "opencode:cycle47",
-      "impact_assessment": {
-        "why": "Planner returns any legal backend proposal forever; a stalled legal proposal truncates at 200/0, and the self-model outcome signal is not load-bearing.",
-        "benefits": "Bad legal proposals fall back to the rule after a 20-step stall; good backends and rule-only runs unchanged; trace records proposed/rule/accepted/fallback.",
-        "risks": "contract: Planner gains trust_window and a model_decision probe; dependency: stdlib only; concurrency: none; state: hub gains steps_since_reward, vectors unchanged.",
-        "mitigation": "Extract rule action before decision; default window 20; disable via trust_window=None for raw floor control; all goldens and standing pins re-run; failing-first tests."
-      },
-      "plan_digest": "2adb475e59dc4f3a2408e29df0fb4e958d9a6d3ceb17b037ac38ee7db94069c4"
-    },
-    {
-      "task_id": "brain-cycle47-backend-trust",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first stall tests; rule-first decision, hub steps_since_reward, 20-step trust window with episode match-only, model_decision probe, trust battery",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063634.352751,
-      "timestamp_str": "2026-11-07 18:00:34",
-      "agent": "opencode:cycle47"
-    },
-    {
-      "task_id": "brain-cycle47-backend-trust",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple verified: stalled backend 200/0 -> 36/28/33/26 with 3/1/1/1 and fallbacks 16/8/13/6; trust_window=None restores 200/0; prompts unchanged; 137 tests OK; aikit 5/5; standing pins unchanged; ADR-045 and cycle 47 recorded",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794063639.079397,
-      "timestamp_str": "2026-11-07 18:00:39",
-      "agent": "opencode:cycle47"
-    },
     {
       "task_id": "brain-cycle47-backend-trust",
       "phase": "verification",
@@ -254,6 +193,67 @@
       "timestamp": 1794064950.5816374,
       "timestamp_str": "2026-11-07 18:22:30",
       "agent": "opencode:cycle50"
+    },
+    {
+      "task_id": "brain-cycle51-movement-noop",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: extend the no-op guard to blocked movement proposals",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794065023.1818647,
+      "timestamp_str": "2026-11-07 18:23:43",
+      "agent": "opencode:cycle51",
+      "impact_assessment": {
+        "why": "A backend proposing a blocked direction is legal but cannot change position; the current guard only catches wait/premature collect, so it still burns the 20-step trust window.",
+        "benefits": "Blocked-movement backend completes in rule-optimal steps; reason=no-op; trust window remains for real movement stalls.",
+        "risks": "contract: no-op predicate gains boundary/obstacle check; dependency: stdlib only; concurrency: none; state: no schema change.",
+        "mitigation": "Use the current pos and obstacle set; accept if the rule chooses the same action; measure before/after with NoopBackend; all goldens re-run."
+      },
+      "plan_digest": "c42b1480eaf19e84bbbc12e0e83508889c05690c1bfc6dab7b125aff3eda1939"
+    },
+    {
+      "task_id": "brain-cycle51-movement-noop",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first blocked-movement tests; _movement_noop boundary/obstacle check under the existing noop_guard; trust battery --backend noop",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794065235.8851109,
+      "timestamp_str": "2026-11-07 18:27:15",
+      "agent": "opencode:cycle51"
+    },
+    {
+      "task_id": "brain-cycle51-movement-noop",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple verified: blocked-movement backend 36/28/33/26 -> 16/8/13/6 with 3/1/1/1; ablate-noop restores 36/28/33/26; both off 200/0; prompts unchanged; 145 tests OK; aikit 5/5; standing unchanged; ADR-048 and cycle 51 recorded",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794065241.293568,
+      "timestamp_str": "2026-11-07 18:27:21",
+      "agent": "opencode:cycle51"
+    },
+    {
+      "task_id": "brain-cycle51-movement-noop",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit movement no-op guard, tests, noop backend harness, ADR-048, cycle 51",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794065246.4212234,
+      "timestamp_str": "2026-11-07 18:27:26",
+      "agent": "opencode:cycle51"
+    },
+    {
+      "task_id": "brain-cycle51-movement-noop",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle51-movement-noop' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794065258.2454152,
+      "timestamp_str": "2026-11-07 18:27:38",
+      "agent": "opencode:cycle51"
     }
   ]
 }

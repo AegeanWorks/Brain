@@ -72,10 +72,10 @@ A legal backend proposal is trusted while fewer than 20 consecutive steps
 have passed without reward. Once that stall window is reached, a proposal
 that differs from the rule action is rejected (counted in `fallbacks`) and
 the backend stays match-only for the rest of the episode. Independently, a
-no-op proposal (`wait`, or `collect` before a collectable) is rejected
-immediately whenever the rule has a productive action; `noop_guard=False`
-removes that guard. `trust_window=None` plus `noop_guard=False` is the raw
-control. Each step's action record carries
+no-op proposal (`wait`, `collect` before a collectable, or a direction blocked
+by the boundary/obstacle) is rejected immediately whenever the rule has a
+productive action; `noop_guard=False` removes that guard. `trust_window=None`
+plus `noop_guard=False` is the raw control. Each step's action record carries
 `proposed/rule/steps_since_reward/distrusted/accepted/reason`, and the hub
 carries `steps_since_reward`; rule-only runs and good-backend replays keep
 their exact actions and zero fallbacks.

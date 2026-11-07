@@ -449,6 +449,24 @@ class Planner:
                 return _toward(target)
             return "wait"
 
+        occupied = {tuple(cell) for cell in (obstacles or [])}
+
+        def _movement_noop(action):
+            if action not in ("up", "down", "left", "right"):
+                return False
+            nx, ny = pos
+            if action == "up":
+                ny -= 1
+            elif action == "down":
+                ny += 1
+            elif action == "left":
+                nx -= 1
+            else:
+                nx += 1
+            if not (0 <= nx < SIZE and 0 <= ny < SIZE):
+                return True
+            return (nx, ny) in occupied
+
         rule_action = _rule_action()
         if self.backend is not None:
             since = 0
@@ -466,7 +484,9 @@ class Planner:
             if isinstance(proposed, str) and proposed in _LEGAL_ACTIONS:
                 noop = (self.noop_guard and (
                     (proposed == "wait" and rule_action != "wait")
-                    or (proposed == "collect" and rule_action != "collect")))
+                    or (proposed == "collect" and rule_action != "collect")
+                    or (_movement_noop(proposed)
+                        and proposed != rule_action)))
                 if noop:
                     reason = "no-op"
                 elif self.trust_window is None or proposed == rule_action:

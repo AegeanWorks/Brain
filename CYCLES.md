@@ -2567,3 +2567,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
   - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
 - **Pinned regression baselines for cycle 51**: unittest 143 OK; aikit 5/5; trust 16/8/13/6 with 3/1/1/1 and fallbacks 16/8/13/6; ablate-noop 36/28/33/26; ablate-trust 16/8/13/6; ablate-both 200/0; prompt hashes 6e19bc1d/78c208fb/816fa226/ae3c4f52; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 51 - reject blocked-movement backend proposals as no-ops
+
+- **Baseline** (commit 6013fd8, cycle 50; same NoopBackend, seeds, prompts and probes):
+  - canonical gate: 143 tests OK; aikit check 5/5; policy 180ba03d...
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; T1 seeds 0-99 1581; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - blocked-movement backend (`up` at a boundary or into an obstacle): success 4/4 but steps 36/28/33/26; rewards 3/1/1/1; fallbacks 16/8/13/6; first decision accepted=true with reason accepted; last rejected with distrusted=true; prompt hashes 4bd74314 / 7f1f5088 / 4f18a4b6 / e05d4d08; action hashes 70d2f67f / d510a6a0 / 5f561866 / bb9eba25.
+- **Gap**: the no-op guard covered `wait` and premature `collect` but not a movement whose target is outside the board or in the obstacle set. Such a proposal is legal yet cannot change position, so it still burns the 20-step trust window.
+- **Target delta**: steps 36/28/33/26 -> 16/8/13/6; gain .82/.86/.835/.87 -> .92/.96/.935/.97; first decision rejected with reason `no-op`; prompts unchanged; ablation with `noop_guard=False` restores 36/28/33/26.
+- **Falsifier**: any case stays above the rule-optimal step count; the guard changes a rule-only or good-backend run; prompts differ; the no-op-off ablation does not restore the stall.
+- **Change**: agent.py `_movement_noop` checks the proposed direction against the board bounds and current obstacle set, rejecting it when it differs from the rule action; same `noop_guard` flag; evals/trust.py adds a `NoopBackend` and `--backend noop`; tests cover immediate rejection and the no-guard stall window.
+- **After** (same backend, seeds, prompts and probe code):
+  - success 4/4; steps 16/8/13/6; rewards 3/1/1/1; gain .92/.96/.935/.97; recovery 1.0 x4; action hashes match the four standing goldens (bafe50ff, 8d077e83, 63c67660, 8484f2ab).
+  - trace: fallbacks 16/8/13/6; first proposed `up` rejected as no-op; distrusted=false throughout; prompt hashes identical to baseline.
+  - rule-only standing behavior and trace unchanged: 466/240/217; T1 seeds 0-99 1581; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; good-backend replay 0 fallbacks; policy 180ba03d... unchanged.
+- **Ablation** (same backend/prompts/seeds):
+  - no-op guard off, trust on: 36/28/33/26, first accepted=true, last distrusted=true; exactly the baseline.
+  - both guards off: 200/200/200/200 with 0 reward, accepted=true; raw backend control.
+  - trust off with the no-op guard on was already pinned in cycle 50 at 16/8/13/6; the new guard is independent of it.
+- **Verdict**: integration confirmed for blocked-movement no-ops. The model receives byte-identical prompts; the planner rejects an impossible legal move immediately, and the ablation restores the 20-step stall.
+- **Gates**: unittest 145/145 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_backend tests.test_random_floor -v` -> 15 OK.
+  - `python -m evals.trust --backend noop` -> 16/8/13/6; `--backend noop --ablate-noop` -> 36/28/33/26; `--backend noop --ablate` -> 200/0 x4.
+  - `python -m unittest discover -s tests -t .` -> 145 OK.
+  - `python aikit.py check brain` -> 5/5.
+  - standing scan -> 466/240/217, T1 seeds 0-99 1581, fixed syn 0.05411532 phi 0.0.
+- **Pinned regression baselines for cycle 52**: unittest 145 OK; aikit 5/5; noop backend 16/8/13/6 with 3/1/1/1 and fallbacks 16/8/13/6; noop ablate-noop 36/28/33/26; noop ablate-both 200/0; wait backend 16/8/13/6; prompt hashes 4bd74314/7f1f5088/4f18a4b6/e05d4d08; standing 466/240/217; T1 seeds 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy 180ba03d...; goldens 9/9 + multi 5/5 + three 5/5.

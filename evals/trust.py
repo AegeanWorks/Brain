@@ -1,13 +1,14 @@
 """Backend-trust battery: stalled legal proposals versus the rule fallback.
 
-A deterministic backend returns the legal token "wait" every step. The
-no-op guard rejects it immediately whenever the rule has a productive
-action. The independent trust window remains for movement stalls; with
-``noop_guard=False`` the wait is accepted until 20 unrewarded steps,
-then rejected and held match-only. ``trust_window=None`` plus
-``noop_guard=False`` is the raw control: every legal proposal is
-accepted and the run stalls at the cap. All variants use the same
-backend, seeds and prompts.
+Two deterministic backends: ``wait`` returns the legal no-op token every
+step; ``noop`` returns a blocked boundary/obstacle direction whenever one
+exists. The no-op guard rejects both immediately whenever the rule has a
+productive action. The independent trust window remains for movement
+stalls; with ``noop_guard=False`` the proposal is accepted until 20
+unrewarded steps, then rejected and held match-only.
+``trust_window=None`` plus ``noop_guard=False`` is the raw control:
+every legal proposal is accepted and the run stalls at the cap. All
+variants use the same backend, seeds and prompts.
 
 Reports behavior (success, steps, reward, transfer, recovery) and the
 model-seam trace (proposed/rule/steps_since_reward/accepted, fallback
@@ -52,6 +53,29 @@ class WaitingBackend(ModelBackend):
         return "wait"
 
 
+class NoopBackend(ModelBackend):
+    """Propose a boundary/obstacle-blocked direction when one exists."""
+
+    def __init__(self):
+        self.calls = 0
+        self.seen = []
+
+    def generate(self, observation):
+        self.calls += 1
+        self.seen.append(json.loads(json.dumps(observation, sort_keys=True)))
+        x, y = int(observation["x"]), int(observation["y"])
+        obstacles = {tuple(cell) for cell in observation.get("obstacles", [])}
+        for action, dx, dy in (("up", 0, -1), ("down", 0, 1),
+                               ("left", -1, 0), ("right", 1, 0)):
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < 8 and 0 <= ny < 8) or (nx, ny) in obstacles:
+                return action
+        return "wait"
+
+
+BACKENDS = {"wait": WaitingBackend, "noop": NoopBackend}
+
+
 def _actions_digest(trace):
     body = canonical([record["action"] for record in trace])
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
@@ -66,19 +90,19 @@ def _decisions(steps):
     return out
 
 
-def _prompt_sha256(observation, seed):
+def _prompt_sha256(observation, seed, model_id):
     prompt = build_prompt(observation)
     return manifest_for(
-        prompt, observation, model_id="WaitingBackend",
-        checkpoint="WaitingBackend",
+        prompt, observation, model_id=model_id,
+        checkpoint=model_id,
         sampling={"temperature": 0.0, "seed": seed,
                   "n_predict": 0, "cache_prompt": True},
     )["sha256"]
 
 
 def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
-                 noop_guard=True, max_steps=200):
-    backend = WaitingBackend()
+                 noop_guard=True, backend_name="wait", max_steps=200):
+    backend = BACKENDS[backend_name]()
     planner = Planner(backend=backend, trust_window=trust_window,
                       noop_guard=noop_guard)
     agent = Agent(planner=planner, world=GridWorld(task, seed))
@@ -117,23 +141,26 @@ def measure_case(task, seed, directory, trust_window=DEFAULT_TRUST_WINDOW,
         "decision_first": decisions[0] if decisions else None,
         "decision_last": decisions[-1] if decisions else None,
         "action_sha256": _actions_digest(trace),
-        "prompt_sha256": _prompt_sha256(first_obs, seed),
+        "prompt_sha256": _prompt_sha256(first_obs, seed,
+                                       type(backend).__name__),
         "trace": _trace_slot(recompute(log_path)),
     }
 
 
 def run_battery(cases=CASES, trust_window=DEFAULT_TRUST_WINDOW,
-                noop_guard=True, max_steps=200):
+                noop_guard=True, backend_name="wait", max_steps=200):
     """Measure every case in one temporary directory."""
     with tempfile.TemporaryDirectory() as directory:
         results = [measure_case(task, seed, directory,
                                 trust_window=trust_window,
                                 noop_guard=noop_guard,
+                                backend_name=backend_name,
                                 max_steps=max_steps)
                    for task, seed in cases]
         return {
             "policy_sha256": policy_digest(),
-            "model": "WaitingBackend",
+            "model": BACKENDS[backend_name].__name__,
+            "backend": backend_name,
             "trust_window": trust_window,
             "noop_guard": noop_guard,
             "max_steps": max_steps,
@@ -153,6 +180,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--case", action="append", default=[],
                         help="task:seed; repeatable (default: all cases)")
+    parser.add_argument("--backend", choices=tuple(BACKENDS), default="wait",
+                        help="wait: legal wait; noop: blocked movement")
     parser.add_argument("--ablate", action="store_true",
                         help="disable both guards (raw backend control)")
     parser.add_argument("--ablate-noop", action="store_true",
@@ -172,6 +201,7 @@ def main():
         trust_window = None
     print(json.dumps(run_battery(cases, trust_window=trust_window,
                                  noop_guard=noop_guard,
+                                 backend_name=args.backend,
                                  max_steps=args.max_steps),
                      indent=2, sort_keys=True))
 
