@@ -10,11 +10,12 @@ recompute lazily so this module stays a pure data utility.
 import hashlib
 import json
 import os
+import time
 from pathlib import Path
 
 VOLATILE_FIELDS = frozenset({
     "created_at", "updated_at", "ts", "timestamp", "duration_ms",
-    "elapsed_ms", "run_id", "session_id",
+    "elapsed_ms", "run_id", "session_id", "captured_at",
 })
 
 
@@ -34,6 +35,7 @@ def run_record(task, seed, trace, stats=None):
         "action_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "syn": float((stats or {}).get("syn", 0.0)),
         "phi": float((stats or {}).get("phi", 0.0)),
+        "captured_at": time.time(),
     }
 
 
@@ -62,7 +64,7 @@ def capture_snapshot(cases, directory=None, max_steps=200):
                                                record["id"]))
 
 
-def export_snapshot(records, path):
+def export_snapshot(records, path, meta_path=None):
     """Write records as sorted JSONL through an atomic replace."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -70,6 +72,14 @@ def export_snapshot(records, path):
                                                   record["id"]))
     body = "".join(json.dumps(record, sort_keys=True) + "\n"
                    for record in ordered)
+    _write_atomic(target, body)
+    if meta_path is not None:
+        write_snapshot_meta(records, meta_path)
+    return str(target)
+
+
+def _write_atomic(target, body):
+    target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_name(target.name + ".tmp")
     with open(tmp, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(body)
@@ -77,7 +87,6 @@ def export_snapshot(records, path):
         os.fsync(handle.fileno())
     os.replace(tmp, target)
     _fsync_dir(target.parent)
-    return str(target)
 
 
 def read_snapshot(path):
@@ -88,6 +97,92 @@ def read_snapshot(path):
             if line.strip():
                 records.append(json.loads(line))
     return records
+
+
+def _clean(value):
+    if isinstance(value, dict):
+        return {
+            key: _clean(item)
+            for key, item in value.items()
+            if str(key).lower() not in VOLATILE_FIELDS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_clean(item) for item in value]
+    return value
+
+
+def _ordered(records):
+    return sorted(
+        records,
+        key=lambda record: (
+            str(record.get("record_type") or record.get("type") or ""),
+            str(record.get("id") or ""),
+            json.dumps(record, sort_keys=True, separators=(",", ":")),
+        ),
+    )
+
+
+def _digest(records):
+    body = "\n".join(json.dumps(record, sort_keys=True, separators=(",", ":"))
+                     for record in _ordered(records))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def graph_sha256(records):
+    """Exact digest of every record, including volatile capture fields."""
+    return _digest(records)
+
+
+def content_sha256(records):
+    """Semantic digest with volatile capture fields removed recursively."""
+    return _digest([_clean(record) for record in records])
+
+
+def snapshot_digests(records):
+    """Return record count, exact graph digest and semantic content digest."""
+    records = list(records)
+    return {
+        "records": len(records),
+        "graph_sha256": graph_sha256(records),
+        "content_sha256": content_sha256(records),
+    }
+
+
+def write_snapshot_meta(records, meta_path):
+    """Write the digest metadata as atomic JSON and return it."""
+    meta = snapshot_digests(records)
+    meta["schema"] = 1
+    body = json.dumps(meta, sort_keys=True) + "\n"
+    _write_atomic(Path(meta_path), body)
+    return meta
+
+
+def verify_snapshot(path, meta_path=None):
+    """Verify a snapshot against its meta record count and digests."""
+    target = Path(meta_path) if meta_path is not None else Path(str(path) + ".meta")
+    if not target.exists():
+        return {"ok": False, "findings": ["missing-meta"]}
+    try:
+        meta = json.loads(target.read_text(encoding="utf-8"))
+        records = read_snapshot(path)
+    except (OSError, ValueError) as exc:
+        return {"ok": False, "findings": ["invalid-meta: %s" % exc]}
+    current = snapshot_digests(records)
+    findings = []
+    if meta.get("records") != current["records"]:
+        findings.append("record-count:%s!=%s"
+                        % (meta.get("records"), current["records"]))
+    if meta.get("graph_sha256") != current["graph_sha256"]:
+        findings.append("graph-mismatch")
+    if meta.get("content_sha256") != current["content_sha256"]:
+        findings.append("content-mismatch")
+    return {
+        "ok": not findings,
+        "findings": findings,
+        "records": current["records"],
+        "graph_sha256": current["graph_sha256"],
+        "content_sha256": current["content_sha256"],
+    }
 
 
 def _index(records):

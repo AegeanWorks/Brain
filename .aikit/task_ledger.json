@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-cycle68-snapshot-diff",
+    "task_id": "brain-cycle69-content-digest",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794077016.5089025,
-    "owner": "opencode:cycle68",
-    "started_by": "opencode:cycle68",
+    "updated_at": 1794077730.56222,
+    "owner": "opencode:cycle69",
+    "started_by": "opencode:cycle69",
     "continuations": [],
-    "completed_at": 1794077017.7755117
+    "completed_at": 1794077731.3088102
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle65-execution-budget",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: opt-in execution budgets for steps, LLM calls, tokens and wall time (neurocore transfer)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794074806.1744978,
-      "timestamp_str": "2026-11-07 21:06:46",
-      "agent": "opencode:cycle65",
-      "impact_assessment": {
-        "why": "Brain has max_steps and SelfModel counters, but no shared budget that stops a run before a dimension is exceeded. neurocore/core/execution_budget.py:51 provides limits, spend, time checks, pressure and a context variable.",
-        "benefits": "A budget can cap steps, backend calls, prompt tokens and wall time; Agent.run installs it around the loop, Planner spends per backend call/prompt, and a tight budget raises BudgetExceeded before the next action. Default None keeps behavior and actions byte-identical.",
-        "risks": "contract: Agent.run/run_task gain budget, Planner spends llm_calls/tokens; dependency: stdlib contextvars only; concurrency: budget is per-run context; state: no schema change.",
-        "mitigation": "Keep budget opt-in; re-raise BudgetExceeded outside the backend fallback catch; test generous and tight step/LLM/token/time budgets, context scoping and snapshot; re-run 211 tests and AIKit gates."
-      },
-      "plan_digest": "afe06baf472092b17a3019949743cf4b459c904c30070e70f63d57f97cda578c"
-    },
-    {
-      "task_id": "brain-cycle65-execution-budget",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first budget module; ExecutionBudget/context/spend, Agent.run budget, Planner llm_calls/tokens spends, tests/eval, README/ADR-059",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794075249.8117352,
-      "timestamp_str": "2026-11-07 21:14:09",
-      "agent": "opencode:cycle65"
-    },
-    {
-      "task_id": "brain-cycle65-execution-budget",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Quadruple: generous 13/1.0/actions match steps 13 pressure .065; caps steps 4/3, llm 3/2, tokens 10/8, seconds 0; 221 tests OK; aikit 5/5; standing unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794075249.815438,
-      "timestamp_str": "2026-11-07 21:14:09",
-      "agent": "opencode:cycle65"
-    },
-    {
-      "task_id": "brain-cycle65-execution-budget",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit execution budgets, eval, tests, ADR-059, cycle 65",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794075259.604293,
-      "timestamp_str": "2026-11-07 21:14:19",
-      "agent": "opencode:cycle65"
-    },
-    {
-      "task_id": "brain-cycle65-execution-budget",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle65-execution-budget' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794075260.0302374,
-      "timestamp_str": "2026-11-07 21:14:20",
-      "agent": "opencode:cycle65"
-    },
     {
       "task_id": "brain-cycle66-resume-identity",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794077017.7755144,
       "timestamp_str": "2026-11-07 21:43:37",
       "agent": "opencode:cycle68"
+    },
+    {
+      "task_id": "brain-cycle69-content-digest",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: content-vs-graph snapshot digests and meta verification (research-engine transfer)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794077121.5175824,
+      "timestamp_str": "2026-11-07 21:45:21",
+      "agent": "opencode:cycle69",
+      "impact_assessment": {
+        "why": "Snapshots have no exact vs semantic digest, so a re-capture with a new timestamp is indistinguishable from a real evidence change. research-engine/engine/bundle.py:186-222 separates graph_sha256 (every record) from content_sha256 (semantic projection) and verifies an export against its meta.",
+        "benefits": "graph_sha256 changes on volatile capture fields; content_sha256 stays stable; a changed steps/action/syn field changes both; a .meta sidecar verifies record count, graph and content with named findings. Default export/read stays compatible.",
+        "risks": "contract: snapshot.py adds captured_at, digest and meta helpers; dependency: stdlib only; concurrency: atomic meta write; state: local sidecar only.",
+        "mitigation": "Add captured_at to VOLATILE_FIELDS, sort records deterministically, keep content projection recursive, test re-capture vs real change, meta tamper/missing, and run 241 tests plus AIKit gates."
+      },
+      "plan_digest": "7058b8dcb45f988e488cffa788a2b22217b7e984f5db1eb8f15dc16ced53ad5d"
+    },
+    {
+      "task_id": "brain-cycle69-content-digest",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first content digest import; graph/content digests, captured_at volatile, meta export/verify, tests/eval, README/ADR-063",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794077717.1132402,
+      "timestamp_str": "2026-11-07 21:55:17",
+      "agent": "opencode:cycle69"
+    },
+    {
+      "task_id": "brain-cycle69-content-digest",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Quadruple: recapture graph-changed/content-stable; changed both; meta intact/tampered/missing; T3:15/65 13/6 1.0; 247 tests OK; aikit 5/5; standing unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794077717.6253226,
+      "timestamp_str": "2026-11-07 21:55:17",
+      "agent": "opencode:cycle69"
+    },
+    {
+      "task_id": "brain-cycle69-content-digest",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit content-vs-graph digests, meta verification, eval, tests, ADR-063, cycle 69",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794077730.56222,
+      "timestamp_str": "2026-11-07 21:55:30",
+      "agent": "opencode:cycle69"
+    },
+    {
+      "task_id": "brain-cycle69-content-digest",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-cycle69-content-digest' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794077731.3088124,
+      "timestamp_str": "2026-11-07 21:55:31",
+      "agent": "opencode:cycle69"
     }
   ]
 }

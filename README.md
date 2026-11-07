@@ -71,6 +71,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.snapshot_diff
   ```
+- **Snapshot-Digest Battery**:
+  ```bash
+  python -m evals.snapshot_digest
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -104,7 +108,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -293,6 +297,18 @@ with steps, reward, success, action hash, syn and phi.
 added/removed/changed lists plus a summary. `python -m
 evals.snapshot_diff` shows empty same/volatile diffs and named
 changed/added/removed cases over the 13/6-step T3:15/65 battery.
+
+## 🔎 Snapshot Digests
+
+`snapshot_digests(records)` returns the record count, an exact
+`graph_sha256` over every field and a semantic `content_sha256` with
+volatile fields removed recursively. `export_snapshot(...,
+meta_path=...)` writes a `.meta` sidecar atomically;
+`verify_snapshot` reports `record-count`, `graph-mismatch`,
+`content-mismatch` or `missing-meta`. A re-capture changes the graph
+digest but not content; a changed steps/action/syn field moves both.
+`python -m evals.snapshot_digest` shows recapture, real change, and
+intact/tampered/missing meta over the 13/6-step T3:15/65 battery.
 
 ## 🧾 Verdict Facts
 

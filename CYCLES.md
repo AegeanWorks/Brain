@@ -3086,3 +3086,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 241 OK.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 69**: unittest 241 OK; aikit 5/5; snapshots T3:15/65 13/6 both 1.0; same/volatile empty diff; changed steps/added/removed named; workspace same/cache stable/change/default null; episode same/resume/13, T3:65 new/6; generous budget 13/1.0, caps 4/3, 3/2, 10/8, seconds; Merkle 12-20/count 8 proof 3; prompt 63->52/13; synthetic 228->52; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
+
+## Cycle 69 - snapshot content-vs-graph digests and meta verification (research-engine transfer)
+
+- **Baseline** (commit 7181635, cycle 68; same T3:15/65):
+  - canonical gate: 241 tests OK; aikit check 5/5; policy d097b97b466264471c140abe3f9a1d116d7bdcda3c9e4a798413ddc38b09ba1e.
+  - snapshots had a single representation but no exact-vs-semantic digest or self-contained meta verifier; a re-capture with a new timestamp was indistinguishable from a real evidence change.
+- **Gap**: exact graph integrity and semantic content stability were conflated. `research-engine/engine/bundle.py:186-222` separates the two and verifies an export against its meta.
+- **Target delta**: re-capturing the same battery changes `graph_sha256` (captured_at) but keeps `content_sha256`; changing a steps field changes both; a `.meta` sidecar verifies record count and both digests and names graph/content/missing findings.
+- **Falsifier**: re-capture moves content; a real change leaves content unchanged; meta verification accepts a tampered digest or missing meta; behavior/pins move.
+- **Change**: snapshot.py adds `graph_sha256`, `content_sha256`, `snapshot_digests`, `write_snapshot_meta` and `verify_snapshot`; `run_record` gains volatile `captured_at`; `export_snapshot(..., meta_path=...)` writes the meta atomically. Tests cover volatile-only vs real changes, digest shape, meta roundtrip/tamper/missing, changed-record verification and re-capture. The eval measures recapture/changed/meta-intact/meta-tampered/missing. README and ADR-063 record the contract. No new dependencies; existing export/read remains compatible.
+- **After** (same battery):
+  - re-capture: `graph_same=false`, `content_same=true`, 2 records, 13/6 steps, 1.0; changed steps: both false.
+  - meta intact: `verify_ok=true`; tampered content: `content-mismatch`; missing: `missing-meta`; changed record: graph+content mismatch.
+  - behavior, standing 466/240/217, T1 0-99 1581, holdout 1581/800/738, fixed-rig syn 0.05411532 phi 0.0, trust 16/8/13/6, escape 19/18, dead-pool (7,5) 16, cold-start 16/8/13/6, keyed telemetry, prompt budget, Merkle, execution budget, resume identity, workspace binding and the 200k tail-read bound are unchanged; 247 tests OK; policy unchanged.
+- **Ablation** (same battery):
+  - without the content projection, a volatile re-capture looks like a real change; with it, content is stable and graph changes.
+  - without the meta, no graph/content/record-count verification exists; with it, tampered/missing cases are named. The property dies with the projection/meta cut.
+- **Verdict**: evidence-tooling extension. Behavior is unchanged; the measured deltas are graph-vs-content digest stability and meta findings. No action or emergence claim.
+- **Gates**: unittest 247/247 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_snapshot_digest.TestSnapshotDigest.test_graph_changes_content_stable_on_volatile -v` -> before: ImportError (`content_sha256`); after: OK.
+  - `python -m unittest tests.test_snapshot_digest -v` -> 6 OK.
+  - `python -m evals.snapshot_digest` -> recapture graph changes/content stable; changed both; meta intact/tampered/missing.
+  - `python -m unittest discover -s tests -t .` -> 247 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 70**: unittest 247 OK; aikit 5/5; recapture graph-changed/content-stable; changed both; meta intact/tampered/missing; T3:15/65 13/6 both 1.0; snapshot diff same/volatile empty; workspace stable/change/default null; episode resume/new/ask; budget 13/1.0 and caps; Merkle 8-record proof 3; prompt 63->52/13; keyed 8/8 MACs; anchor journal 2 seq 11/16; single anchor 4/4; 200k head lookup <120 ms (0.764); standing 466/240/217; T1 0-99 1581; holdout 1581/800/738; ranges 683/732/800/1646; fixed syn 0.05411532 syn_n 0.10814360 phi 0.0; policy d097b97b...; multi 9/16/11/13/14 blind 9/200/200/200/200; three 15/12/10/13/19 blind 200/200/10/200/200; trust 16/8/13/6; escape 19/18; cold-start 16/8/13/6; goldens 9/9 + multi 5/5 + three 5/5.
