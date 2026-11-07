@@ -1,6 +1,6 @@
 """Recompute eval statistics from a JSONL log without trusting self-reports.
 
-Understands telemetry.log schema-2 records (header/action/result/verdict
+Parses telemetry.log schema-2 records (header/action/result/verdict
 with M/P/S/hub vectors). Eval signals travel as action records whose
 ``args`` carry raw arrays:
 
