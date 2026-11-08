@@ -68,3 +68,10 @@ These are not state machines: the eval batteries' `mode=` strings (a
 parameter, not a lifecycle), telemetry `seq` (shared by action/result and
 negative for verdicts, so order rides the chain), and the `PLANNER_POLICY`
 digest (a configuration hash, not a state).
+
+Derived verification-result vocabularies are also excluded — for example
+`verify_snapshot` findings, `verify_episode_header` findings and
+`verify_claim_refs` counts. They describe one read-only check's outcome,
+not a durable state a later operation transitions from; the durable
+stores they inspect (`telemetry-chain`, `telemetry-anchor`,
+`claim-store`, `calibration-journal`) are the machines above.
