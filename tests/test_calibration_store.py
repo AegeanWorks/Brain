@@ -7,6 +7,7 @@ checksummed JSONL record per forecast, restores them, and thereby lets
 two runs aggregate to ten resolved forecasts.
 """
 
+import hashlib
 import json
 import os
 import tempfile
@@ -15,7 +16,9 @@ import unittest
 from pathlib import Path
 
 from calibration import summary
-from calibration_store import (append_forecasts, load_forecasts,
+from calibration_store import (_record_digest, append_forecasts,
+                               load_all_forecasts, load_forecasts,
+                               rotate_forecast_journal,
                                verify_forecast_file)
 
 AT = "2026-11-07T00:00:00Z"
@@ -131,6 +134,89 @@ class TestCalibrationStore(unittest.TestCase):
         self.assertFalse(verified["ok"])
         self.assertTrue(any("line 2" in finding
                             for finding in verified["findings"]))
+
+    def test_keyed_journal_roundtrip_and_wrong_key(self):
+        key = hashlib.sha256(b"calibration-eval-key").digest()
+        wrong = hashlib.sha256(b"calibration-eval-wrong").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            report = append_forecasts(_forecasts(FIRST), path, at=AT,
+                                      hmac_key=key)
+            loaded = load_forecasts(path, hmac_key=key)
+            verified = verify_forecast_file(path, hmac_key=key)
+            unkeyed = load_forecasts(path)
+            with self.assertRaises(ValueError):
+                load_forecasts(path, hmac_key=wrong)
+            wrong_verified = verify_forecast_file(path, hmac_key=wrong)
+        self.assertTrue(report["hmac"])
+        self.assertEqual(len(loaded), 6)
+        self.assertTrue(verified["ok"], verified["findings"])
+        self.assertTrue(verified["hmac"])
+        self.assertEqual(len(unkeyed), 6)
+        self.assertFalse(wrong_verified["ok"])
+        self.assertTrue(any("mac" in finding.lower()
+                            for finding in wrong_verified["findings"]))
+
+    def test_keyed_journal_requires_macs(self):
+        key = hashlib.sha256(b"calibration-eval-key").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            append_forecasts(_forecasts(FIRST), path, at=AT)
+            with self.assertRaises(ValueError):
+                load_forecasts(path, hmac_key=key)
+            verified = verify_forecast_file(path, hmac_key=key)
+        self.assertFalse(verified["ok"])
+        self.assertTrue(any("missing its mac" in finding.lower()
+                            for finding in verified["findings"]))
+
+    def test_keyed_journal_detects_recomputed_checksum(self):
+        key = hashlib.sha256(b"calibration-eval-key").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            append_forecasts(_forecasts(FIRST), path, at=AT, hmac_key=key)
+            records = [json.loads(line) for line in
+                       Path(path).read_text(encoding="utf-8").splitlines()]
+            records[0]["probability"] = 0.1
+            records[0]["sha256"] = _record_digest(records[0])
+            Path(path).write_text(
+                "".join(json.dumps(record, sort_keys=True) + "\n"
+                        for record in records), encoding="utf-8")
+            verified = verify_forecast_file(path, hmac_key=key)
+            with self.assertRaises(ValueError):
+                load_forecasts(path, hmac_key=key)
+        self.assertFalse(verified["ok"])
+        self.assertTrue(any("mac" in finding.lower()
+                            for finding in verified["findings"]))
+
+    def test_keyed_rotation_preserves_records_and_score(self):
+        key = hashlib.sha256(b"calibration-eval-key").digest()
+        wrong = hashlib.sha256(b"calibration-eval-wrong").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            rows = FIRST + SECOND
+            before = summary(_forecasts(rows), min_resolved=1)
+            append_forecasts(_forecasts(rows), path, at=AT, keep_recent=6,
+                             hmac_key=key)
+            combined = load_all_forecasts(path, hmac_key=key)
+            after = summary(combined, min_resolved=1)
+            before_bytes = Path(path).read_bytes()
+            with self.assertRaises(ValueError):
+                rotate_forecast_journal(path, keep_recent=6,
+                                        hmac_key=wrong)
+            after_bytes = Path(path).read_bytes()
+        self.assertEqual(len(combined), 10)
+        self.assertAlmostEqual(before["brier"], after["brier"], places=6)
+        self.assertEqual(before_bytes, after_bytes)
+
+    def test_invalid_hmac_key_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            for value in ("text", b"", 3):
+                with self.assertRaises(ValueError):
+                    append_forecasts(_forecasts(FIRST[:1]), path, at=AT,
+                                     hmac_key=value)
+                with self.assertRaises(ValueError):
+                    load_forecasts(path, hmac_key=value)
 
     def test_missing_store_is_empty(self):
         with tempfile.TemporaryDirectory() as tmp:

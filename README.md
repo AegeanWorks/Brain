@@ -493,14 +493,19 @@ checksummed JSONL line under an `O_CREAT|O_EXCL` lock (30 s stale
 steal, bounded timeout, 10 MiB free). `load_forecasts` restores the
 records and raises on any defect; `verify_forecast_file` names corrupt
 lines, checksum mismatches and duplicates without raising. The
-checksum covers the record (`schema/id/probability/outcome/at`), not a
-keyed signature. `python -m evals.calibration_store` shows the
-in-memory file-before/after ablation, a 6-forecast first run (Brier
-0.185, skill 0.26, descriptive warning), two runs aggregating to 10
-resolved (Brier 0.129, skill 0.484), duplicate refusal, tamper/corrupt
-findings, missing, stale-lock steal and fresh-lock timeout. Keep the
-journal under `.aikit/` or outside the source tree; it is local
-evidence, not committed.
+checksum covers the record (`schema/id/probability/outcome/at`). An
+optional `hmac_key=bytes` adds a per-record HMAC-SHA256; `load_forecasts`,
+`load_all_forecasts`, `verify_forecast_file` and
+`rotate_forecast_journal`/`append_forecasts(keep_recent=...)` accept the
+same key, so a keyed journal can be rotated without dropping its MACs.
+`python -m evals.calibration_store` shows the in-memory
+file-before/after ablation, a 6-forecast first run (Brier 0.185, skill
+0.26, descriptive warning), two runs aggregating to 10 resolved (Brier
+0.129, skill 0.484), duplicate refusal, tamper/corrupt findings,
+missing, stale-lock steal, fresh-lock timeout, and keyed correct,
+wrong, missing-record-MAC and keyed-rotation modes. Keep the journal
+under `.aikit/` or outside the source tree; it is local evidence, not
+committed.
 
 `run_task_logged(..., calibration_path=...)` is the opt-in bridge from a
 real run to the journal. It requires a persistent `SelfModel` (the

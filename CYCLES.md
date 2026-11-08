@@ -3753,3 +3753,11 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: `read_all` retains all 100k records; `read_headers` retains one. Time stays O(n); the win is memory/allocation.
 - **Gates**: unittest 438/438 OK; aikit check brain 5/5 PASS.
 
+## Cycle 98 (Push 7) - optional per-record HMAC for the calibration journal
+
+- **Audit finding**: calibration records were checksum-only; a rewritten record with a recomputed checksum passed, and keyed rotation was undefined.
+- **Change**: optional `hmac_key` on append/load/load-all/verify/rotate; each keyed record carries a MAC over the record including its checksum; `_record_digest` excludes both `sha256` and `mac` so unkeyed checksums stay exact.
+- **After**: 443 tests OK. Keyed journal verifies and loads unkeyed; wrong key and missing MAC fail with per-line findings; a rewritten probability with recomputed checksum fails the MAC; keyed rotation keeps 10 records at Brier 0.129/skill 0.484 and a wrong-key rotation leaves the file byte-identical. Unkeyed modes and behavior/policy unchanged.
+- **Ablation**: without a key the checksum-only journal accepts the recomputed tamper; with the key the MAC rejects it. Rotation without a key cannot read a keyed journal (it raises), preventing silent MAC loss.
+- **Gates**: unittest 443/443 OK; aikit check brain 5/5 PASS.
+

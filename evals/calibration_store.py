@@ -8,6 +8,7 @@ checksums, corrupt lines, missing stores and lock states are named.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
@@ -15,11 +16,12 @@ import time
 from pathlib import Path
 
 from calibration import summary
-from calibration_store import (append_forecasts, load_forecasts,
-                               verify_forecast_file)
+from calibration_store import (append_forecasts, load_all_forecasts,
+                               load_forecasts, verify_forecast_file)
 
 MODES = ("in-memory", "first-run", "aggregated", "duplicate", "tampered",
-         "corrupt-line", "missing", "stale-lock", "fresh-lock")
+         "corrupt-line", "missing", "stale-lock", "fresh-lock", "keyed",
+         "keyed-wrong", "keyed-missing", "keyed-rotation")
 AT = "2026-11-07T00:00:00Z"
 FIRST = (
     ("run1:0", 0.9, 1), ("run1:1", 0.8, 1), ("run1:2", 0.7, 0),
@@ -56,7 +58,49 @@ def measure_case(mode="first-run", directory=None):
               "resolved": 0, "ignored": 0, "brier": None, "skill": None,
               "warnings": [], "first_brier": None, "first_skill": None,
               "file_before": False, "file_after": False,
-              "lock_exists": None, "error": None}
+              "lock_exists": None, "hmac": None, "primary_exists": None,
+              "error": None}
+    if mode in ("keyed", "keyed-wrong", "keyed-missing", "keyed-rotation"):
+        key = hashlib.sha256(b"calibration-eval-key").digest()
+        wrong = hashlib.sha256(b"calibration-eval-wrong").digest()
+        if mode == "keyed-rotation":
+            rows = FIRST + SECOND
+            before = summary(_forecasts(rows), min_resolved=1)
+            append_forecasts(_forecasts(rows), path, at=AT, keep_recent=6,
+                             hmac_key=key)
+            loaded = load_all_forecasts(path, hmac_key=key)
+            after = summary(loaded, min_resolved=1)
+            result.update({"records": len(loaded), "resolved":
+                           after["counts"]["resolved"],
+                           "brier": after["brier"], "skill": after["skill"],
+                           "first_brier": before["brier"],
+                           "first_skill": before["skill"], "ok": True,
+                           "hmac": True, "file_after": Path(path).exists()})
+            return result
+        if mode == "keyed-missing":
+            append_forecasts(_forecasts(FIRST), path, at=AT)
+        else:
+            append_forecasts(_forecasts(FIRST), path, at=AT, hmac_key=key)
+        if mode == "keyed":
+            loaded = load_forecasts(path, hmac_key=key)
+            verified = verify_forecast_file(path, hmac_key=key)
+            result.update(_stats(loaded))
+            result.update({"ok": verified["ok"],
+                           "findings": verified["findings"],
+                           "hmac": verified["hmac"],
+                           "primary_exists": Path(path).exists()})
+            return result
+        target_key = key if mode == "keyed-missing" else wrong
+        try:
+            load_forecasts(path, hmac_key=target_key)
+        except ValueError as exc:
+            result["error"] = str(exc)
+        verified = verify_forecast_file(path, hmac_key=target_key)
+        result.update({"ok": verified["ok"],
+                       "findings": verified["findings"],
+                       "hmac": verified["hmac"],
+                       "primary_exists": Path(path).exists()})
+        return result
     if mode == "in-memory":
         forecasts = _forecasts(FIRST)
         result["in_memory"] = _stats(forecasts)

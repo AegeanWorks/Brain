@@ -4,11 +4,13 @@ Forecasts are immutable observations; ``calibration.summary`` scores
 whatever list it is given, but forecasts from earlier processes are
 lost. This store appends one checksummed JSONL record per forecast under
 an advisory lock, refuses duplicate ids, and names corrupt lines on
-verification. Scoring stays in ``calibration.summary``. The checksum
-detects accidental edits, not a keyed signature.
+verification. Scoring stays in ``calibration.summary``. An optional
+HMAC-SHA256 per record binds the journal to a caller-held key; the
+checksum alone detects accidental edits.
 """
 
 import hashlib
+import hmac
 import json
 import os
 import shutil
@@ -22,6 +24,7 @@ LOCK_POLL_SECONDS = 0.02
 MIN_FREE_BYTES = 10 * 1024 * 1024
 _RECORD_FIELDS = frozenset(
     {"schema", "id", "probability", "outcome", "at", "sha256"})
+_OPTIONAL_FIELDS = frozenset({"mac"})
 _INPUT_FIELDS = frozenset({"id", "probability", "outcome", "at"})
 
 
@@ -36,8 +39,25 @@ def _valid_digest(value):
 
 
 def _record_digest(record):
-    body = {key: value for key, value in record.items() if key != "sha256"}
+    body = {key: value for key, value in record.items()
+            if key not in ("sha256", "mac")}
     return hashlib.sha256(_canonical(body).encode("utf-8")).hexdigest()
+
+
+def _record_mac(record, key):
+    body = {name: value for name, value in record.items() if name != "mac"}
+    return hmac.new(key, _canonical(body).encode("utf-8"),
+                    hashlib.sha256).hexdigest()
+
+
+def _validate_hmac_key(value):
+    if value is None:
+        return None
+    if not isinstance(value, (bytes, bytearray)) or not value:
+        raise ValueError(
+            "Why: hmac_key must be non-empty bytes or None. "
+            "Fix: pass the verifier-held bytes key, or omit it.")
+    return bytes(value)
 
 
 def _now():
@@ -93,7 +113,7 @@ def _validate_record(record):
     missing = _RECORD_FIELDS - set(record)
     if missing:
         raise ValueError("record is missing fields: %s" % sorted(missing))
-    unknown = set(record) - _RECORD_FIELDS
+    unknown = set(record) - _RECORD_FIELDS - _OPTIONAL_FIELDS
     if unknown:
         raise ValueError("record has unknown fields: %s" % sorted(unknown))
     if record["schema"] != RECORD_SCHEMA:
@@ -107,12 +127,15 @@ def _validate_record(record):
     digest = record["sha256"]
     if not _valid_digest(digest):
         raise ValueError("checksum must be a lowercase SHA-256 digest")
+    mac = record.get("mac")
+    if mac is not None and not _valid_digest(mac):
+        raise ValueError("MAC must be a lowercase SHA-256 digest")
     if digest != _record_digest(record):
         raise ValueError("checksum does not match the record")
     return dict(record)
 
 
-def _seal(forecast, at):
+def _seal(forecast, at, hmac_key=None):
     record = {
         "schema": RECORD_SCHEMA,
         "id": forecast["id"],
@@ -121,10 +144,12 @@ def _seal(forecast, at):
         "at": forecast.get("at") or at,
     }
     record["sha256"] = _record_digest(record)
+    if hmac_key is not None:
+        record["mac"] = _record_mac(record, hmac_key)
     return record
 
 
-def _read_records(path):
+def _read_records(path, hmac_key=None):
     target = Path(path)
     if not target.exists():
         return [], []
@@ -148,6 +173,15 @@ def _read_records(path):
         except ValueError as exc:
             findings.append("line %d: %s" % (number, exc))
             continue
+        if hmac_key is not None:
+            stored = record.get("mac")
+            if stored is None:
+                findings.append("line %d: record is missing its MAC" % number)
+                continue
+            if not hmac.compare_digest(stored, _record_mac(record, hmac_key)):
+                findings.append(
+                    "line %d: record MAC does not match" % number)
+                continue
         if record["id"] in seen:
             findings.append("line %d: duplicate id %r"
                             % (number, record["id"]))
@@ -280,17 +314,20 @@ def _backup_file(source, backup):
 
 
 def append_forecasts(forecasts, path, at=None, lock_timeout=3.0,
-                     keep_recent=None):
+                     keep_recent=None, hmac_key=None):
     """Append validated, checksummed forecasts under the writer lock.
 
     With ``keep_recent`` the append and the archive rotation run under
     the same lock, so no other writer interleaves between them. The
     rotation keeps the newest N live; ``None`` leaves every record live.
+    An optional ``hmac_key`` adds a per-record MAC and verifies existing
+    records before appending.
     """
     if not isinstance(forecasts, (list, tuple)):
         raise ValueError(
             "Why: forecasts must be a list or tuple. Fix: pass a list of "
             "{id, probability, outcome} mappings.")
+    hmac_key = _validate_hmac_key(hmac_key)
     if at is not None:
         _validate_at(at)
     if (isinstance(lock_timeout, bool)
@@ -310,14 +347,14 @@ def append_forecasts(forecasts, path, at=None, lock_timeout=3.0,
     target.parent.mkdir(parents=True, exist_ok=True)
     _check_free_space(target.parent)
     stamp = at or _now()
-    sealed = [_seal(_validate_forecast(forecast), stamp)
+    sealed = [_seal(_validate_forecast(forecast), stamp, hmac_key=hmac_key)
               for forecast in forecasts]
     identifiers = [record["id"] for record in sealed]
     if len(set(identifiers)) != len(identifiers):
         raise ValueError("duplicate forecast id in the batch")
     rotation = None
     with _locked(target, lock_timeout):
-        existing, findings = _read_records(target)
+        existing, findings = _read_records(target, hmac_key=hmac_key)
         if findings:
             raise ValueError("calibration store is invalid: %s"
                              % findings[0])
@@ -337,7 +374,8 @@ def append_forecasts(forecasts, path, at=None, lock_timeout=3.0,
             _fsync_dir(target.parent)
         if keep_recent is not None:
             rotation = _rotate_locked(
-                target, Path(str(target) + ".archive"), keep_recent)
+                target, Path(str(target) + ".archive"), keep_recent,
+                hmac_key=hmac_key)
     combined = existing + sealed
     if rotation is None:
         rotated = False
@@ -362,30 +400,33 @@ def append_forecasts(forecasts, path, at=None, lock_timeout=3.0,
         "archived": archived,
         "backup": backup,
         "metadata": metadata,
+        "hmac": hmac_key is not None,
     }
 
 
-def load_forecasts(path):
+def load_forecasts(path, hmac_key=None):
     """Load all valid forecast records, raising on any store defect."""
-    records, findings = _read_records(path)
+    hmac_key = _validate_hmac_key(hmac_key)
+    records, findings = _read_records(path, hmac_key=hmac_key)
     if findings:
         raise ValueError("calibration store is invalid: %s" % findings[0])
     return records
 
 
-def load_all_forecasts(path, archive_path=None):
+def load_all_forecasts(path, archive_path=None, hmac_key=None):
     """Load archived forecasts in order, then the live journal.
 
     Archive and live ids must be disjoint; the combined list preserves
     the original chronological order when the archive holds older
     records and the live journal holds the newest ones.
     """
+    hmac_key = _validate_hmac_key(hmac_key)
     archive = (Path(archive_path) if archive_path is not None
                else Path(str(path) + ".archive"))
     records = []
     if archive.exists():
-        records.extend(load_forecasts(archive))
-    records.extend(load_forecasts(path))
+        records.extend(load_forecasts(archive, hmac_key=hmac_key))
+    records.extend(load_forecasts(path, hmac_key=hmac_key))
     seen = set()
     for record in records:
         if record["id"] in seen:
@@ -396,9 +437,10 @@ def load_all_forecasts(path, archive_path=None):
     return records
 
 
-def verify_forecast_file(path):
-    """Verify every record's schema, checksum, id and outcome."""
-    records, findings = _read_records(path)
+def verify_forecast_file(path, hmac_key=None):
+    """Verify every record's schema, checksum, MAC, id and outcome."""
+    hmac_key = _validate_hmac_key(hmac_key)
+    records, findings = _read_records(path, hmac_key=hmac_key)
     return {
         "ok": not findings,
         "findings": findings,
@@ -407,12 +449,13 @@ def verify_forecast_file(path):
                         if record["outcome"] is not None),
         "ignored": sum(1 for record in records
                        if record["outcome"] is None),
+        "hmac": hmac_key is not None,
     }
 
 
-def _rotate_locked(target, archive, keep_recent):
+def _rotate_locked(target, archive, keep_recent, hmac_key=None):
     """Rotate ``target`` into ``archive``; the caller holds the lock."""
-    live, findings = _read_records(target)
+    live, findings = _read_records(target, hmac_key=hmac_key)
     if findings:
         raise ValueError("calibration store is invalid: %s" % findings[0])
     if len(live) <= keep_recent:
@@ -427,7 +470,7 @@ def _rotate_locked(target, archive, keep_recent):
             "backup": None,
             "metadata": None,
         }
-    archived, archive_findings = _read_records(archive)
+    archived, archive_findings = _read_records(archive, hmac_key=hmac_key)
     if archive_findings:
         raise ValueError("calibration archive is invalid: %s"
                          % archive_findings[0])
@@ -479,7 +522,7 @@ def _rotate_locked(target, archive, keep_recent):
 
 
 def rotate_forecast_journal(path, keep_recent=100, archive_path=None,
-                            lock_timeout=3.0):
+                            lock_timeout=3.0, hmac_key=None):
     """Archive older forecasts and keep the newest ``keep_recent`` live.
 
     The archive accumulates older records (idempotent by id); the live
@@ -499,6 +542,7 @@ def rotate_forecast_journal(path, keep_recent=100, archive_path=None,
         raise ValueError(
             "Why: lock_timeout must be a non-negative number. "
             "Fix: pass lock_timeout=3.0.")
+    hmac_key = _validate_hmac_key(hmac_key)
     target = Path(path)
     archive = (Path(archive_path) if archive_path is not None
                else Path(str(target) + ".archive"))
@@ -510,4 +554,5 @@ def rotate_forecast_journal(path, keep_recent=100, archive_path=None,
     archive.parent.mkdir(parents=True, exist_ok=True)
     _check_free_space(target.parent)
     with _locked(target, lock_timeout):
-        return _rotate_locked(target, archive, keep_recent)
+        return _rotate_locked(target, archive, keep_recent,
+                              hmac_key=hmac_key)
