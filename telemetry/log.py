@@ -455,6 +455,25 @@ class Telemetry:
                     out.append(json.loads(line))
         return out
 
+    def read_headers(self):
+        """Return only decoded header records, in file order.
+
+        Streams the file so a long action log costs O(1) retained memory
+        instead of holding every record. JSON errors behave like
+        ``read_all``.
+        """
+        if not self.path.exists():
+            return []
+        out = []
+        with open(self.path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                record = json.loads(line)
+                if isinstance(record, dict) and record.get("type") == "header":
+                    out.append(record)
+        return out
+
     def bins(self, step_ms=50):
         """Group records into fixed time bins from first timestamp.
 

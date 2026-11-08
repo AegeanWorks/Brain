@@ -3745,3 +3745,11 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: omitting `store_hmac_key` loads the keyed store unauthenticated (backward compatible); supplying it enforces the MAC.
 - **Gates**: unittest 435/435 OK; aikit check brain 5/5 PASS.
 
+## Cycle 97 (Push 6) - stream header-only reads for verification
+
+- **Audit finding**: episode/claim verification decoded and retained every action record just to find headers; a 100k-record log cost 124.2 MB peak.
+- **Change**: `Telemetry.read_headers()` streams the JSONL and retains only header records, with `read_all`-compatible errors; used by `verify_episode_header` and `claims_verify._log_episodes`. Three tests and `evals/header_reader.py`.
+- **After**: 438 tests OK. On 100,001 lines the header is identical; `read_all` peak 124.2 MB/5.715 s, `read_headers` 0.1 MB/4.019 s (~1240x less peak memory, 30% faster). Missing/malformed behavior matches; episode/claim-ref modes unchanged; behavior and policy unchanged.
+- **Ablation**: `read_all` retains all 100k records; `read_headers` retains one. Time stays O(n); the win is memory/allocation.
+- **Gates**: unittest 438/438 OK; aikit check brain 5/5 PASS.
+

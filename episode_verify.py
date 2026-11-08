@@ -36,11 +36,9 @@ def verify_episode_header(log_path, expected_policy_sha256=None,
                 "Why: %s must be a 64-hex digest or None. "
                 "Fix: pass the expected digest or omit it." % name)
     try:
-        records = Telemetry(log_path).read_all()
+        headers = Telemetry(log_path).read_headers()
     except (OSError, ValueError) as exc:
         raise ValueError("log %s is unreadable: %s" % (log_path, exc))
-    headers = [record for record in records
-               if isinstance(record, dict) and record.get("type") == "header"]
     if not headers:
         return {"ok": False, "headers": 0,
                 "findings": ["missing-header"], "results": [],

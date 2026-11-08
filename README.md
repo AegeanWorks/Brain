@@ -131,6 +131,10 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m evals.episode_header
   ```
+- **Header-Reader Battery**:
+  ```bash
+  python -m evals.header_reader
+  ```
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -170,7 +174,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence/claim-ref-verify/episode-header batteries
+├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence/claim-ref-verify/episode-header/header-reader batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -431,6 +435,9 @@ policy, workspace current/wrong/missing/invalid, and the claims-policy/
 claims-workspace paths. The recomputation trusts the stored
 task/seed/budget/policy; it proves internal consistency, not that the run
 happened, and old headers without a seed report `missing-seed`.
+Verification reads only headers via `Telemetry.read_headers()`, so a long
+action log costs O(1) retained memory; `python -m evals.header_reader`
+shows 100k records at 0.1 MB peak vs 124.2 MB for `read_all`.
 
 ## 📁 Workspace Evidence Binding
 

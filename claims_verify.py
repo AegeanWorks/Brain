@@ -95,13 +95,11 @@ def _log_episodes(path, hmac_key=None, verify_logs=True,
                 "membership-only verification."
                 % (path, ", ".join(chain["findings"])))
     try:
-        records = Telemetry(path).read_all()
+        records = Telemetry(path).read_headers()
     except (OSError, ValueError) as exc:
         raise ValueError("log %s is unreadable: %s" % (path, exc))
     episodes = set()
     for record in records:
-        if not isinstance(record, dict) or record.get("type") != "header":
-            continue
         digest = record.get("episode_sha256")
         if isinstance(digest, str) and digest:
             episodes.add(digest)

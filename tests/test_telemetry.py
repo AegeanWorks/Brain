@@ -11,6 +11,34 @@ from telemetry.log import Telemetry
 
 
 class TestTelemetry(unittest.TestCase):
+    def test_read_headers_matches_filtered_read_all(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "t.jsonl")
+            tel = Telemetry(path)
+            tel.write_header("task-a", 10, episode_sha256="a" * 64)
+            tel.append_action(1, "exec", {"cmd": "x"})
+            tel.write_header("task-b", 5, episode_sha256="b" * 64)
+            tel.append_action(2, "exec", {"cmd": "y"})
+            headers = tel.read_headers()
+            expected = [row for row in tel.read_all()
+                        if row.get("type") == "header"]
+        self.assertEqual(headers, expected)
+        self.assertEqual([row["task"] for row in headers],
+                         ["task-a", "task-b"])
+
+    def test_read_headers_missing_file_is_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "missing.jsonl")
+            self.assertEqual(Telemetry(path).read_headers(), [])
+
+    def test_read_headers_raises_on_malformed_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "bad.jsonl")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write("{bad json\n")
+            with self.assertRaises(ValueError):
+                Telemetry(path).read_headers()
+
     def test_append_read_roundtrip(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "t.jsonl")

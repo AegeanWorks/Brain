@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-push5-store-auth",
+    "task_id": "brain-push6-header-reader",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794109994.9200134,
-    "owner": "opencode:push5",
-    "started_by": "opencode:push5",
+    "updated_at": 1794110576.0912051,
+    "owner": "opencode:push6",
+    "started_by": "opencode:push6",
     "continuations": [],
-    "completed_at": 1794109995.3063936
+    "completed_at": 1794110576.5732436
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push2-lock-ownership",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: lock release must not delete a successor lock",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794107278.7673075,
-      "timestamp_str": "2026-11-08 06:07:58",
-      "agent": "opencode:push2",
-      "impact_assessment": {
-        "why": "All three advisory locks unlinked the lock path unconditionally; a slow writer whose lock was stolen could delete the successor's lock and admit concurrent writers.",
-        "benefits": "Each acquisition writes a unique token and release only unlinks a matching lock; normal release is unchanged, stolen-lock successors survive.",
-        "risks": "contract: lock file content gains a token, callers unaffected; dependency: os.urandom/time_ns; concurrency: improves mutual exclusion; state: no schema change.",
-        "mitigation": "Apply the same rule to telemetry, claim and calibration locks; add a normal-release and stolen-successor test for each; run 423 tests and AIKit."
-      },
-      "plan_digest": "fef84b09431009f30936e94a79f3a6e274b77e98e58c3f06dc209f7363abef8a"
-    },
-    {
-      "task_id": "brain-push2-lock-ownership",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first successor deleted in all three locks; token write/read, conditional unlink, tests, README/ADR-086",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794107279.279807,
-      "timestamp_str": "2026-11-08 06:07:59",
-      "agent": "opencode:push2"
-    },
-    {
-      "task_id": "brain-push2-lock-ownership",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] 423 tests OK; normal release removes own lock, stolen successor survives; stale/timeout/multi-writer/store suites pass; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794107279.8895655,
-      "timestamp_str": "2026-11-08 06:07:59",
-      "agent": "opencode:push2"
-    },
-    {
-      "task_id": "brain-push2-lock-ownership",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit Push 2",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794107280.643382,
-      "timestamp_str": "2026-11-08 06:08:00",
-      "agent": "opencode:push2"
-    },
-    {
-      "task_id": "brain-push2-lock-ownership",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-push2-lock-ownership' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794107281.2420173,
-      "timestamp_str": "2026-11-08 06:08:01",
-      "agent": "opencode:push2"
-    },
     {
       "task_id": "brain-push3-episode-pins",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794109995.3063965,
       "timestamp_str": "2026-11-08 06:53:15",
       "agent": "opencode:push5"
+    },
+    {
+      "task_id": "brain-push6-header-reader",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: stream header-only reads for episode/claim verification",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794110574.388267,
+      "timestamp_str": "2026-11-08 07:02:54",
+      "agent": "opencode:push6",
+      "impact_assessment": {
+        "why": "Verification parsed and retained every action record just to find headers; a 100k-record log cost 124.2 MB peak.",
+        "benefits": "read_headers retains only headers; measured 0.1 MB peak vs 124.2 MB and 4.019 s vs 5.715 s, with identical results and errors.",
+        "risks": "contract: additive Telemetry method; dependency: none; concurrency: read-only; state: none.",
+        "mitigation": "Match read_all whitespace/JSON behavior, add tests and a 100k battery, use it in both verifiers, rerun 438 tests plus AIKit."
+      },
+      "plan_digest": "6007b3f5c0fb2b7127b89a8d922a91fcb1df34e8cb147150745e05046ed6256e"
+    },
+    {
+      "task_id": "brain-push6-header-reader",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Completed: read_headers, verifier use, tests/battery, README/ADR-090",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794110574.99556,
+      "timestamp_str": "2026-11-08 07:02:54",
+      "agent": "opencode:push6"
+    },
+    {
+      "task_id": "brain-push6-header-reader",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] 438 tests OK; 100k: 124.2 MB -> 0.1 MB peak, 5.715 s -> 4.019 s; missing/malformed parity; verifier modes unchanged; aikit 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794110575.583048,
+      "timestamp_str": "2026-11-08 07:02:55",
+      "agent": "opencode:push6"
+    },
+    {
+      "task_id": "brain-push6-header-reader",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit Push 6",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794110576.0912051,
+      "timestamp_str": "2026-11-08 07:02:56",
+      "agent": "opencode:push6"
+    },
+    {
+      "task_id": "brain-push6-header-reader",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-push6-header-reader' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794110576.5732465,
+      "timestamp_str": "2026-11-08 07:02:56",
+      "agent": "opencode:push6"
     }
   ]
 }
