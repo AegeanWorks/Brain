@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `145`
-- **Total Classes**: `151`
-- **Total Top-Level Functions**: `470`
-- **Total Class Methods**: `705`
-- **Total Source Lines**: `20988`
+- **Total Python Modules**: `146`
+- **Total Classes**: `152`
+- **Total Top-Level Functions**: `471`
+- **Total Class Methods**: `711`
+- **Total Source Lines**: `21116`
 
 ---
 
@@ -19,7 +19,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1577` lines (`65011` bytes)
+**Size**: `1586` lines (`65328` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -44,6 +44,7 @@
   - Method `.read_hub()`
   - Method `.record(state, action, reward, done)`
   - Method `.history()`
+  - Method `.size()` - *Return the number of recorded transitions in O(1).*
   - Method `.clear()`
 - `class Telemetry` - *Append-only log of step events.*
   - Method `.__init__()`
@@ -2410,6 +2411,24 @@
   - Method `.test_initial_snapshot()`
   - Method `.test_record_ok_and_fail()`
   - Method `.test_reset()`
+
+---
+
+### [`tests/test_selfmodel_size.py`](tests/test_selfmodel_size.py)
+> *Self-model history size must be readable without copying the history.*
+
+**Size**: `119` lines (`4171` bytes)
+
+**Classes:**
+- `class TestSelfModelSize`
+  - Method `.test_size_matches_history_length()`
+  - Method `.test_size_does_not_copy_the_history()`
+  - Method `.test_size_is_constant_time_relative_to_history()`
+  - Method `.test_default_agent_uses_the_cheap_path()`
+  - Method `.test_actions_and_rewards_unchanged()`
+
+**Functions:**
+- `def _state(i)`
 
 ---
 

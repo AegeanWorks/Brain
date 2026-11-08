@@ -3994,6 +3994,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 108**: unittest 483 OK; aikit 5/5; recall cost n=200 x60 ~0.002 s versus 0.223 s for deepcopy; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1 and `store_reads` 1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 108 - read the self-model's recorded size in O(1)
+
+- **Baseline** (commit 8144577; same pinned rigs):
+  - canonical gate: 483 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `Agent._step_vectors` `else` branch calls `len(self.selfmodel.history())`, and `SelfModel.history()` returns `copy.deepcopy(self._history)`: O(n) work per step for an O(1) answer.
+  - measured: `T3:15` (13 steps) made 13 `history()` calls with the default `Agent()`; with a persistent `self_model` the count was 0, so the branch is live and unskipped. n=200, 60 calls: 0.261550 s versus 0.000013 s for the length alone.
+- **Gap**: the loop deep-copies the entire self-model record once per step on the default path, purely to read an integer. Nothing about the S vector needs the copy: `len()` of the record is available in O(1), and no caller in the loop inspects the copied contents.
+- **Target delta**: the S vector's second component stays identical while the per-step read becomes O(1); every behavioral pin unchanged.
+- **Falsifier**: any pinned step/reward/range/holdout/cold-start/`policy_digest` value moves; the S vector changes; or the default path still calls `history()`.
+- **Change**: `agent.py` `SelfModel` gains `size()` returning `len(self._history)` with a docstring naming the O(n)/O(1) distinction; `_step_vectors` calls `selfmodel.size()`. `history()` keeps its deepcopy for callers that need the record. `tests/test_selfmodel_size.py` adds 5 tests (length parity, zero `deepcopy` calls under an instrumented `copy.deepcopy`, the measured gap, the default-Agent call counts, the pinned quadruple). ADR-102. No README section: internal, behavior-preserving, and README.md is at its 32,500-char cap.
+- **After** (same rigs):
+  - per-call at n=200, 60 calls: 0.000013 s (was 0.261550 s), ~20000x.
+  - default `Agent()` run: 0 `history()` calls, 13 `size()` calls on a 13-step episode; the S vector and every action identical.
+  - standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); `policy_digest` unchanged.
+- **Ablation** (restore `len(self.selfmodel.history())` as the cut, same calls): 0.261550 s versus 0.000013 s with identical actions and rewards, so the cost returns with the cut and the read is the only difference.
+- **Verdict**: behavior-preserving hot-path cost win, second instance of the ADR-101 defect class. The measured delta is the per-step size read; no telemetry or emergence claim and no pinned value moves. Boundary: this fixes the length read only. `history()` remains O(n) with a deepcopy, so a future caller inspecting the record per step reintroduces the cost.
+- **Gates**: unittest 488/488 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_selfmodel_size` -> before: 4 errors (`SelfModel` has no `size`); after: 5 OK.
+  - `python ..\..\scratch\probe_branch_live.py` -> default Agent 13 `history()` calls on T3:15; persistent self-model 0.
+  - `python ..\..\scratch\ablate_108.py` -> 0.000013 s vs 0.261550 s; standing 89/11.0; T1 1581; holdout 738; policy unchanged.
+  - `python -m unittest discover -s tests -t .` -> 488 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 109**: unittest 488 OK; aikit 5/5; `SelfModel.size()` O(1) and default Agent makes 0 `history()` calls; recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1 and `store_reads` 1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

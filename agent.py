@@ -1025,6 +1025,15 @@ class SelfModel:
     def history(self):
         return copy.deepcopy(self._history)
 
+    def size(self):
+        """Return the number of recorded transitions in O(1).
+
+        ``history()`` deep-copies the whole record, so ``len(history())`` is
+        O(n) work for an O(1) answer. The loop needs only the length once per
+        step, so it calls this instead.
+        """
+        return len(self._history)
+
     def clear(self):
         self._history = []
 
@@ -1314,7 +1323,7 @@ class Agent:
                 s_vec = [0, float(idx + 1)]
         else:
             try:
-                blen = len(self.selfmodel.history())
+                blen = self.selfmodel.size()
             except Exception:
                 blen = idx + 1
             s_vec = [0, float(blen)]
