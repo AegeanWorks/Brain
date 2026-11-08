@@ -399,13 +399,14 @@ with the unchanged 13-step/1.0 T3:15 run.
 ## 🧾 Snapshot Diff
 
 `capture_snapshot(cases)` runs each `(task, seed)` and returns records
-with steps, reward, success, action hash, syn and phi.
+with steps, reward, success, action hash, syn, phi, the synergy
+`syn_scope`, `replay_ok` and `verdict_claimed`, so the diff gate names an
+integrity regression that leaves behavior identical.
 `export_snapshot`/`read_snapshot` write portable JSONL atomically.
 `diff_records` matches by `(record_type, id)`, ignores volatile fields
 (`created_at`, `ts`, `duration_ms`, …), and returns sorted
 added/removed/changed lists plus a summary. `python -m
-evals.snapshot_diff` shows empty same/volatile diffs and named
-changed/added/removed cases over the 13/6-step T3:15/65 battery.
+evals.snapshot_diff` shows empty and named diffs.
 
 ## 🔎 Snapshot Digests
 
