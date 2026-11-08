@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `152`
-- **Total Classes**: `157`
-- **Total Top-Level Functions**: `489`
-- **Total Class Methods**: `740`
-- **Total Source Lines**: `21950`
+- **Total Python Modules**: `153`
+- **Total Classes**: `158`
+- **Total Top-Level Functions**: `492`
+- **Total Class Methods**: `749`
+- **Total Source Lines**: `22085`
 
 ---
 
@@ -117,12 +117,13 @@
 ### [`calibration.py`](calibration.py)
 > *Forecast calibration: Brier, log loss, skill and reliability bins.*
 
-**Size**: `140` lines (`5926` bytes)
+**Size**: `173` lines (`7287` bytes)
 
 **Functions:**
 - `def _clip(probability)`
 - `def _bin_index(probability)`
 - `def _validate(forecasts, min_resolved)`
+- `def confidence_is_outcome(forecasts)` - *True when the recorded probability carries no information of its own.*
 - `def summary(forecasts, min_resolved)` - *Compute the calibration scorecard for a sequence of forecasts.*
 
 ---
@@ -1004,7 +1005,7 @@
 ### [`self_model/model.py`](self_model/model.py)
 > *Running counters for cost, step outcomes, and reported confidence.*
 
-**Size**: `86` lines (`3155` bytes)
+**Size**: `99` lines (`3868` bytes)
 
 **Classes:**
 - `class SelfModel` - *Tally budget use, step counts, errors, and confidence values.*
@@ -1674,6 +1675,29 @@
   - Method `.test_guard_deterministic()`
   - Method `.test_policy_declares_dead_pool_filter()`
   - Method `.test_invalid_dead_pool_filter_rejected()`
+
+---
+
+### [`tests/test_degenerate_confidence.py`](tests/test_degenerate_confidence.py)
+> *A calibration score must name circular confidence, not present it.*
+
+**Size**: `89` lines (`3575` bytes)
+
+**Classes:**
+- `class TestConfidenceDiagnosis`
+  - Method `.test_perfect_separation_is_diagnosed()`
+  - Method `.test_genuine_spread_is_not_diagnosed()`
+  - Method `.test_single_confidence_across_both_classes_is_diagnosed()`
+  - Method `.test_single_outcome_class_is_not_diagnosed()`
+  - Method `.test_partial_separation_is_not_diagnosed()`
+  - Method `.test_summary_does_not_flag_a_perfect_forecast()`
+  - Method `.test_self_model_calibration_flags_its_own_record()`
+  - Method `.test_self_model_with_spread_is_not_flagged()`
+  - Method `.test_the_real_agent_run_is_flagged()`
+
+**Functions:**
+- `def _pairs(rows)`
+- `def _flagged(result)`
 
 ---
 

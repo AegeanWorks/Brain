@@ -426,18 +426,20 @@ probability, outcome}` records with Brier and log loss, base rate,
 skill, five reliability bins and small-sample / over-confidence
 warnings. `outcome=None` is ignored and reflected in coverage.
 `SelfModel.calibration()` scores the confidence/outcome pairs the
-persistent self-model already records, without changing actions.
-`python -m evals.calibration` shows perfect, calibrated, inverted
-and small-sample readouts.
+persistent self-model already records, without changing actions. They are
+recorded after the reward is known (`1.0` rewarded, `0.5` otherwise), so
+the probability is a function of the outcome; `confidence_is_outcome(...)`
+diagnoses that and the readout appends a `confidence-is-outcome` warning.
+The scorer never applies it, so a perfect forecast is not flagged.
+`python -m evals.calibration` shows perfect, calibrated, inverted and
+small-sample readouts.
 
 `calibration_store.py` makes forecasts durable across runs.
-`append_forecasts(forecasts, path, at=...)` validates each `{id,
-probability, outcome}` record, refuses duplicate ids, and appends one
-checksummed JSONL line under an `O_CREAT|O_EXCL` lock (30 s stale
-steal, bounded timeout, 10 MiB free). `load_forecasts` restores the
-records and raises on any defect; `verify_forecast_file` names corrupt
-lines, checksum mismatches and duplicates without raising. The
-checksum covers the record (`schema/id/probability/outcome/at`). An
+`append_forecasts` validates each record, refuses duplicate ids, and
+appends one checksummed JSONL line under an `O_CREAT|O_EXCL` lock
+(30 s stale steal, bounded timeout, 10 MiB free). `load_forecasts`
+raises on any defect; `verify_forecast_file` names corrupt lines,
+checksum mismatches and duplicates without raising. An
 optional `hmac_key=bytes` adds a per-record HMAC-SHA256; `load_forecasts`,
 `load_all_forecasts`, `verify_forecast_file` and
 `rotate_forecast_journal`/`append_forecasts(keep_recent=...)` accept the

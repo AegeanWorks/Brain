@@ -50,14 +50,27 @@ class SelfModel:
         self._outcomes = []
 
     def calibration(self, min_resolved=10):
-        """Score recorded confidence/outcome pairs with Brier/log loss."""
-        from calibration import summary
+        """Score recorded confidence/outcome pairs with Brier/log loss.
+
+        The pair is recorded after the step's outcome is known (``Agent``
+        only sees a step's reward once it has it), so this readout is a
+        record of confidence *given* the outcome, not a forecast. When the
+        confidence is a function of the outcome the score is circular, so
+        the summary carries a ``confidence-is-outcome`` warning instead of
+        presenting it as a forecast measure.
+        """
+        from calibration import confidence_is_outcome, summary
         forecasts = [
             {"id": str(index), "probability": conf, "outcome": outcome}
             for index, (conf, outcome) in enumerate(
                 zip(self._confs, self._outcomes))
         ]
-        return summary(forecasts, min_resolved=min_resolved)
+        result = summary(forecasts, min_resolved=min_resolved)
+        if confidence_is_outcome(forecasts):
+            result["warnings"].append(
+                "confidence-is-outcome: recorded after the outcome, so Brier "
+                "restates the base rate and skill is not a forecast measure")
+        return result
 
     def forecast_count(self):
         """Return the number of recorded confidence/outcome pairs."""

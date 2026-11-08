@@ -65,6 +65,39 @@ def _validate(forecasts, min_resolved):
     return pairs, total, ignored
 
 
+def confidence_is_outcome(forecasts):
+    """True when the recorded probability carries no information of its own.
+
+    Two shapes make a calibration score circular: every outcome class maps
+    to one confidence value (the probability is a function of what it is
+    meant to predict), or a single confidence value covers both classes (it
+    predicts nothing, so any score is the base rate).
+
+    This is a *diagnosis of the record*, not a scoring rule, so
+    :func:`summary` does not apply it: a genuinely perfect forecast also
+    separates the classes and must not be flagged. Callers that know how a
+    confidence was produced (for example the self-model, which records it
+    after the reward is known) use this to qualify their readout.
+    """
+    pairs, _total, _ignored = _validate(forecasts, MIN_RESOLVED)
+    if not pairs:
+        return False
+    by_outcome = {}
+    for _id, probability, outcome in pairs:
+        by_outcome.setdefault(outcome, set()).add(probability)
+    if len(by_outcome) < 2:
+        return False
+    combined = set()
+    for values in by_outcome.values():
+        combined |= values
+    if len(combined) == 1:
+        return True
+    if any(len(values) != 1 for values in by_outcome.values()):
+        return False
+    seen = [next(iter(values)) for values in by_outcome.values()]
+    return len(set(seen)) == len(seen)
+
+
 def summary(forecasts, min_resolved=MIN_RESOLVED):
     """Compute the calibration scorecard for a sequence of forecasts."""
     pairs, total, ignored = _validate(forecasts, min_resolved)

@@ -4120,6 +4120,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 113**: unittest 515 OK; aikit 5/5; `parse_verdict_reason` round-trips `"steps=13 reward=1.0"`; honest verdict check True with `claimed {13, 1.0}`; inflated claim yields `verdict-steps-mismatch` + `verdict-reward-mismatch`; default `check_verdict=False` unchanged; `verify_claim_refs(verify_replay=True)` rejects it; `verify_action_replay` 13/13 terminal (6,7); `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 113 - name circular confidence in the self-model's calibration readout
+
+- **Baseline** (commit aeaaf12):
+  - canonical gate: 515 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `Agent` records `conf = 1.0 if reward > 0 else 0.5` and `ok = reward > 0`, so the stored probability is the outcome by construction.
+  - measured `SelfModel.calibration()`: T1:71 brier 0.203125 skill -0.333333; T3:15 0.230769 / -2.25; T3:74 0.222222 / -1.25 — reported as ordinary calibration with no qualifier.
+- **Gap**: the calibration readout presented a property of how the record is built as a measurement of forecasting. Because the confidence is a function of the outcome in every real run (perfect separation, distinct confidences `[0.5, 1.0]`), Brier restates the base rate and the skill term compares that restatement with itself. Nothing said so.
+- **Target delta**: the circularity is named at the read site with its numbers unchanged; a genuine perfect forecast must stay unflagged.
+- **Falsifier**: a real run is not flagged; a perfect forecast IS flagged (a false positive would make the warning useless); or any pinned value moves.
+- **Killed candidate**: putting the warning in `calibration.summary`. A genuinely perfect forecast also separates the classes (Brier 0.0), so the scorer would flag valid input and break 6 existing assertions; the diagnosis belongs where the confidence's provenance is known.
+- **Change**: `calibration.py` adds `confidence_is_outcome(forecasts)` (two circular shapes: one confidence per class with no sharing, or one confidence across both classes); `self_model/model.py` `calibration()` appends a `confidence-is-outcome` warning with its docstring corrected to say the pair is recorded after the outcome; `tests/test_degenerate_confidence.py` adds 9 tests. ADR-107.
+- **After** (same runs):
+  - T1:71, T3:15 and T3:74 keep their brier/skill values and now carry `confidence-is-outcome` alongside; T3:74 also keeps its small-sample warning.
+  - perfect forecast: brier 0.0, warned False (the control holds).
+  - calibration/self-model/store/bridge/retention suites 72 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without the diagnosis the same numbers read as a score; with it they are qualified, and the numbers are byte-identical either way, so the delta is the disclosure and nothing else.
+- **Verdict**: telemetry-honesty extension on the self-model's own readout. The measured delta is a circular calibration score that now names itself; no action, reward, estimate or pin moves. Boundary: this labels the record, it does not fix it. An informative confidence needs recording before the outcome, which changes what the self-model stores and every calibration pin — a separate decision.
+- **Gates**: unittest 524/524 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_degenerate_confidence` -> before: 4 failures (no warning); after: 9 OK.
+  - `python -m unittest tests.test_degenerate_confidence tests.test_calibration tests.test_selfmodel tests.test_calibration_store tests.test_calibration_bridge tests.test_calibration_retention tests.test_calibration_autoretention` -> 72 OK.
+  - `python ..\..\scratch\ablate_113.py` -> all three runs flagged, numbers unchanged; perfect forecast not flagged; standing 89/11.0.
+  - `python -m unittest discover -s tests -t .` -> 524 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 114**: unittest 524 OK; aikit 5/5; `confidence_is_outcome` True for perfect separation and constant-across-classes, False for spread/single-class/partial; `SelfModel.calibration()` flags real runs and not a spread record; `summary` never flags a perfect forecast; `parse_verdict_reason` round-trip; `verify_action_replay` verdict check; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
