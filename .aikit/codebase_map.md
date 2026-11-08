@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `153`
-- **Total Classes**: `158`
-- **Total Top-Level Functions**: `492`
-- **Total Class Methods**: `749`
-- **Total Source Lines**: `22085`
+- **Total Python Modules**: `154`
+- **Total Classes**: `159`
+- **Total Top-Level Functions**: `493`
+- **Total Class Methods**: `755`
+- **Total Source Lines**: `22193`
 
 ---
 
@@ -1022,7 +1022,7 @@
 ### [`snapshot.py`](snapshot.py)
 > *Deterministic run snapshots and record-set diffing (lattice transfer).*
 
-**Size**: `252` lines (`8540` bytes)
+**Size**: `272` lines (`9512` bytes)
 
 **Functions:**
 - `def run_record(task, seed, trace, stats)` - *Build one snapshot record from a task/seed trace and trace stats.*
@@ -2560,6 +2560,25 @@
 
 **Functions:**
 - `def _record(identifier, steps, captured, syn)`
+
+---
+
+### [`tests/test_snapshot_evidence.py`](tests/test_snapshot_evidence.py)
+> *Snapshot records must carry the integrity evidence, not just the score.*
+
+**Size**: `88` lines (`3787` bytes)
+
+**Classes:**
+- `class TestSnapshotEvidence`
+  - Method `.test_run_record_carries_the_integrity_fields()`
+  - Method `.test_existing_fields_are_unchanged()`
+  - Method `.test_a_changed_scope_is_visible_to_the_diff()`
+  - Method `.test_a_failed_replay_is_visible_to_the_diff()`
+  - Method `.test_capture_snapshot_includes_the_evidence()`
+  - Method `.test_absent_stats_leave_the_evidence_null()`
+
+**Functions:**
+- `def _trace(steps, reward)`
 
 ---
 

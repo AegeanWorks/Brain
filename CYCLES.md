@@ -4146,6 +4146,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 114**: unittest 524 OK; aikit 5/5; `confidence_is_outcome` True for perfect separation and constant-across-classes, False for spread/single-class/partial; `SelfModel.calibration()` flags real runs and not a spread record; `summary` never flags a perfect forecast; `parse_verdict_reason` round-trip; `verify_action_replay` verdict check; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 114 - carry the integrity evidence into snapshot records
+
+- **Baseline** (commit e87eab3):
+  - canonical gate: 524 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `snapshot.run_record` emitted only steps/reward/success/action hash/syn/phi; `diff_records` is the gate that names a behavioral change.
+  - measured: a record with `replay_ok` `True` -> `False`, and one with `syn_scope.sufficient` `True` -> `False`, both diffed `{'changed': 0, 'unchanged': 1}` — the gate could not see either.
+- **Gap**: cycles 110-113 added three evidence readouts, but the snapshot gate that decides whether anything changed was blind to all of them. An integrity regression that left behavior identical would pass the diff as `unchanged`, so the evidence work could silently rot.
+- **Target delta**: a snapshot record carries the scope, the replay verdict and the parsed claim, so a regression in any of them is named by `diff_records`; behavior fields and identical-capture behavior unchanged.
+- **Falsifier**: an integrity regression still diffs `unchanged`; an identical capture diffs `changed`; or an existing snapshot/digest pin moves.
+- **Change**: `snapshot.py` `run_record` gains `syn_scope`, `replay_ok`, `verdict_claimed` (each `None` when no evidence is supplied); `capture_snapshot` fills them from the log it wrote via `recompute(...)` and `verify_action_replay(..., check_verdict=True)`; `tests/test_snapshot_evidence.py` adds 6 tests. ADR-108. `diff_records` needs no change.
+- **After** (same pairs):
+  - captured records: `T3_navigate:15` steps 13 / reward 1.0, `T3_navigate:65` steps 6 / reward 1.0, both `syn_scope.sufficient True`, `replay_ok True`, claim `{steps, 1.0}`.
+  - `replay_ok` True->False: diff `changed 1`, fields `['replay_ok']`; `syn_scope.sufficient` True->False: diff `changed 1`, fields `['syn_scope']`; identical: `changed 0`.
+  - snapshot/digest/new suites 18 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without the fields both integrity regressions diff `unchanged`; with them each is named, while every behavior field is byte-identical in both readings, so the delta is the visibility.
+- **Verdict**: evidence-plumbing extension so the diff gate covers the evidence it is supposed to guard. The measured delta is two integrity regressions that were invisible and are now named; no behavior, estimator or pin moves. Boundary: this widens what the gate sees, it does not strengthen the evidence; a run broken in behavior and evidence together still diffs consistently, and `verdict_claimed` inherits the one-decimal resolution of the verdict reason.
+- **Gates**: unittest 530/530 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_snapshot_evidence` -> before: 2 failures + 1 error (no fields); after: 6 OK.
+  - `python -m unittest tests.test_snapshot tests.test_snapshot_digest tests.test_snapshot_evidence` -> 18 OK.
+  - `python ..\..\scratch\ablate_114.py` -> both regressions named, identical diffs clean, behavior unchanged.
+  - `python -m unittest discover -s tests -t .` -> 530 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 115**: unittest 530 OK; aikit 5/5; snapshot record carries `syn_scope`/`replay_ok`/`verdict_claimed`; `T3:15` 13/1.0 and `T3:65` 6/1.0 with `sufficient True` and `replay_ok True`; integrity regressions diff `changed`; identical captures clean; `confidence_is_outcome` diagnoses; `parse_verdict_reason` round-trip; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

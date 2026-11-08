@@ -20,10 +20,19 @@ VOLATILE_FIELDS = frozenset({
 
 
 def run_record(task, seed, trace, stats=None):
-    """Build one snapshot record from a task/seed trace and trace stats."""
+    """Build one snapshot record from a task/seed trace and trace stats.
+
+    Besides the behavior quadruple (steps/reward/success/action hash) and
+    the two estimators, the record carries the integrity evidence a diff
+    must be able to see: the synergy column scope, whether the actions
+    replayed through the named world, and the verdict's parsed claim.
+    Each is ``None`` when the caller supplied no such evidence.
+    """
+    stats = stats or {}
     reward = sum(float(record.get("reward", 0.0)) for record in trace)
     actions = [record.get("action") for record in trace]
     body = json.dumps(actions, separators=(",", ":"), ensure_ascii=True)
+    replay = stats.get("replay")
     return {
         "record_type": "run",
         "id": "%s:%d" % (task, int(seed)),
@@ -33,15 +42,24 @@ def run_record(task, seed, trace, stats=None):
         "reward": reward,
         "success": bool(trace) and bool(trace[-1].get("done")) and reward > 0.0,
         "action_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
-        "syn": float((stats or {}).get("syn", 0.0)),
-        "phi": float((stats or {}).get("phi", 0.0)),
+        "syn": float(stats.get("syn", 0.0)),
+        "phi": float(stats.get("phi", 0.0)),
+        "syn_scope": stats.get("syn_scope"),
+        "replay_ok": None if replay is None else bool(replay.get("ok")),
+        "verdict_claimed": None if replay is None else replay.get("claimed"),
         "captured_at": time.time(),
     }
 
 
 def capture_snapshot(cases, directory=None, max_steps=200):
-    """Run each ``(task, seed)`` and return sorted run records."""
+    """Run each ``(task, seed)`` and return sorted run records.
+
+    Each record carries the integrity evidence the diff gate must see:
+    the recomputed synergy scope and the replayed trajectory's verdict
+    check, both taken from the log this capture just wrote.
+    """
     from agent import Agent
+    from episode_replay import verify_action_replay
     from evals.recompute import recompute
 
     if directory is None:
@@ -58,8 +76,10 @@ def capture_snapshot(cases, directory=None, max_steps=200):
             log_path.unlink()
         trace = Agent().run_task_logged(task, seed, max_steps=max_steps,
                                         log_path=str(log_path))
-        records.append(run_record(task, seed, trace,
-                                  recompute(str(log_path))))
+        stats = recompute(str(log_path))
+        stats["replay"] = verify_action_replay(str(log_path),
+                                               check_verdict=True)
+        records.append(run_record(task, seed, trace, stats))
     return sorted(records, key=lambda record: (record["record_type"],
                                                record["id"]))
 
