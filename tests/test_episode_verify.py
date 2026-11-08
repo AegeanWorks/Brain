@@ -18,14 +18,16 @@ from claims_verify import verify_claim_refs
 from episode_verify import verify_episode_header
 from identity import input_digest
 from telemetry.log import Telemetry
+from workspace import workspace_digest
 from worlds.grid import GridWorld
 
 AT = "2026-11-07T00:00:00Z"
 
 
-def _run(tmp, task, seed, name):
+def _run(tmp, task, seed, name, workspace_root=None):
     path = os.path.join(tmp, name + ".jsonl")
-    Agent().run_task_logged(task, seed, max_steps=200, log_path=path)
+    Agent().run_task_logged(task, seed, max_steps=200, log_path=path,
+                            workspace_root=workspace_root)
     header = Telemetry(path).read_all()[0]
     return path, header
 
@@ -98,6 +100,85 @@ class TestEpisodeVerify(unittest.TestCase):
             Path(path).write_text("{bad json\n", encoding="utf-8")
             with self.assertRaises(ValueError):
                 verify_episode_header(path)
+
+    def test_invalid_stored_policy_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, _header = _run(tmp, "T3_navigate", 15, "policy-bad")
+            _rewrite_header(path, lambda value:
+                            value.__setitem__("policy_sha256", "abc"))
+            result = verify_episode_header(path)
+        self.assertFalse(result["ok"])
+        self.assertIn("invalid-policy", result["findings"])
+
+    def test_workspace_pin_matches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "root")
+            os.makedirs(root)
+            Path(root, "a.py").write_text("x = 1\n", encoding="utf-8")
+            path, header = _run(tmp, "T3_navigate", 15, "ws-ok", root)
+            expected = workspace_digest(root)
+            result = verify_episode_header(
+                path, expected_workspace_sha256=expected)
+        self.assertEqual(header["workspace_sha256"], expected)
+        self.assertTrue(result["ok"], result["findings"])
+        self.assertEqual(result["expected_workspace_sha256"], expected)
+
+    def test_workspace_pin_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "root")
+            os.makedirs(root)
+            Path(root, "a.py").write_text("x = 1\n", encoding="utf-8")
+            path, _header = _run(tmp, "T3_navigate", 15, "ws-wrong", root)
+            result = verify_episode_header(
+                path, expected_workspace_sha256="0" * 64)
+        self.assertFalse(result["ok"])
+        self.assertIn("workspace-mismatch", result["findings"])
+
+    def test_workspace_pin_needs_a_stored_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, _header = _run(tmp, "T3_navigate", 15, "ws-missing")
+            result = verify_episode_header(
+                path, expected_workspace_sha256="0" * 64)
+        self.assertFalse(result["ok"])
+        self.assertIn("missing-workspace", result["findings"])
+
+    def test_invalid_stored_workspace_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, _header = _run(tmp, "T3_navigate", 15, "ws-bad")
+            _rewrite_header(path, lambda value:
+                            value.__setitem__("workspace_sha256", "abc"))
+            result = verify_episode_header(path)
+        self.assertFalse(result["ok"])
+        self.assertIn("invalid-workspace", result["findings"])
+
+    def test_claims_workspace_pin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "root")
+            os.makedirs(root)
+            Path(root, "a.py").write_text("x = 1\n", encoding="utf-8")
+            path, header = _run(tmp, "T3_navigate", 15, "claims-ws", root)
+            expected = workspace_digest(root)
+            ledger = _ledger(header["episode_sha256"])
+            good = verify_claim_refs(
+                ledger, path, verify_episodes=True,
+                expected_workspace_sha256=expected)
+            with self.assertRaises(ValueError):
+                verify_claim_refs(
+                    ledger, path, verify_episodes=True,
+                    expected_workspace_sha256="0" * 64)
+            with self.assertRaises(ValueError):
+                verify_claim_refs(
+                    ledger, path, expected_workspace_sha256=expected)
+        self.assertTrue(good["ok"], good["findings"])
+        self.assertEqual(good["verified"], 1)
+
+    def test_invalid_expected_workspace_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path, _header = _run(tmp, "T3_navigate", 15, "ws-invalid")
+            for value in ("text", 3, "0" * 63, "G" * 64):
+                with self.assertRaises(ValueError):
+                    verify_episode_header(
+                        path, expected_workspace_sha256=value)
 
     def test_expected_policy_matches(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -17,18 +17,24 @@ def _valid_digest(value):
             and all(ch in "0123456789abcdef" for ch in value))
 
 
-def verify_episode_header(log_path, expected_policy_sha256=None):
+def verify_episode_header(log_path, expected_policy_sha256=None,
+                          expected_workspace_sha256=None):
     """Rebuild the episode identity from one log's header fields.
 
     ``expected_policy_sha256`` optionally pins the producing policy; a
     header with a different stored policy reports ``policy-mismatch``
     even when its episode digest is internally consistent.
+    ``expected_workspace_sha256`` optionally pins the source tree; a
+    missing or different stored workspace is named. Malformed stored
+    policy/workspace digests are reported as invalid.
     """
-    if expected_policy_sha256 is not None and not _valid_digest(
-            expected_policy_sha256):
-        raise ValueError(
-            "Why: expected_policy_sha256 must be a 64-hex digest or None. "
-            "Fix: pass policy_digest() or omit it.")
+    for name, value in (("expected_policy_sha256", expected_policy_sha256),
+                        ("expected_workspace_sha256",
+                         expected_workspace_sha256)):
+        if value is not None and not _valid_digest(value):
+            raise ValueError(
+                "Why: %s must be a 64-hex digest or None. "
+                "Fix: pass the expected digest or omit it." % name)
     try:
         records = Telemetry(log_path).read_all()
     except (OSError, ValueError) as exc:
@@ -38,7 +44,8 @@ def verify_episode_header(log_path, expected_policy_sha256=None):
     if not headers:
         return {"ok": False, "headers": 0,
                 "findings": ["missing-header"], "results": [],
-                "expected_policy_sha256": expected_policy_sha256}
+                "expected_policy_sha256": expected_policy_sha256,
+                "expected_workspace_sha256": expected_workspace_sha256}
     findings = []
     results = []
     for header in headers:
@@ -47,6 +54,7 @@ def verify_episode_header(log_path, expected_policy_sha256=None):
         budget = header.get("budget")
         policy = header.get("policy_sha256")
         episode = header.get("episode_sha256")
+        workspace = header.get("workspace_sha256")
         if seed is None:
             findings.append("missing-seed")
             continue
@@ -56,12 +64,23 @@ def verify_episode_header(log_path, expected_policy_sha256=None):
                 or not isinstance(policy, str) or not policy):
             findings.append("invalid-header")
             continue
+        if not _valid_digest(policy):
+            findings.append("invalid-policy")
+            continue
         if not _valid_digest(episode):
             findings.append("invalid-episode")
+            continue
+        if workspace is not None and not _valid_digest(workspace):
+            findings.append("invalid-workspace")
             continue
         if (expected_policy_sha256 is not None
                 and policy != expected_policy_sha256):
             findings.append("policy-mismatch")
+        if expected_workspace_sha256 is not None:
+            if workspace is None:
+                findings.append("missing-workspace")
+            elif workspace != expected_workspace_sha256:
+                findings.append("workspace-mismatch")
         try:
             state = GridWorld(task, seed).reset()
             recomputed, _projection = input_digest(state, {
@@ -85,4 +104,5 @@ def verify_episode_header(log_path, expected_policy_sha256=None):
         "findings": findings,
         "results": results,
         "expected_policy_sha256": expected_policy_sha256,
+        "expected_workspace_sha256": expected_workspace_sha256,
     }

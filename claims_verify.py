@@ -115,7 +115,8 @@ def _log_episodes(path, hmac_key=None, verify_logs=True,
 
 def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
                       journal_paths=None, verify_episodes=False,
-                      expected_policy_sha256=None):
+                      expected_policy_sha256=None,
+                      expected_workspace_sha256=None):
     """Check every verdict ref against the episodes found in the logs.
 
     ``verify_logs=True`` (default) first verifies each log's hash chain;
@@ -124,10 +125,10 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
     mapping) checks the log head/count against an anchor journal.
     ``verify_episodes=True`` additionally rebuilds each header's episode
     digest from its task/seed/budget/policy and rejects a mismatch; an
-    optional ``expected_policy_sha256`` pins the producing policy. A
-    failed check raises instead of trusting the header.
-    ``verify_logs=False`` is the membership-only ablation and cannot take
-    an hmac_key or a journal.
+    optional ``expected_policy_sha256`` pins the producing policy and an
+    optional ``expected_workspace_sha256`` pins the source tree. A failed
+    check raises instead of trusting the header. ``verify_logs=False`` is
+    the membership-only ablation and cannot take an hmac_key or a journal.
     """
     if not isinstance(ledger, ClaimLedger):
         raise ValueError(
@@ -137,10 +138,13 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
         raise ValueError(
             "Why: verify_episodes must be a bool. "
             "Fix: pass verify_episodes=True or False.")
-    if expected_policy_sha256 is not None and not verify_episodes:
-        raise ValueError(
-            "Why: expected_policy_sha256 needs verify_episodes=True. "
-            "Fix: enable episode verification or omit the policy pin.")
+    for name, value in (("expected_policy_sha256", expected_policy_sha256),
+                        ("expected_workspace_sha256",
+                         expected_workspace_sha256)):
+        if value is not None and not verify_episodes:
+            raise ValueError(
+                "Why: %s needs verify_episodes=True. "
+                "Fix: enable episode verification or omit the pin." % name)
     _validate_options(hmac_key, verify_logs)
     paths = _normalise_paths(log_paths)
     journals = _normalise_journals(paths, journal_paths)
@@ -154,7 +158,8 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
 
         for path in paths:
             episode = verify_episode_header(
-                path, expected_policy_sha256=expected_policy_sha256)
+                path, expected_policy_sha256=expected_policy_sha256,
+                expected_workspace_sha256=expected_workspace_sha256)
             if not episode["ok"]:
                 raise ValueError(
                     "log %s failed episode verification: %s. "
@@ -203,13 +208,15 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
                      if journal is not None},
         "verify_episodes": verify_episodes,
         "expected_policy_sha256": expected_policy_sha256,
+        "expected_workspace_sha256": expected_workspace_sha256,
     }
 
 
 def verify_claim_store(store_path, log_paths, hmac_key=None,
                        verify_logs=True, journal_paths=None,
                        verify_episodes=False,
-                       expected_policy_sha256=None):
+                       expected_policy_sha256=None,
+                       expected_workspace_sha256=None):
     """Load a claim-store snapshot and verify its verdict refs."""
     from claims_store import load_ledger
 
@@ -217,4 +224,5 @@ def verify_claim_store(store_path, log_paths, hmac_key=None,
                              hmac_key=hmac_key, verify_logs=verify_logs,
                              journal_paths=journal_paths,
                              verify_episodes=verify_episodes,
-                             expected_policy_sha256=expected_policy_sha256)
+                             expected_policy_sha256=expected_policy_sha256,
+                             expected_workspace_sha256=expected_workspace_sha256)

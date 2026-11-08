@@ -3718,3 +3718,12 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: without the token check the successor file is deleted; with it the file and token survive. The residual read-then-unlink window is documented, not claimed eliminated.
 - **Gates**: unittest 423/423 OK; aikit check brain 5/5 PASS.
 
+## Cycle 94 (Push 3) - stored policy/workspace digest validation and workspace pin
+
+- **Audit finding**: the episode verifier accepted any non-empty stored `policy_sha256` and ignored `workspace_sha256`; a malformed policy could be recomputed under that string, and the source-tree digest was never cross-checked.
+- **Failing-first**: `abc` policy reported only `episode-mismatch`; an `abc` workspace passed; `expected_workspace_sha256` was not accepted.
+- **Change**: `verify_episode_header` requires stored policy/workspace digests to be 64-hex (`invalid-policy`/`invalid-workspace`) and accepts `expected_workspace_sha256` (`missing-workspace`/`workspace-mismatch`). `verify_claim_refs`/`verify_claim_store` pass the workspace pin through and require `verify_episodes=True` for either pin. Seven tests; six battery modes.
+- **After**: 430 tests OK. Workspace-current (3bca20f2142a...) ok; wrong pin workspace-mismatch; missing pin missing-workspace; invalid stored workspace/policy named; claims-workspace 1/1 and wrong pin rejected; all prior episode/policy modes unchanged; behavior and policy unchanged.
+- **Ablation**: without the workspace pin the stored tree digest is ignored; with it a wrong/missing tree is rejected. Policy validation rejects malformed strings before recomputation.
+- **Gates**: unittest 430/430 OK; aikit check brain 5/5 PASS.
+

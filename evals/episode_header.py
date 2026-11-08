@@ -20,18 +20,21 @@ from claims_verify import verify_claim_refs
 from episode_verify import verify_episode_header
 from identity import input_digest
 from telemetry.log import Telemetry
+from workspace import workspace_digest
 from worlds.grid import GridWorld
 
 MODES = ("intact", "wrong-seed", "wrong-episode", "missing-seed",
          "missing-header", "claims", "claims-tampered", "policy-current",
-         "policy-wrong", "policy-forged", "claims-policy")
+         "policy-wrong", "policy-forged", "policy-invalid", "claims-policy",
+         "workspace-current", "workspace-wrong", "workspace-missing",
+         "workspace-invalid", "claims-workspace")
 AT = "2026-11-07T00:00:00Z"
 
 
-def _run(tmp, name):
+def _run(tmp, name, workspace_root=None):
     path = os.path.join(tmp, name + ".jsonl")
     Agent().run_task_logged("T3_navigate", 15, max_steps=200,
-                            log_path=path)
+                            log_path=path, workspace_root=workspace_root)
     return path
 
 
@@ -56,7 +59,73 @@ def measure_case(mode="intact", directory=None):
     result = {"mode": mode, "headers": 0, "seed": None,
               "episode_prefix": None, "recomputed_prefix": None,
               "ok": None, "findings": [], "verified": None,
-              "internal_ok": None, "error": None}
+              "internal_ok": None, "workspace_prefix": None,
+              "expected_workspace_prefix": None, "error": None}
+    if mode in ("workspace-current", "workspace-wrong", "claims-workspace"):
+        root = os.path.join(directory, "root-" + mode)
+        os.makedirs(root)
+        Path(root, "a.py").write_text("x = 1\n", encoding="utf-8")
+        expected = workspace_digest(root)
+        path = _run(directory, mode, workspace_root=root)
+        header = Telemetry(path).read_all()[0]
+        if mode == "claims-workspace":
+            ledger = _ledger(header["episode_sha256"])
+            verified = verify_claim_refs(
+                ledger, path, verify_episodes=True,
+                expected_workspace_sha256=expected)
+            try:
+                verify_claim_refs(
+                    ledger, path, verify_episodes=True,
+                    expected_workspace_sha256="0" * 64)
+            except ValueError as exc:
+                result["error"] = str(exc)
+            result.update({"headers": 1, "seed": 15,
+                           "episode_prefix":
+                               header["episode_sha256"][:12],
+                           "workspace_prefix": (header.get(
+                               "workspace_sha256") or "")[:12],
+                           "expected_workspace_prefix": expected[:12],
+                           "ok": verified["ok"],
+                           "findings": verified["findings"],
+                           "verified": verified["verified"]})
+            return result
+        pinned = (expected if mode == "workspace-current" else "0" * 64)
+        verified = verify_episode_header(
+            path, expected_workspace_sha256=pinned)
+        result.update({"headers": verified["headers"], "seed": 15,
+                       "episode_prefix": header["episode_sha256"][:12],
+                       "workspace_prefix": (header.get(
+                           "workspace_sha256") or "")[:12],
+                       "expected_workspace_prefix": expected[:12],
+                       "ok": verified["ok"],
+                       "findings": verified["findings"]})
+        return result
+    if mode == "workspace-missing":
+        path = _run(directory, mode)
+        verified = verify_episode_header(
+            path, expected_workspace_sha256="0" * 64)
+        result.update({"headers": verified["headers"], "seed": 15,
+                       "ok": verified["ok"],
+                       "findings": verified["findings"]})
+        return result
+    if mode == "workspace-invalid":
+        path = _run(directory, mode)
+        _rewrite_header(path, lambda value:
+                        value.__setitem__("workspace_sha256", "abc"))
+        verified = verify_episode_header(path)
+        result.update({"headers": verified["headers"], "seed": 15,
+                       "ok": verified["ok"],
+                       "findings": verified["findings"]})
+        return result
+    if mode == "policy-invalid":
+        path = _run(directory, mode)
+        _rewrite_header(path, lambda value:
+                        value.__setitem__("policy_sha256", "abc"))
+        verified = verify_episode_header(path)
+        result.update({"headers": verified["headers"], "seed": 15,
+                       "ok": verified["ok"],
+                       "findings": verified["findings"]})
+        return result
     if mode == "missing-seed":
         path = os.path.join(directory, "missing-seed.jsonl")
         Telemetry(path).write_header("T3_navigate", 200,
