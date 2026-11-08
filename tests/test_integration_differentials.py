@@ -1,4 +1,11 @@
-"""Integration-structure differentials: hub/M lesions kill syn, P/S change nothing."""
+"""Integration-structure differentials: hub/M lesions kill syn, P/S change nothing.
+
+The P/S half is a statement about the readout, not about the modules: as
+``evals.lesion_audit`` measures, ``synergy`` never reads columns 2..5, so
+replacing P and S with noise leaves ``syn`` byte-identical. The test below
+pins that invisibility explicitly so a reader cannot mistake "the score did
+not move" for "the planner is not integrated" (EVID-009).
+"""
 
 import os
 import tempfile
@@ -6,6 +13,7 @@ import unittest
 
 from agent import Agent
 from evals import estimators as est
+from evals.lesion_audit import detectability
 from evals.recompute import _vec_row, recompute
 from memory.store import MemoryStore
 from planner.plan import Planner as TrackerPlanner
@@ -76,6 +84,19 @@ class TestIntegrationDifferentials(unittest.TestCase):
                 self.assertAlmostEqual(phi, got["phi"])
                 self.assertAlmostEqual(syn, got["syn"])
                 self.assertAlmostEqual(syn_n, got["syn_n"])
+
+    def test_planner_and_selfmodel_are_invisible_to_synergy(self):
+        # The invariance above is the readout's blindness, measured: even
+        # pseudo-random P/S of the same shape leaves syn untouched, while M
+        # and hub substitutions move it. A lesion of P or S therefore cannot
+        # be evidence about those modules under this readout.
+        with tempfile.TemporaryDirectory() as tmp:
+            steps, _got = self._fixed_steps(tmp)
+            rows = [row for row in (_vec_row(r) for r in steps) if row]
+            report = detectability(rows)
+            self.assertEqual(report["synergy"]["detectable"], ["M", "hub"])
+            self.assertEqual(report["synergy"]["invisible"], ["P", "S"])
+            self.assertFalse(report["synergy"]["all_detectable"])
 
 
 if __name__ == "__main__":

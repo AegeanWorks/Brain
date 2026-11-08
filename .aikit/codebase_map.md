@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `142`
-- **Total Classes**: `148`
-- **Total Top-Level Functions**: `464`
-- **Total Class Methods**: `690`
-- **Total Source Lines**: `20639`
+- **Total Python Modules**: `144`
+- **Total Classes**: `149`
+- **Total Top-Level Functions**: `470`
+- **Total Class Methods**: `698`
+- **Total Source Lines**: `20881`
 
 ---
 
@@ -565,6 +565,20 @@
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
 - `def main()`
+
+---
+
+### [`evals/lesion_audit.py`](evals/lesion_audit.py)
+> *Lesion detectability: can a readout tell a lesion from arbitrary noise?*
+
+**Size**: `122` lines (`4536` bytes)
+
+**Functions:**
+- `def module_columns(module, width)` - *Column indices belonging to ``module`` within a row of ``width``.*
+- `def substitute_module(rows, module, seed)` - *Copy ``rows`` with ``module``'s block replaced by seeded random floats.*
+- `def _synergy_of(rows)`
+- `def _phi_of(rows)`
+- `def detectability(rows, seed)` - *Report, per readout, which modules it can distinguish from noise.*
 
 ---
 
@@ -1778,7 +1792,7 @@
 ### [`tests/test_integration_differentials.py`](tests/test_integration_differentials.py)
 > *Integration-structure differentials: hub/M lesions kill syn, P/S change nothing.*
 
-**Size**: `82` lines (`3219` bytes)
+**Size**: `103` lines (`4407` bytes)
 
 **Classes:**
 - `class TestIntegrationDifferentials`
@@ -1786,6 +1800,7 @@
   - Method `.test_signal_present_and_phi_floor()`
   - Method `.test_hub_and_memory_lesions_kill_synergy()`
   - Method `.test_planner_and_selfmodel_lesions_change_nothing()`
+  - Method `.test_planner_and_selfmodel_are_invisible_to_synergy()`
 
 **Functions:**
 - `def _pad(rows)`
@@ -1811,6 +1826,26 @@
 
 **Functions:**
 - `def _run(store, target, obstacles, hidden, max_steps)`
+
+---
+
+### [`tests/test_lesion_detectability.py`](tests/test_lesion_detectability.py)
+> *Lesion detectability: a differential must be able to fail for its reason.*
+
+**Size**: `99` lines (`4108` bytes)
+
+**Classes:**
+- `class TestLesionDetectability`
+  - Method `.test_module_spans_cover_the_m_ps_hub_layout()`
+  - Method `.test_module_columns_lists_the_span()`
+  - Method `.test_synergy_sees_m_and_hub_only()`
+  - Method `.test_detectability_reports_which_modules_are_visible()`
+  - Method `.test_a_vacuous_lesion_is_named_not_counted_as_evidence()`
+  - Method `.test_substitution_preserves_shape_and_other_modules()`
+  - Method `.test_scope_still_reports_insufficiency_after_substitution()`
+
+**Functions:**
+- `def _rows(width, n)` - *Deterministic rows whose module block occupies columns 0..width-1.*
 
 ---
 

@@ -217,6 +217,17 @@ first prompt hash.
 sufficiency; `recompute` returns `syn_scope`. Values are unchanged, and
 cold-start cases read `constant-scope-column` instead of a bare `0.0`.
 
+## 🧪 Lesion Detectability
+
+A lesion test ("zero module X, the score moves") is evidence only when the
+readout can move for X. `evals.lesion_audit.detectability(rows)` substitutes
+each module block (M/P/S/hub) with seeded pseudo-random values and reports
+which modules each readout separates from noise. On the fixed rig `synergy`
+detects `M`/`hub` and is invisible to `P`/`S`, so that invariance is the
+readout's blindness, not a module finding; `phi` is invisible to all four.
+`tests/test_lesion_detectability.py` pins the surface so a vacuous lesion is
+recorded, not read as absent integration.
+
 ## 🧷 Terminal Telemetry Anchor
 
 A run can write a separate `.anchor` sidecar with the final head digest
@@ -449,10 +460,9 @@ stay live, the pre-rotation journal is copied to `.bak`, and a
 `load_all_forecasts` combines archive+live with disjoint ids and the
 original scores; a short, missing or already-rotated journal is a
 no-op. Id conflicts and corrupt files are refused; rotation holds the
-store's writer lock. `python -m evals.calibration_retention` shows 19
-records rotating to 10 live/9 archived with identical Brier 0.181579 /
-skill 0.255114, a 19-record backup, a second rotation to 15 archived/25
-total, and conflict/missing/lock cases.
+store's writer lock. `python -m evals.calibration_retention` shows a
+rotation with identical scores, the backup, a second rotation and the
+conflict/missing/lock cases.
 
 `run_task_logged(..., calibration_keep_recent=10)` applies the same
 rotation automatically after the run's forecast append. `append_forecasts(...,
@@ -467,10 +477,8 @@ log or store. T3:15 leaves 10 live/3 archived/13 total with the same
 Brier 0.230769; a second run reaches 10/9/19;
 `calibration_keep_recent=None` keeps all 13 live. A rotation failure (for
 example a corrupt archive) raises after the done verdict with all 13
-forecasts still live. `python -m evals.calibration_autoretention` shows
-retained, two-run, unretained, missing-path, invalid, corrupt-archive and
-action-parity modes; `python -m evals.calibration_retention` adds the
-store-level `append`/`append-noop` modes.
+forecasts still live. `python -m evals.calibration_autoretention` shows the retained,
+invalid, corrupt and parity modes.
 
 ## 🧾 Claim & Verdict Register
 
@@ -484,8 +492,8 @@ verdict history (`proposed` with none, otherwise the last verdict's
 status); a claim or snapshot whose status contradicts that history is
 rejected, even when its checksum was recomputed. Verdict evidence and
 timestamps are validated on load too. Declared confidence does not decide
-the verdict. `python -m evals.claims` judges six T3 claims: 3 supported, 2
-refuted, 1 inconclusive, with the 13/6-step/1.0 runs unchanged.
+the verdict. `python -m evals.claims` judges six T3 claims (3 supported, 2
+refuted, 1 inconclusive) with unchanged runs.
 
 `claims_store.py` makes the ledger durable. `save_ledger(ledger, path)`
 writes one checksummed snapshot atomically (temp + fsync + replace, five
@@ -499,11 +507,9 @@ it as `.corrupt` and falls back to `.bak`; `verify_ledger_file` names
 (including its checksum); `load_ledger(..., hmac_key=...)` and
 `verify_ledger_file(..., hmac_key=...)` require and verify it. A missing
 or wrong MAC fails without quarantining the valid primary, so a caller’s
-key mistake never destroys evidence. `python -m evals.claims_store` shows
-the in-memory file-before/after ablation, a 6-claim/6-verdict roundtrip,
-corrupt-primary recovery (3 claims from the backup), a checksum tamper,
-missing, stale-lock steal, a fresh-lock refusal, and keyed correct,
-wrong, missing and tampered snapshots. Keep the snapshot under `.aikit/`
+key mistake never destroys evidence. `python -m evals.claims_store` shows the in-memory
+file-before/after ablation, corrupt-primary recovery, checksum
+tamper, lock modes and the keyed modes. Keep the snapshot under `.aikit/`
 or outside the source tree; it is local evidence, not committed. The
 checksum detects accidental edits; the HMAC also detects a rewritten
 checksum when the key stays outside the store. An unkeyed save over a
@@ -531,12 +537,9 @@ names `unknown-episode` findings; `verify_claim_store` loads a snapshot
 first and takes `store_hmac_key` to authenticate a keyed claim snapshot
 (separate from the telemetry `hmac_key`). `verify_logs=False` is the
 membership-only ablation and cannot take an `hmac_key` or journal.
-`python -m evals.claim_ref_verify` shows a 2/2 verified pair, missing-log
-1/1, fabricated 0/1, an unreferenced verdict, the unkeyed and keyed store
-paths, a tampered log (rejected; membership-only still 1), a keyed log
-(correct key ok, wrong key `bad-mac`), journaled 2/2, a truncated log
-(chain-only 1, journal `truncated-tail:26<28`), and
-missing/tampered-journal/no-header/missing-file errors. The chain check
+`python -m evals.claim_ref_verify` shows verified, missing-log,
+fabricated and unreferenced cases, the unkeyed/keyed store paths,
+tampered and truncated logs, and the error modes. The chain check
 detects edited/deleted/reordered records but not a fully rewritten
 self-consistent log; HMAC requires key custody; the anchor journal is a
 separate witness and can itself be rewritten.

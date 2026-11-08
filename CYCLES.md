@@ -3944,6 +3944,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 106**: unittest 471 OK; aikit 5/5; `syn_scope` present on every `recompute` result and JSON-serialisable; fixed-rig `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0 with `sufficient: true`; cold-start cases `sufficient: false` / `constant-scope-column`; registry 21 machines 3/3 ok; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; policy decbfce3...; all other cycle-104 pins unchanged.
 
+## Cycle 106 - measure whether a lesion can be detected at all
+
+- **Baseline** (commit 942771d; fixed T1:7 rig, 15 steps, 9 block columns):
+  - canonical gate: 471 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `test_planner_and_selfmodel_lesions_change_nothing` passes; `lesion_p`/`lesion_s` leave `syn` at 0.05411532090976823.
+  - replacing P and S with pseudo-random floats of the same shape leaves `syn` at 0.05411532090976823, byte-identical to the lesion result.
+  - per-module substitution moves `syn` only for M (-0.315563) and hub (+0.226725); P and S do not move it.
+- **Gap**: the differential's assertion cannot fail for the reason its name states. `synergy` reads columns 0-1, so "zero P/S and the score holds" is satisfied by any P/S content, including noise — a control that cannot fail (EVID-009). The suite therefore recorded a readout property as a module finding. `phi` has the mirror problem: 0.0 on all four substitutions because M/P/S are exact counters, so it carries no per-module information on this rig either.
+- **Target delta**: the detectable surface becomes a measured, machine-readable fact per readout and module, so a vacuous lesion is named rather than read as absent integration; no estimate, behavior or pin changes.
+- **Falsifier**: any pinned value moves; `syn` responds to a P or S substitution; or `detectability` reports a module visible that the substitution probe cannot move.
+- **Killed candidate**: an interaction criterion over all module blocks. Already rejected in cycle 105 by measurement (0 of 6 pairs beat the permutation null at n=15; 0 of 5 seeds at n in 6..14), and `phi` shows the same floor here.
+- **Change**: `evals/lesion_audit.py` adds `MODULE_SPANS`, `module_columns`, `substitute_module(rows, module, seed)` (seeded uniform noise in `[0, 16)`, shape and other columns preserved) and `detectability(rows)` (per readout: `detectable`, `invisible`, `all_detectable`, `baseline`); `tests/test_lesion_detectability.py` adds 7 tests; `tests/test_integration_differentials.py` gains `test_planner_and_selfmodel_are_invisible_to_synergy` and a corrected docstring; README section. ADR-100.
+- **After** (same rig):
+  - `synergy`: detectable `[M, hub]`, invisible `[P, S]`, `all_detectable: false`.
+  - `phi`: detectable `[]`, invisible `[M, P, S, hub]`; the estimator still responds to genuinely autocorrelated input, so the floor is the counters, not a broken estimator.
+  - fixed-rig `syn` 0.05411532090976823, `phi` 0.0, steps 15, standing 466/240/217 and `policy_digest` unchanged.
+- **Ablation**: without `detectability` the suite reads "P/S lesions change nothing" as "P/S are not integrated"; with it the same run reports `synergy.invisible [P, S]`, so the sentence is a readout property. Removing the module deletes the measurement and restores the unfalsifiable reading; restoring it returns the per-module verdict.
+- **Verdict**: ablation-honesty extension. The measured delta is a vacuous control converted into a pinned, per-module detectability report; no behavior, estimate, standing, cold-start or `policy_digest` change. Boundary: noise is uniform in `[0, 16)`, so a module whose real values sit far outside that range could read invisible for a scale reason; the report names module lists, it does not rank effect sizes, and `invisible` is a property of the readout, not evidence that the module is unintegrated.
+- **Gates**: unittest 479/479 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_lesion_detectability -v` -> before: ModuleNotFoundError (`evals.lesion_audit`); after: 7 OK.
+  - `python -m unittest tests.test_integration_differentials tests.test_lesion_detectability -v` -> 11 OK.
+  - `python ..\..\scratch\ablate_106.py` -> synergy `[M, hub]` / `[P, S]`; phi `[]` / all four; ablation text recorded.
+  - `python -m unittest discover -s tests -t .` -> 479 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 107**: unittest 479 OK; aikit 5/5; `detectability` fixed-rig `synergy` detectable `[M, hub]` invisible `[P, S]`, `phi` detectable `[]`; `syn_scope` unchanged; fixed-rig `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; policy decbfce3...; registry 21 machines 3/3; all earlier pins unchanged.
+
 
 
 
