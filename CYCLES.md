@@ -4069,6 +4069,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 111**: unittest 503 OK; aikit 5/5; `verify_action_replay` honest True (13/13, terminal 6,7) and chain-valid forgery False (`reward-mismatch:12`, `done-mismatch`); `vector_audit` default `[P0,P1,S0]` / `M0==M1==S1`, full wiring `M0==M1==P0==S1`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 111 - compose action replay into claim-ref verification
+
+- **Baseline** (commit 263fb96):
+  - canonical gate: 503 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `verify_claim_refs` matches a verdict ref against header `episode_sha256` values only; ADR-104's `verify_action_replay` existed but no caller in the claim layer used it.
+  - measured: a `T3_navigate:15` log re-emitted with `wait` for every action, with a claim citing its original episode digest, returned `verified=1 unverified=0 ok=True`, while `verify_action_replay` on the same bytes returned `reward-mismatch:12, done-mismatch`.
+- **Gap**: a verdict could cite an episode the agent never ran. The replay check was shipped in cycle 110 but never composed into the verifier that actually guards claims, so the evidence layer still trusted a false trajectory whose header was intact.
+- **Target delta**: an opt-in ref verification that replays the actions before trusting any ref, so the same forgery is rejected; default behavior byte-identical.
+- **Falsifier**: the honest log is rejected; the forgery passes with the flag; or an existing claim-ref/claims/claim-evidence pin moves.
+- **Change**: `claims_verify.py` adds `verify_replay=False` to `verify_claim_refs` and `verify_claim_store`, raises on a failed replay with the named findings, requires `verify_logs=True`, validates the bool, and reports `replay` in the result. `tests/test_claim_replay.py` adds 5 tests. ADR-105. No README section: README.md sits at its 32,500-char cap after cycle 110's action-replay section, which already states the replay contract this option composes.
+- **After** (same logs):
+  - honest log, `verify_replay=True`: `ok=True`, `verified=1`, `replay=True`.
+  - forged log, default: `ok=True`, `verified=1` (previous behavior preserved).
+  - forged log, `verify_replay=True`: raises `failed replay verification: reward-mismatch:12, done-mismatch`.
+  - claim-ref/claims/claim-evidence suites 49 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the same forged bytes verify without the flag and are refused with it, with identical headers and refs, so the guard is the flag and nothing else. Removing the check restores the false acceptance; restoring it returns the rejection.
+- **Verdict**: evidence-integrity composition. The measured delta is a claim that verified against a provably false trajectory now being refused when replay is requested; no behavior, estimator or pin moves. Boundary: replay still proves only that the actions fit the named world; a forger who computes a different winning trajectory the world accepts is not caught, and this composes the existing check rather than strengthening it.
+- **Gates**: unittest 508/508 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_claim_replay` -> before: 5 errors (`verify_replay` unexpected); after: 5 OK.
+  - `python -m unittest tests.test_claim_ref_verify tests.test_claim_evidence tests.test_claims tests.test_claim_replay` -> 49 OK.
+  - `python ..\..\scratch\ablate_111.py` -> honest True; forged default accepted; forged with replay rejected; standing 89/11.0.
+  - `python -m unittest discover -s tests -t .` -> 508 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 112**: unittest 508 OK; aikit 5/5; `verify_claim_refs(verify_replay=True)` honest True and chain-valid forgery rejected; default `verify_replay=False` preserves `ok=True` on the forgery; `verify_action_replay` 13/13 terminal (6,7); `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

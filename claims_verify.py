@@ -114,7 +114,7 @@ def _log_episodes(path, hmac_key=None, verify_logs=True,
 def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
                       journal_paths=None, verify_episodes=False,
                       expected_policy_sha256=None,
-                      expected_workspace_sha256=None):
+                      expected_workspace_sha256=None, verify_replay=False):
     """Check every verdict ref against the episodes found in the logs.
 
     ``verify_logs=True`` (default) first verifies each log's hash chain;
@@ -124,9 +124,12 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
     ``verify_episodes=True`` additionally rebuilds each header's episode
     digest from its task/seed/budget/policy and rejects a mismatch; an
     optional ``expected_policy_sha256`` pins the producing policy and an
-    optional ``expected_workspace_sha256`` pins the source tree. A failed
-    check raises instead of trusting the header. ``verify_logs=False`` is
-    the membership-only ablation and cannot take an hmac_key or a journal.
+    optional ``expected_workspace_sha256`` pins the source tree.
+    ``verify_replay=True`` additionally replays each log's actions through
+    the world its header names, so a ref cannot cite a log whose header is
+    intact but whose trajectory is false. A failed check raises instead of
+    trusting the header. ``verify_logs=False`` is the membership-only
+    ablation and cannot take an hmac_key, a journal or replay.
     """
     if not isinstance(ledger, ClaimLedger):
         raise ValueError(
@@ -136,6 +139,14 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
         raise ValueError(
             "Why: verify_episodes must be a bool. "
             "Fix: pass verify_episodes=True or False.")
+    if not isinstance(verify_replay, bool):
+        raise ValueError(
+            "Why: verify_replay must be a bool. "
+            "Fix: pass verify_replay=True or False.")
+    if verify_replay and not verify_logs:
+        raise ValueError(
+            "Why: verify_replay needs verify_logs=True. "
+            "Fix: enable chain verification or omit verify_replay.")
     for name, value in (("expected_policy_sha256", expected_policy_sha256),
                         ("expected_workspace_sha256",
                          expected_workspace_sha256)):
@@ -163,6 +174,17 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
                     "log %s failed episode verification: %s. "
                     "Fix: regenerate the run or repair the header."
                     % (path, ", ".join(episode["findings"])))
+    if verify_replay:
+        from episode_replay import verify_action_replay
+
+        for path in paths:
+            replay = verify_action_replay(str(path))
+            if not replay["ok"]:
+                raise ValueError(
+                    "log %s failed replay verification: %s. "
+                    "Fix: regenerate the run, or omit verify_replay for "
+                    "header-only verification."
+                    % (path, ", ".join(replay["findings"])))
     logs = {}
     episodes = set()
     for path in paths:
@@ -205,6 +227,7 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
                      for log, journal in journals.items()
                      if journal is not None},
         "verify_episodes": verify_episodes,
+        "replay": verify_replay,
         "expected_policy_sha256": expected_policy_sha256,
         "expected_workspace_sha256": expected_workspace_sha256,
     }
@@ -215,12 +238,14 @@ def verify_claim_store(store_path, log_paths, hmac_key=None,
                        verify_episodes=False,
                        expected_policy_sha256=None,
                        expected_workspace_sha256=None,
-                       store_hmac_key=None):
+                       store_hmac_key=None, verify_replay=False):
     """Load a claim-store snapshot and verify its verdict refs.
 
     ``hmac_key`` authenticates the telemetry logs; ``store_hmac_key``
     authenticates the claim snapshot itself, so a keyed store is not
     loaded unauthenticated through the combined verifier.
+    ``verify_replay`` replays each log's actions, so a verdict cannot cite
+    a log whose header is intact but whose trajectory is false.
     """
     from claims_store import load_ledger
 
@@ -229,6 +254,7 @@ def verify_claim_store(store_path, log_paths, hmac_key=None,
         ledger, log_paths, hmac_key=hmac_key, verify_logs=verify_logs,
         journal_paths=journal_paths, verify_episodes=verify_episodes,
         expected_policy_sha256=expected_policy_sha256,
-        expected_workspace_sha256=expected_workspace_sha256)
+        expected_workspace_sha256=expected_workspace_sha256,
+        verify_replay=verify_replay)
     result["store_hmac"] = store_hmac_key is not None
     return result

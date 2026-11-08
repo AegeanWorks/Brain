@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `150`
-- **Total Classes**: `155`
-- **Total Top-Level Functions**: `485`
-- **Total Class Methods**: `727`
-- **Total Source Lines**: `21617`
+- **Total Python Modules**: `151`
+- **Total Classes**: `156`
+- **Total Top-Level Functions**: `486`
+- **Total Class Methods**: `733`
+- **Total Source Lines**: `21757`
 
 ---
 
@@ -224,15 +224,15 @@
 ### [`claims_verify.py`](claims_verify.py)
 > *Read-only verification of claim verdict refs against logged episodes.*
 
-**Size**: `234` lines (`9796` bytes)
+**Size**: `260` lines (`11087` bytes)
 
 **Functions:**
 - `def _validate_options(hmac_key, verify_logs)`
 - `def _normalise_paths(log_paths)`
 - `def _normalise_journals(paths, journal_paths)`
 - `def _log_episodes(path, hmac_key, verify_logs, journal_path)`
-- `def verify_claim_refs(ledger, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256)` - *Check every verdict ref against the episodes found in the logs.*
-- `def verify_claim_store(store_path, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256, store_hmac_key)` - *Load a claim-store snapshot and verify its verdict refs.*
+- `def verify_claim_refs(ledger, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256, verify_replay)` - *Check every verdict ref against the episodes found in the logs.*
+- `def verify_claim_store(store_path, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256, store_hmac_key, verify_replay)` - *Load a claim-store snapshot and verify its verdict refs.*
 
 ---
 
@@ -1509,6 +1509,25 @@
 **Functions:**
 - `def _run(tmp, task, seed, name)`
 - `def _ledger(ref_one, ref_two)`
+
+---
+
+### [`tests/test_claim_replay.py`](tests/test_claim_replay.py)
+> *Claim refs must be checkable against the trajectory, not just the header.*
+
+**Size**: `114` lines (`5140` bytes)
+
+**Classes:**
+- `class TestClaimReplay`
+  - Method `._fixture(directory)`
+  - Method `.test_honest_log_verifies_with_replay_enabled()`
+  - Method `.test_chain_valid_forgery_is_rejected()`
+  - Method `.test_replay_is_opt_in_and_off_by_default()`
+  - Method `.test_replay_requires_log_verification()`
+  - Method `.test_replay_must_be_a_bool()`
+
+**Functions:**
+- `def _forged(log_path, out_path, action)` - *Re-emit a log through Telemetry with every step action replaced.*
 
 ---
 

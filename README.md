@@ -82,11 +82,12 @@ brain/
 ├── claims_store.py           <- checksummed snapshots + backup
 ├── claims_verify.py          <- read-only verdict-ref check
 ├── episode_verify.py         <- independent episode-digest recomputation
-├── models/                   <- swappable model backends (seam + llama.cpp)
-├── memory/                   <- SQLite FTS5 store + layout anchors (store.py)
+├── episode_replay.py         <- replay logged actions through the world
+├── models/                   <- swappable model backends
+├── memory/                   <- SQLite FTS5 store + layout anchors
 ├── planner/                  <- explicit steps + recover
 ├── self_model/               <- budget/error/confidence counters
-├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
+├── worlds/                   <- 8x8 fixed-step tasks T1-T3
 ├── telemetry/                <- JSONL append-only + ablation ops
 ├── evals/                    <- evidence and verification batteries
 ├── tests/                    <- unittest gate, tempdir only
@@ -178,9 +179,8 @@ checkpoint swap changes the hash while the action trace stays
 identical. A raising call records `null` instead of leaking a stale
 manifest. `probe_manifest=False` removes the readout as the executable
 ablation. Weights never enter the repo: the manifest carries labels and
-hashes only. `python -m evals.manifest_binding` shows intact (coverage
-1.0), probe-off (coverage 0.0) and checkpoint A/B (different hashes,
-same actions).
+hashes only. `python -m evals.manifest_binding` shows intact, probe-off and
+checkpoint A/B.
 
 ## 🧭 Two-Blocker Dead-Pool Guard
 
@@ -239,8 +239,9 @@ reward with the world's own value, the terminal `done` flag and the step
 count, naming `reward-mismatch:<n>`, `done-mismatch` or
 `replay-short:<n><<m>`. A forgery re-emitted through `Telemetry` with
 `wait` for every action passes chain and header and fails replay
-(`tests/test_episode_replay.py`). It proves the actions fit the named
-world, not that a model produced them.
+(`verify_claim_refs(..., verify_replay=True)` composes it into claim
+checks). It proves the actions fit the named world, not that a model
+produced them.
 
 ## 🧷 Terminal Telemetry Anchor
 
@@ -343,8 +344,8 @@ LLM call before each backend call and prompt tokens after it, and the
 budget checks wall time on every spend. A tight limit raises
 `BudgetExceeded(kind, limit, used)` naming the dimension, limit and
 attempted usage; a generous budget leaves actions byte-identical, and
-`budget=None` is a no-op. `python -m evals.execution_budget` shows the
-generous 13-step/1.0 run and the step/LLM/token/time caps.
+`budget=None` is a no-op. `python -m evals.execution_budget` shows a generous run and the
+step/LLM/token/time caps.
 
 ## 🪪 Episode Identity & Resume
 
