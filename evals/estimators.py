@@ -105,8 +105,62 @@ def phi_ar(trace):
     return max(0.0, 1.0 - (mse_w / mse_p))
 
 
+#: Trace columns the ``synergy`` joint code is built from. The estimator is
+#: defined over exactly this pair; every later column is never read. Callers
+#: that report a 0.0 must consult :func:`synergy_scope` before reading it as
+#: absent integration, because this pair can be blind to a live signal.
+SYNERGY_COLUMNS = (0, 1)
+
+
+def synergy_scope(trace, target):
+    """Report which trace columns ``synergy`` reads, and whether they can decide.
+
+    ``synergy`` forms its joint code from ``trace[0]`` and ``trace[1]`` only.
+    When column 0 is constant the joint code is a bijection of column 1's
+    bins, so the joint-minus-marginals gap is structurally ``0.0`` no matter
+    what the remaining columns carry. A caller that reads that ``0.0`` as
+    "no integration" is then asserting something the estimator cannot see.
+
+    This returns the scope as data so the limit travels with the number:
+    ``columns`` read, ``ignored_columns`` never read, ``constant_columns``
+    inside the scope, and ``sufficient`` with a ``reason``. It reads no
+    randomness and changes no estimate.
+    """
+    n_rows = len(trace)
+    width = max((len(row) for row in trace), default=0)
+    base = {
+        "columns": list(SYNERGY_COLUMNS),
+        "ignored_columns": list(range(len(SYNERGY_COLUMNS), width)),
+        "n_rows": n_rows,
+        "n_columns": width,
+        "constant_columns": [],
+        "sufficient": False,
+        "reason": None,
+    }
+    if n_rows == 0 or width == 0:
+        base["reason"] = "empty-trace"
+        return base
+    if n_rows != len(target):
+        base["reason"] = "shape-mismatch"
+        return base
+    # If either scope column is constant the joint code collapses to a
+    # bijection of the other, so the gap is exactly 0.0 by construction.
+    constant = [j for j in SYNERGY_COLUMNS
+                if j >= width or len({row[j] for row in trace}) <= 1]
+    base["constant_columns"] = constant
+    if constant:
+        base["reason"] = "constant-scope-column"
+        return base
+    base["sufficient"] = True
+    return base
+
+
 def synergy(trace, target):
-    """Joint-minus-marginals gap: (syn, syn_n)."""
+    """Joint-minus-marginals gap: (syn, syn_n).
+
+    The joint code spans ``SYNERGY_COLUMNS`` only; see
+    :func:`synergy_scope` for what that pair can and cannot decide.
+    """
     if not trace or len(trace) != len(target):
         return (0.0, 0.0)
     c0 = [float(r[0]) for r in trace]

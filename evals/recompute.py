@@ -18,7 +18,8 @@ arrays and vectors via evals.estimators.
 import argparse
 import json
 
-from evals.estimators import gbi, phi_ar, recovery, synergy, transfer_gain
+from evals.estimators import (gbi, phi_ar, recovery, synergy,
+                             synergy_scope, transfer_gain)
 
 _EVAL_KINDS = ("eval_samples", "eval_decodability", "eval_transfer", "eval_recovery")
 
@@ -111,21 +112,24 @@ def recompute(log_path):
     if phi_rows and any(len(r) != width for r in phi_rows):
         phi_rows = [r + [0.0] * (width - len(r)) for r in phi_rows]
     if acc["syn_rows"]:
-        syn, syn_n = synergy(acc["syn_rows"], acc["syn_targets"])
+        syn_trace, syn_targets = acc["syn_rows"], acc["syn_targets"]
+        syn, syn_n = synergy(syn_trace, syn_targets)
     elif vec_rows and len(vec_rows) >= 2:
         w2 = max(len(r) for r in vec_rows)
         if w2 >= 2:
             padded_v = [list(r) + [0.0] * (w2 - len(r)) for r in vec_rows]
-            fb_trace = [r[:-1] for r in padded_v]
-            fb_targets = [r[-1] for r in padded_v]
-            syn, syn_n = synergy(fb_trace, fb_targets)
+            syn_trace, syn_targets = [r[:-1] for r in padded_v], [r[-1] for r in padded_v]
+            syn, syn_n = synergy(syn_trace, syn_targets)
         else:
+            syn_trace, syn_targets = [], []
             syn, syn_n = (0.0, 0.0)
     else:
+        syn_trace, syn_targets = [], []
         syn, syn_n = (0.0, 0.0)
     return {
         "syn": syn,
         "syn_n": syn_n,
+        "syn_scope": synergy_scope(syn_trace, syn_targets),
         "phi": phi_ar(phi_rows) if len(phi_rows) >= 3 else 0.0,
         "gbi": gbi(_mean(acc["pres"]), _mean(acc["posts"])) if acc["pres"] else 0.0,
         "gain": transfer_gain(_mean(acc["naive"]), _mean(acc["reuse"])) if acc["naive"] else 0.0,
