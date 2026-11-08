@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `144`
-- **Total Classes**: `149`
+- **Total Python Modules**: `145`
+- **Total Classes**: `151`
 - **Total Top-Level Functions**: `470`
-- **Total Class Methods**: `698`
-- **Total Source Lines**: `20881`
+- **Total Class Methods**: `705`
+- **Total Source Lines**: `20988`
 
 ---
 
@@ -19,7 +19,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1569` lines (`64542` bytes)
+**Size**: `1577` lines (`65011` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -27,7 +27,7 @@
   - Method `.bind_hub(getter)`
   - Method `.read_hub()`
   - Method `.save(state)`
-  - Method `.recall(limit)`
+  - Method `.recall(limit)` - *Return stored states, most recent ``limit`` or all when None.*
   - Method `.clear()`
   - Method `.__len__()`
 - `class Planner` - *Fixed rule-based policy over the state dict.*
@@ -2293,6 +2293,24 @@
 
 **Functions:**
 - `def _total(task, seeds)`
+
+---
+
+### [`tests/test_recall_cost.py`](tests/test_recall_cost.py)
+> *Recall cost: the loop must not deep-copy history it does not read.*
+
+**Size**: `99` lines (`3674` bytes)
+
+**Classes:**
+- `class _CountingList` - *A list that records how often it is deep-copied.*
+  - Method `.__init__(items)`
+  - Method `.__deepcopy__(memo)`
+- `class TestRecallCost`
+  - Method `._state(i)`
+  - Method `.test_recall_does_not_deepcopy_the_history()`
+  - Method `.test_per_step_recall_is_much_cheaper_than_a_full_deepcopy()`
+  - Method `.test_agent_actions_unchanged_by_the_cost_fix()`
+  - Method `.test_planner_never_mutates_the_recall_it_receives()`
 
 ---
 

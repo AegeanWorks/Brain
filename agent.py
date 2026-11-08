@@ -132,9 +132,17 @@ class Memory:
         return len(self._items)
 
     def recall(self, limit=5):
+        """Return stored states, most recent ``limit`` or all when None.
+
+        Each item is a shallow copy of one stored state dict, so a caller
+        may rebind or add keys without touching the store. Copying the
+        whole history per call is O(n) and the loop calls this once per
+        step, so ``limit=None`` (the loop's read) must not deep-copy: the
+        planner reads only the last few entries and never mutates them.
+        """
         if limit is None:
-            return copy.deepcopy(self._items)
-        return copy.deepcopy(self._items[-limit:])
+            return [dict(item) for item in self._items]
+        return [dict(item) for item in self._items[-limit:]]
 
     def clear(self):
         self._items = []

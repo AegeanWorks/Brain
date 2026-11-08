@@ -3971,6 +3971,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 107**: unittest 479 OK; aikit 5/5; `detectability` fixed-rig `synergy` detectable `[M, hub]` invisible `[P, S]`, `phi` detectable `[]`; `syn_scope` unchanged; fixed-rig `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; policy decbfce3...; registry 21 machines 3/3; all earlier pins unchanged.
 
+## Cycle 107 - one-level recall copies instead of a per-step history deepcopy
+
+- **Baseline** (commit 37f61e1; same pinned rigs):
+  - canonical gate: 479 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `Memory.recall(limit=None)` deep-copies every stored state on every call; the loop calls it once per step, so the work is O(n) per step inside an O(n) loop.
+  - realistic nested states, 60 calls: n=60 0.047677 s; n=200 0.163636 s.
+- **Gap**: the copy buys nothing. `Planner.plan` reads only `list(memories)[-4:]`; `_step_vectors` reads `len(memories)`; the `_recall` probe walks the list read-only. No consumer mutates the argument, so a recursive copy of the whole history is pure per-step cost that grows with episode length.
+- **Target delta**: per-step recall drops to a one-level dict copy with identical actions, steps, rewards and store isolation; no pin moves.
+- **Falsifier**: any pinned step/reward/range/holdout/cold-start/`policy_digest` value moves; a returned dict mutation reaches the store; or the planner's argument changes.
+- **Change**: `agent.py` `Memory.recall` returns `[dict(item) for item in ...]` on both paths and documents the contract; `Memory.save` still stores a deepcopy. `tests/test_recall_cost.py` adds 4 tests (store isolation under a rebind, a measured cost comparison against `copy.deepcopy` at n=60/200, the pinned action quadruple, planner non-mutation). ADR-101. No README section: the change is internal, behavior-preserving and adds no caller-visible contract, and README.md sits at its 32,500-char cap (32,492), so a new section would force an unrelated deletion.
+- **After** (same rigs):
+  - standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with rewards 3/1/1/1 and `store_reads` 1 per case; `policy_digest` unchanged.
+  - 60 calls at n=200: 0.001850 s (was 0.163636 s); at n=60: 0.000571 s (was 0.047677 s).
+- **Ablation** (same states, same call count, `copy.deepcopy(m._items)` reinstated as the cut): 0.222778 s versus 0.001850 s, 120.4x slower. The cost returns with the cut and disappears with the one-level copy, and every behavioral pin is identical either way, so the delta is the copy and nothing else.
+- **Verdict**: behavior-preserving substrate cost win on the hot path. No telemetry or emergence claim; the measured delta is per-step recall time and it moves no behavioral pin. Boundary: nested values in a returned state are shared with the store, so an in-place mutation of a nested field would corrupt history; the planner does not do this and the contract is documented rather than enforced.
+- **Gates**: unittest 483/483 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_recall_cost -v` -> before: 1 failure (40x cost scaling); after: 4 OK.
+  - `python ..\..\scratch\ablate_107.py` -> standing 89/11.0, T1 1581, holdout 738, cold-start 16/8/13/6, policy unchanged; ablation 120.4x.
+  - `python -m unittest discover -s tests -t .` -> 483 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 108**: unittest 483 OK; aikit 5/5; recall cost n=200 x60 ~0.002 s versus 0.223 s for deepcopy; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1 and `store_reads` 1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
