@@ -605,8 +605,11 @@ Each JSONL append holds an advisory lock file from the head read through the
 durable write, so concurrent writers form one hash chain instead of linking to
 the same stale head. A lock older than 30 seconds is treated as a crashed
 writer and broken atomically; a bounded timeout raises instead of writing
-unprotected. `python -m evals.telemetry_lock` shows the locked chain and
-`--ablate` reproduces the broken pre-fix chain.
+unprotected. Each acquisition writes a unique token, and release only unlinks
+the lock if it still holds that token, so a slow writer whose lock was stolen
+cannot delete its successor's lock (the same discipline covers the claim and
+calibration stores). `python -m evals.telemetry_lock` shows the locked chain
+and `--ablate` reproduces the broken pre-fix chain.
 
 ## 📜 License
 

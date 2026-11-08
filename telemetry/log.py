@@ -70,12 +70,14 @@ def _append_lock(path, timeout_seconds=3.0):
     lock_path = Path(str(path) + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    token = "%d:%d:%s" % (os.getpid(), time.time_ns(),
+                          os.urandom(8).hex())
     acquired = False
     while True:
         try:
             fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_RDWR)
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                handle.write("%d:%d\n" % (os.getpid(), int(time.time())))
+                handle.write(token + "\n")
                 handle.flush()
             acquired = True
             break
@@ -116,9 +118,14 @@ def _append_lock(path, timeout_seconds=3.0):
     finally:
         if acquired:
             try:
-                lock_path.unlink(missing_ok=True)
-            except OSError:  # hygiene: allow best-effort lock release; a stale lock is broken by age
-                pass
+                content = lock_path.read_text(encoding="utf-8").strip()
+            except OSError:
+                content = None
+            if content == token:
+                try:
+                    lock_path.unlink(missing_ok=True)
+                except OSError:  # hygiene: allow best-effort lock release; a stale lock is broken by age
+                    pass
 
 
 def _canonical(record):

@@ -3709,3 +3709,12 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: without the invariant the forged snapshot verifies; with it the same checksum-valid snapshot is rejected. The checksum detects accidental edits; consistency blocks a self-consistent status lie (but not a fully fabricated history).
 - **Gates**: unittest 420/420 OK; aikit check brain 5/5 PASS.
 
+## Cycle 93 (Push 2) - lock release owns only its own lock
+
+- **Audit finding**: telemetry/claim/calibration locks wrote `pid:timestamp` and release unconditionally unlinked the path. A writer holding a lock past the 30 s stale window could have it stolen; after a successor acquired the same path, the original writer's release deleted the successor's lock and admitted a third writer.
+- **Failing-first**: `tests/test_file_locks.py` simulates acquire -> steal by rename -> successor writes a new token -> context exit. All three locks deleted the successor's file before the fix.
+- **Change**: each acquisition writes a unique `pid:time_ns:random` token; release reads the file and unlinks only if the token matches. Applied to `telemetry.log._append_lock`, `claims_store._locked`, `calibration_store._locked`. Normal release still removes the lock.
+- **After**: 423 tests OK. Normal acquire/release leaves no lock; the stolen-lock case leaves the successor token/file intact for all three locks. Stale steal, fresh timeout, telemetry multi-writer, claim/calibration store suites pass; behavior and policy unchanged.
+- **Ablation**: without the token check the successor file is deleted; with it the file and token survive. The residual read-then-unlink window is documented, not claimed eliminated.
+- **Gates**: unittest 423/423 OK; aikit check brain 5/5 PASS.
+
