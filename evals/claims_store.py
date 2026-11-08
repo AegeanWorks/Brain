@@ -9,6 +9,7 @@ same six T3 verdicts used by ``evals.claims``.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
@@ -16,10 +17,12 @@ import time
 from pathlib import Path
 
 from claims import ClaimLedger
-from claims_store import load_ledger, save_ledger, verify_ledger_file
+from claims_store import (_digest, load_ledger, save_ledger,
+                          verify_ledger_file)
 
 MODES = ("in-memory", "roundtrip", "corrupt-primary", "tampered",
-         "missing", "stale-lock", "fresh-lock")
+         "missing", "stale-lock", "fresh-lock", "keyed", "keyed-wrong",
+         "keyed-missing", "keyed-tampered")
 STAMP = 1700000000.0
 AT = "2026-11-07T00:00:00Z"
 
@@ -63,7 +66,58 @@ def measure_case(mode="roundtrip", directory=None):
     result = {"mode": mode, "claims": 0, "verdicts": 0, "ok": None,
               "findings": [], "sha256": None, "loaded_claims": None,
               "quarantine": False, "lock_exists": None,
-              "file_before": False, "file_after": False, "error": None}
+              "file_before": False, "file_after": False, "hmac": None,
+              "primary_exists": None, "reload_claims": None, "error": None}
+    if mode in ("keyed", "keyed-wrong", "keyed-missing", "keyed-tampered"):
+        key = hashlib.sha256(b"claim-store-eval-key").digest()
+        wrong = hashlib.sha256(b"claim-store-eval-wrong").digest()
+        if mode == "keyed-missing":
+            save_ledger(_ledger(), path, saved_at=STAMP)
+        else:
+            save_ledger(_ledger(), path, saved_at=STAMP, hmac_key=key)
+        if mode == "keyed":
+            loaded = load_ledger(path, hmac_key=key)
+            verified = verify_ledger_file(path, hmac_key=key)
+            result.update({"claims": verified["claims"],
+                           "verdicts": verified["verdicts"],
+                           "ok": verified["ok"],
+                           "findings": verified["findings"],
+                           "sha256": verified["sha256"],
+                           "hmac": verified["hmac"],
+                           "loaded_claims": len(loaded.claims()),
+                           "primary_exists": Path(path).exists()})
+            return result
+        if mode == "keyed-missing":
+            try:
+                load_ledger(path, hmac_key=key)
+            except ValueError as exc:
+                result["error"] = str(exc)
+            verified = verify_ledger_file(path, hmac_key=key)
+            result.update({"ok": verified["ok"],
+                           "findings": verified["findings"],
+                           "hmac": verified["hmac"],
+                           "primary_exists": Path(path).exists()})
+            return result
+        if mode == "keyed-tampered":
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+            payload["claims"][0]["text"] = "tampered"
+            payload["sha256"] = _digest(payload)
+            Path(path).write_text(
+                json.dumps(payload, sort_keys=True) + "\n",
+                encoding="utf-8")
+        try:
+            load_ledger(path, hmac_key=wrong)
+        except ValueError as exc:
+            result["error"] = str(exc)
+        verified = verify_ledger_file(path, hmac_key=wrong)
+        result.update({"claims": verified["claims"],
+                       "verdicts": verified["verdicts"],
+                       "ok": verified["ok"],
+                       "findings": verified["findings"],
+                       "hmac": verified["hmac"],
+                       "primary_exists": Path(path).exists(),
+                       "quarantine": Path(path + ".corrupt").exists()})
+        return result
     if mode == "in-memory":
         ledger = _ledger()
         result.update(_summary(ledger))

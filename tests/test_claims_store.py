@@ -88,6 +88,70 @@ class TestClaimStore(unittest.TestCase):
                             for finding in verified["findings"]),
                         verified["findings"])
 
+    def test_keyed_snapshot_roundtrip_and_wrong_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "claims.json")
+            key = b"claim-store-key-32-bytes-long!!"
+            wrong = b"wrong-key-32-bytes-long!!!!!!!!"
+            save_ledger(_ledger(), path, saved_at=STAMP, hmac_key=key)
+            loaded = load_ledger(path, hmac_key=key)
+            verified = verify_ledger_file(path, hmac_key=key)
+            unkeyed = load_ledger(path)
+            with self.assertRaises(ValueError):
+                load_ledger(path, hmac_key=wrong)
+            wrong_verified = verify_ledger_file(path, hmac_key=wrong)
+            still_loads = load_ledger(path, hmac_key=key)
+            primary_exists = Path(path).exists()
+        self.assertEqual(loaded.claims(), _ledger().claims())
+        self.assertTrue(verified["ok"], verified["findings"])
+        self.assertTrue(verified["hmac"])
+        self.assertEqual(unkeyed.claims(), _ledger().claims())
+        self.assertTrue(primary_exists, "a wrong key quarantined the primary")
+        self.assertEqual(still_loads.claims(), loaded.claims())
+        self.assertFalse(wrong_verified["ok"])
+        self.assertTrue(any("mac" in finding.lower()
+                            for finding in wrong_verified["findings"]))
+
+    def test_keyed_snapshot_requires_a_mac(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "claims.json")
+            key = b"claim-store-key-32-bytes-long!!"
+            save_ledger(_ledger(), path, saved_at=STAMP)
+            with self.assertRaises(ValueError):
+                load_ledger(path, hmac_key=key)
+            verified = verify_ledger_file(path, hmac_key=key)
+        self.assertFalse(verified["ok"])
+        self.assertTrue(any("missing its mac" in finding.lower()
+                            for finding in verified["findings"]),
+                        verified["findings"])
+
+    def test_keyed_snapshot_detects_recomputed_checksum(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "claims.json")
+            key = b"claim-store-key-32-bytes-long!!"
+            save_ledger(_ledger(), path, saved_at=STAMP, hmac_key=key)
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+            payload["claims"][0]["text"] = "tampered"
+            payload["sha256"] = _digest(payload)
+            Path(path).write_text(json.dumps(payload, sort_keys=True) + "\n",
+                                  encoding="utf-8")
+            verified = verify_ledger_file(path, hmac_key=key)
+            with self.assertRaises(ValueError):
+                load_ledger(path, hmac_key=key)
+        self.assertFalse(verified["ok"])
+        self.assertTrue(any("mac" in finding.lower()
+                            for finding in verified["findings"]))
+
+    def test_invalid_hmac_key_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "claims.json")
+            for value in ("text", b"", 3):
+                with self.assertRaises(ValueError):
+                    save_ledger(_ledger(), path, saved_at=STAMP,
+                                hmac_key=value)
+                with self.assertRaises(ValueError):
+                    load_ledger(path, hmac_key=value)
+
     def test_missing_primary_returns_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "claims.json")

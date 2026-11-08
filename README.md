@@ -561,12 +561,18 @@ write needs 10 MiB free. `load_ledger` returns an empty ledger when no
 snapshot exists, loads the primary, and on a corrupt primary quarantines
 it as `.corrupt` and falls back to `.bak`; `verify_ledger_file` names
 `missing-primary`, `invalid-primary`, schema and checksum defects.
-`python -m evals.claims_store` shows the in-memory file-before/after
-ablation, a 6-claim/6-verdict roundtrip, corrupt-primary recovery (3
-claims from the backup), a checksum tamper, missing, stale-lock steal,
-and a fresh-lock refusal. Keep the snapshot under `.aikit/` or outside
-the source tree; it is local evidence, not committed. The checksum
-detects accidental edits, not a keyed signature.
+`save_ledger(..., hmac_key=bytes)` adds an HMAC-SHA256 over the snapshot
+(including its checksum); `load_ledger(..., hmac_key=...)` and
+`verify_ledger_file(..., hmac_key=...)` require and verify it. A missing
+or wrong MAC fails without quarantining the valid primary, so a caller’s
+key mistake never destroys evidence. `python -m evals.claims_store` shows
+the in-memory file-before/after ablation, a 6-claim/6-verdict roundtrip,
+corrupt-primary recovery (3 claims from the backup), a checksum tamper,
+missing, stale-lock steal, a fresh-lock refusal, and keyed correct,
+wrong, missing and tampered snapshots. Keep the snapshot under `.aikit/`
+or outside the source tree; it is local evidence, not committed. The
+checksum detects accidental edits; the HMAC also detects a rewritten
+checksum when the key stays outside the store.
 
 `ClaimLedger.record(..., ref=...)` accepts an optional non-empty verdict
 ref, for example the `episode_sha256` from a logged run header. The ref

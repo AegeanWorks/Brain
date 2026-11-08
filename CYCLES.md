@@ -3727,3 +3727,12 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: without the workspace pin the stored tree digest is ignored; with it a wrong/missing tree is rejected. Policy validation rejects malformed strings before recomputation.
 - **Gates**: unittest 430/430 OK; aikit check brain 5/5 PASS.
 
+## Cycle 95 (Push 4) - optional HMAC-SHA256 for claim-store snapshots
+
+- **Audit finding**: the claim-store boundary was "checksum only, no keyed signature"; a rewritten claims payload with a recomputed checksum passed.
+- **Failing-first**: `hmac_key` was not accepted by save/load/verify.
+- **Change**: optional `hmac_key` on save/load/verify; a keyed save adds an HMAC over the canonical payload (including the checksum); readers with a key require it. `ClaimStoreMacError` prevents a wrong/missing MAC from quarantining a valid primary.
+- **After**: 434 tests OK. Keyed roundtrip verifies and loads unkeyed; wrong key, missing MAC and recomputed-checksum tamper all fail with the primary intact and no `.corrupt`; the correct key still loads after a wrong-key attempt. Unkeyed modes unchanged; behavior and policy unchanged.
+- **Ablation**: unkeyed snapshot + same tamper passes the checksum but fails the MAC when a key is supplied; wrong key leaves evidence intact.
+- **Gates**: unittest 434/434 OK; aikit check brain 5/5 PASS.
+

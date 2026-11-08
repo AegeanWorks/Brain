@@ -1,77 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-push3-episode-pins",
+    "task_id": "brain-push4-claim-hmac",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794108322.7202191,
-    "owner": "opencode:push3",
-    "started_by": "opencode:push3",
+    "updated_at": 1794109300.5313566,
+    "owner": "opencode:push4",
+    "started_by": "opencode:push4",
     "continuations": [],
-    "completed_at": 1794108323.04961
+    "completed_at": 1794109301.5445998
   },
   "checkpoints": [
-    {
-      "task_id": "brain-cycle91-zero-finding-audit",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] audit: rule-confidence forecast Brier 0.640449 vs 0.219101 (worse 0.421348); retention default arbitrary; claims pin cosmetic; tie/tour/pruning already audited; checklists: passed (Track B docs, 415 tests, aikit 5/5)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794095740.7552292,
-      "timestamp_str": "2026-11-08 02:55:40",
-      "agent": "opencode:cycle91"
-    },
-    {
-      "task_id": "brain-cycle91-zero-finding-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle91-zero-finding-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794095741.4433484,
-      "timestamp_str": "2026-11-08 02:55:41",
-      "agent": "opencode:cycle91"
-    },
-    {
-      "task_id": "brain-cycle91-zero-finding-audit",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Plan: zero-finding audit of remaining candidates; record stop rationale",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794095751.6818337,
-      "timestamp_str": "2026-11-08 02:55:51",
-      "agent": "opencode:cycle91",
-      "impact_assessment": {
-        "why": "The 90-cycle improvement loop has reduced every remaining candidate to a marginal or unsound change; a documented audit of each is needed before stopping under the zero-finding condition.",
-        "benefits": "Rule-confidence-as-forecast is rejected by measured Brier 0.640449 vs 0.219101 (0.421348 worse); retention defaults are arbitrary; the claims pin report is cosmetic; tie/tour/pruning were already audited. The stop rationale is durable in CYCLES.md.",
-        "risks": "contract: docs-only record, no API; dependency: none; concurrency: none; state: no schema change.",
-        "mitigation": "Measure the numeric candidate, cite prior audit evidence for the rest, run the full 415-test suite and AIKit 5/5, and commit only the audit record."
-      },
-      "plan_digest": "30beed16bcdd96e498917bbb57b1e9702a0c1680b7e31668b6cb7388d9d53884"
-    },
-    {
-      "task_id": "brain-cycle91-zero-finding-audit",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] audit: rule-confidence forecast Brier 0.640449 vs 0.219101 (worse 0.421348); retention default arbitrary; claims pin cosmetic; tie/tour/pruning already audited; checklists: passed (Track B docs, 415 tests, aikit 5/5)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794095752.112655,
-      "timestamp_str": "2026-11-08 02:55:52",
-      "agent": "opencode:cycle91"
-    },
-    {
-      "task_id": "brain-cycle91-zero-finding-audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-cycle91-zero-finding-audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794095752.5359118,
-      "timestamp_str": "2026-11-08 02:55:52",
-      "agent": "opencode:cycle91"
-    },
     {
       "task_id": "brain-push1-claim-consistency",
       "phase": "in_progress",
@@ -254,6 +194,67 @@
       "timestamp": 1794108323.0496118,
       "timestamp_str": "2026-11-08 06:25:23",
       "agent": "opencode:push3"
+    },
+    {
+      "task_id": "brain-push4-claim-hmac",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: optional HMAC-SHA256 for claim-store snapshots",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109298.6096728,
+      "timestamp_str": "2026-11-08 06:41:38",
+      "agent": "opencode:push4",
+      "impact_assessment": {
+        "why": "A rewritten claims payload with a recomputed checksum passed; the store boundary was checksum-only.",
+        "benefits": "A caller-held key authenticates the snapshot including its checksum; wrong/missing MACs fail while the valid primary is preserved.",
+        "risks": "contract: optional store kwargs, schema gains optional mac; dependency: stdlib hmac; concurrency: unchanged lock; state: optional field.",
+        "mitigation": "Exclude mac from the checksum, keep unkeyed snapshots byte-compatible, do not quarantine on MAC errors; test keyed/wrong/missing/tampered and rerun 434 tests."
+      },
+      "plan_digest": "674fe20e7acb8b54950dbe0b8a9908530474a79a84fbe6c33599c8077e1c7d6e"
+    },
+    {
+      "task_id": "brain-push4-claim-hmac",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first hmac_key TypeError; hmac helpers, keyed save/load/verify, MAC error without quarantine, tests/eval, README/ADR-088",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109299.1489093,
+      "timestamp_str": "2026-11-08 06:41:39",
+      "agent": "opencode:push4"
+    },
+    {
+      "task_id": "brain-push4-claim-hmac",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] 434 tests OK; keyed ok, wrong/missing/tampered fail with primary intact/no quarantine, correct key reloads; unkeyed modes unchanged; aikit 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109299.6882102,
+      "timestamp_str": "2026-11-08 06:41:39",
+      "agent": "opencode:push4"
+    },
+    {
+      "task_id": "brain-push4-claim-hmac",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit Push 4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109300.5313566,
+      "timestamp_str": "2026-11-08 06:41:40",
+      "agent": "opencode:push4"
+    },
+    {
+      "task_id": "brain-push4-claim-hmac",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-push4-claim-hmac' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794109301.5446022,
+      "timestamp_str": "2026-11-08 06:41:41",
+      "agent": "opencode:push4"
     }
   ]
 }

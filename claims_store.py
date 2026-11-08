@@ -5,11 +5,13 @@ exits. This store writes one checksummed snapshot atomically (temp +
 fsync + replace), keeps the previous snapshot as ``.bak``, serialises
 writers with an ``O_CREAT|O_EXCL`` lock that steals a stale one, and
 quarantines a corrupt primary before falling back to the backup. A
-checksum detects accidental edits; it is not a signature, so an editor
-who rewrites both the payload and the checksum is not detected.
+checksum detects accidental edits; an optional HMAC-SHA256 binds the
+snapshot to a caller-held key, so an editor who recomputes the checksum
+still fails verification.
 """
 
 import hashlib
+import hmac
 import json
 import os
 import shutil
@@ -25,6 +27,11 @@ LOCK_POLL_SECONDS = 0.02
 MIN_FREE_BYTES = 10 * 1024 * 1024
 REPLACE_TRIES = 5
 _REQUIRED_FIELDS = frozenset({"schema", "saved_at", "claims", "sha256"})
+_OPTIONAL_FIELDS = frozenset({"mac"})
+
+
+class ClaimStoreMacError(ValueError):
+    """The caller's key cannot authenticate the snapshot; do not quarantine."""
 
 
 def _canonical(value):
@@ -38,8 +45,25 @@ def _valid_digest(value):
 
 
 def _digest(payload):
-    body = {key: value for key, value in payload.items() if key != "sha256"}
+    body = {key: value for key, value in payload.items()
+            if key not in ("sha256", "mac")}
     return hashlib.sha256(_canonical(body).encode("utf-8")).hexdigest()
+
+
+def _mac(payload, key):
+    body = {name: value for name, value in payload.items() if name != "mac"}
+    return hmac.new(key, _canonical(body).encode("utf-8"),
+                    hashlib.sha256).hexdigest()
+
+
+def _validate_hmac_key(value):
+    if value is None:
+        return None
+    if not isinstance(value, (bytes, bytearray)) or not value:
+        raise ValueError(
+            "Why: hmac_key must be non-empty bytes or None. "
+            "Fix: pass the verifier-held bytes key, or omit it.")
+    return bytes(value)
 
 
 def _sealed(ledger, saved_at):
@@ -58,7 +82,7 @@ def _validate_payload(value):
     missing = _REQUIRED_FIELDS - set(value)
     if missing:
         raise ValueError("claim store is missing %s" % sorted(missing))
-    unknown = set(value) - _REQUIRED_FIELDS
+    unknown = set(value) - _REQUIRED_FIELDS - _OPTIONAL_FIELDS
     if unknown:
         raise ValueError("claim store has unknown fields: %s" % sorted(unknown))
     if value["schema"] != STORE_SCHEMA:
@@ -71,6 +95,9 @@ def _validate_payload(value):
     digest = value["sha256"]
     if not _valid_digest(digest):
         raise ValueError("claim store checksum must be a lowercase SHA-256 digest")
+    mac = value.get("mac")
+    if mac is not None and not _valid_digest(mac):
+        raise ValueError("claim store MAC must be a lowercase SHA-256 digest")
     if digest != _digest(value):
         raise ValueError("claim store checksum does not match its payload")
     try:
@@ -80,7 +107,7 @@ def _validate_payload(value):
     return ledger, value
 
 
-def _read_payload(path):
+def _read_payload(path, hmac_key=None):
     try:
         text = Path(path).read_text(encoding="utf-8")
     except OSError as exc:
@@ -89,7 +116,15 @@ def _read_payload(path):
         value = json.loads(text)
     except ValueError as exc:
         raise ValueError("claim store is not valid JSON") from exc
-    return _validate_payload(value)
+    ledger, value = _validate_payload(value)
+    if hmac_key is not None:
+        stored = value.get("mac")
+        if stored is None:
+            raise ClaimStoreMacError("claim store is missing its MAC")
+        if not hmac.compare_digest(stored, _mac(value, hmac_key)):
+            raise ClaimStoreMacError(
+                "claim store MAC does not match its payload")
+    return ledger, value
 
 
 def _fsync_dir(path):
@@ -225,12 +260,14 @@ def _locked(target, timeout_seconds=3.0):
                 pass
 
 
-def save_ledger(ledger, path, saved_at=None, lock_timeout=3.0):
+def save_ledger(ledger, path, saved_at=None, lock_timeout=3.0,
+                hmac_key=None):
     """Write one checksummed claim-ledger snapshot atomically."""
     if not isinstance(ledger, ClaimLedger):
         raise ValueError(
             "Why: ledger must be a ClaimLedger. Fix: build one with "
             "ClaimLedger().")
+    hmac_key = _validate_hmac_key(hmac_key)
     if saved_at is not None and (
             isinstance(saved_at, bool)
             or not isinstance(saved_at, (int, float))
@@ -248,6 +285,8 @@ def save_ledger(ledger, path, saved_at=None, lock_timeout=3.0):
     target.parent.mkdir(parents=True, exist_ok=True)
     _check_free_space(target.parent)
     payload = _sealed(ledger, saved_at)
+    if hmac_key is not None:
+        payload["mac"] = _mac(payload, hmac_key)
     body = json.dumps(payload, sort_keys=True) + "\n"
     with _locked(target, lock_timeout):
         _write_atomic(target, body)
@@ -256,6 +295,7 @@ def save_ledger(ledger, path, saved_at=None, lock_timeout=3.0):
         "claims": len(ledger.claims()),
         "verdicts": sum(len(claim.verdicts) for claim in ledger.claims()),
         "sha256": payload["sha256"],
+        "hmac": hmac_key is not None,
     }
 
 
@@ -268,23 +308,26 @@ def _quarantine(target):
     return destination
 
 
-def load_ledger(path):
+def load_ledger(path, hmac_key=None):
     """Load a claim ledger, recovering from a backup after a corrupt primary."""
+    hmac_key = _validate_hmac_key(hmac_key)
     target = Path(path)
     backup = Path(str(target) + ".bak")
     if not target.exists():
         if backup.exists():
-            ledger, _value = _read_payload(backup)
+            ledger, _value = _read_payload(backup, hmac_key=hmac_key)
             return ledger
         return ClaimLedger()
     try:
-        ledger, _value = _read_payload(target)
+        ledger, _value = _read_payload(target, hmac_key=hmac_key)
         return ledger
+    except ClaimStoreMacError:
+        raise
     except ValueError:
         _quarantine(target)
         if backup.exists():
             try:
-                ledger, _value = _read_payload(backup)
+                ledger, _value = _read_payload(backup, hmac_key=hmac_key)
                 return ledger
             except ValueError as exc:
                 raise ValueError(
@@ -294,21 +337,25 @@ def load_ledger(path):
         raise
 
 
-def verify_ledger_file(path):
-    """Verify the primary snapshot's schema, checksum and claims."""
+def verify_ledger_file(path, hmac_key=None):
+    """Verify the primary snapshot's schema, checksum, MAC and claims."""
+    hmac_key = _validate_hmac_key(hmac_key)
     target = Path(path)
     if not target.exists():
         return {"ok": False, "findings": ["missing-primary"],
-                "claims": None, "verdicts": None, "sha256": None}
+                "claims": None, "verdicts": None, "sha256": None,
+                "hmac": hmac_key is not None}
     try:
-        ledger, value = _read_payload(target)
+        ledger, value = _read_payload(target, hmac_key=hmac_key)
     except ValueError as exc:
         return {"ok": False, "findings": ["invalid-primary: %s" % exc],
-                "claims": None, "verdicts": None, "sha256": None}
+                "claims": None, "verdicts": None, "sha256": None,
+                "hmac": hmac_key is not None}
     return {
         "ok": True,
         "findings": [],
         "claims": len(ledger.claims()),
         "verdicts": sum(len(claim.verdicts) for claim in ledger.claims()),
         "sha256": value["sha256"],
+        "hmac": hmac_key is not None,
     }
