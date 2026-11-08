@@ -1,6 +1,10 @@
 # Brain
 
-[![Built with AIKit](https://img.shields.io/badge/built%20with-AIKit-6f42c1)](https://github.com/AegeanWorks/AIKit)
+<!-- aegean:media:start -->
+<p align="center"><img src="assets/social-preview.svg" alt="Brain social preview" width="100%"></p>
+<p align="center"><a href="LICENSE"><img src="https://img.shields.io/badge/license-AL--1.1-2f9e44" alt="License"></a> <a href="https://github.com/AegeanWorks/AIKit"><img src="https://img.shields.io/badge/AIKit-integrated-6f42c1" alt="AIKit Integrated"></a></p>
+<!-- aegean:media:end -->
+
 
 Deterministic agent substrate with memory planner self-model and integration telemetry plus ablation harness.
 
@@ -174,7 +178,7 @@ brain/
 ├── self_model/               <- budget/error/confidence counters (model.py)
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
 ├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
-├── evals/                    <- estimators, recompute, coldstart/trust/progress-guard/rule-confidence/escape/manifest/dead-pool/chain-anchor/anchor-journal/keyed-telemetry/prompt-budget/merkle-anchor/merkle-journal/merkle-compaction/execution-budget/resume-identity/workspace-binding/snapshot-diff/snapshot-digest/calibration/calibration-store/calibration-bridge/calibration-retention/calibration-autoretention/claims/claims-store/claim-evidence/claim-ref-verify/episode-header/header-reader batteries
+├── evals/                    <- evidence and verification batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
 ```
@@ -642,6 +646,12 @@ the lock if it still holds that token, so a slow writer whose lock was stolen
 cannot delete its successor's lock (the same discipline covers the claim and
 calibration stores). `python -m evals.telemetry_lock` shows the locked chain
 and `--ablate` reproduces the broken pre-fix chain.
+
+<!-- aegean:brand-assets:start -->
+## 🎨 Brand Assets
+
+> **AI-Generated Brand Artwork.** Banner and logo are illustrative AI-generated assets.
+<!-- aegean:brand-assets:end -->
 
 ## 📜 License
 
