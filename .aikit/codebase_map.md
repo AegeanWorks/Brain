@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `154`
-- **Total Classes**: `159`
-- **Total Top-Level Functions**: `493`
-- **Total Class Methods**: `755`
-- **Total Source Lines**: `22193`
+- **Total Python Modules**: `155`
+- **Total Classes**: `160`
+- **Total Top-Level Functions**: `496`
+- **Total Class Methods**: `761`
+- **Total Source Lines**: `22406`
 
 ---
 
@@ -250,11 +250,12 @@
 ### [`episode_replay.py`](episode_replay.py)
 > *Replay a log's actions through the world its header names.*
 
-**Size**: `139` lines (`5783` bytes)
+**Size**: `189` lines (`8001` bytes)
 
 **Functions:**
 - `def parse_verdict_reason(reason)` - *Parse ``"steps=<n> reward=<r>"`` into ``{"steps", "reward"}`` or None.*
 - `def logged_steps(records)` - *Return the action records that carry a step, in log order.*
+- `def verify_result_records(log_path, records, expected_cost)` - *Check each step's paired result record against the step itself.*
 - `def replay_actions(task, seed, actions, max_steps)` - *Replay ``actions`` through a fresh world; return the visited states.*
 - `def verify_action_replay(log_path, records, max_steps, check_verdict)` - *Replay a log's actions and report where the trajectory diverges.*
 
@@ -2452,6 +2453,26 @@
 
 **Functions:**
 - `def _fingerprint(trace)`
+
+---
+
+### [`tests/test_result_records.py`](tests/test_result_records.py)
+> *Result records are self-reports and must be checked against the step.*
+
+**Size**: `163` lines (`7801` bytes)
+
+**Classes:**
+- `class TestResultRecords`
+  - Method `.test_honest_log_pairs_cleanly()`
+  - Method `.test_altered_output_is_named()`
+  - Method `.test_altered_cost_is_named()`
+  - Method `.test_failed_ok_is_named()`
+  - Method `.test_unpaired_result_is_named()`
+  - Method `.test_no_result_records_is_named()`
+
+**Functions:**
+- `def _write_log(directory, name, task, seed)`
+- `def _rewrite_results(log_path, out_path, ok, output, cost)`
 
 ---
 

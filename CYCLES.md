@@ -4171,6 +4171,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 115**: unittest 530 OK; aikit 5/5; snapshot record carries `syn_scope`/`replay_ok`/`verdict_claimed`; `T3:15` 13/1.0 and `T3:65` 6/1.0 with `sufficient True` and `replay_ok True`; integrity regressions diff `changed`; identical captures clean; `confidence_is_outcome` diagnoses; `parse_verdict_reason` round-trip; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 115 - pair each result record with the step it describes
+
+- **Baseline** (commit bbd004a):
+  - canonical gate: 530 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the loop writes one `type == "result"` record per step with `ok`, `output` (the action) and `cost`; `verify_action_replay` reads the action records only.
+  - measured: a `T3_navigate:15` log re-emitted with every result rewritten to `(ok=True, output='TELEPORT', cost=999.0)` kept a valid chain and passed `verify_action_replay(..., check_verdict=True)`.
+- **Gap**: the result records were the last unchecked self-report in the evidence chain. An inventory of every number the log asserts about itself showed chain (verified), header/episode (recomputed), verdict reason (recomputed), step action/reward/done (replayed) — and result `ok`/`output`/`cost` checked by nothing.
+- **Target delta**: each result is compared with the step it describes, naming any contradiction; the honest log stays clean and every existing default unchanged.
+- **Falsifier**: the honest log fails pairing; the rewritten result passes; or a pinned value moves.
+- **Change**: `episode_replay.py` adds `verify_result_records` naming `output-mismatch:<n>`, `ok-mismatch:<n>`, `cost-mismatch:<n>`, `unpaired-step:<n>`, `extra-result:<n>` and `missing-header`; `verify_action_replay` composes it under `check_verdict=True`; `tests/test_result_records.py` adds 6 tests and the cycle-112 test's expectation is updated (the forgery now fails replay as intended). ADR-109.
+- **After** (same logs):
+  - honest: pairing True, 13/13 pairs.
+  - rewritten results: pairing False with `output-mismatch:0, cost-mismatch:0, output-mismatch:1, ...`; chain True, composed replay False.
+  - standing 89/11.0 and `policy_digest` unchanged; `check_verdict=False` unchanged.
+- **Ablation**: without the pairing check `output='TELEPORT'` and `cost=999.0` pass every verifier; with it they are named, and the action records are byte-identical in both readings, so the delta is the pairing.
+- **Verdict**: evidence-integrity extension closing the last self-report. The measured delta is a result record that contradicted its step and passed every prior check; no behavior, estimator or pin moves. Boundary: this catches a result contradicting its step; a forger who rewrites both consistently still passes, and `expected_cost=1.0` encodes the current charge.
+- **Gates**: unittest 536/536 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_result_records` -> before: 1 error (`verify_result_records` absent); after: 6 OK.
+  - `python -m unittest tests.test_result_records tests.test_verdict_claim tests.test_episode_replay tests.test_claim_replay tests.test_snapshot_evidence` -> 30 OK.
+  - `python ..\..\scratch\ablate_115.py` -> honest 13/13 clean; forged named; chain True, replay False; standing 89/11.0.
+  - `python -m unittest discover -s tests -t .` -> 536 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 116**: unittest 536 OK; aikit 5/5; `verify_result_records` honest 13/13 True and rewritten False with `output-mismatch`/`cost-mismatch`; composed replay rejects it while chain stays True; `check_verdict=False` unchanged; snapshot evidence fields; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

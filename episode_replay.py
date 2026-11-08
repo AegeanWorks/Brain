@@ -47,6 +47,53 @@ def logged_steps(records):
             and isinstance(record["args"].get("action"), str)]
 
 
+def verify_result_records(log_path, records=None, expected_cost=1.0):
+    """Check each step's paired result record against the step itself.
+
+    The loop writes one ``type == "result"`` record per step carrying
+    ``ok``, ``output`` (the action) and ``cost``. Those are self-reports:
+    replay verifies the action records, but nothing compared the result
+    record with the step it describes, so a rewritten result passed every
+    verifier. This names ``output-mismatch:<n>``, ``ok-mismatch:<n>``,
+    ``cost-mismatch:<n>``, ``unpaired-step:<n>`` and ``extra-result:<n>``.
+    """
+    from telemetry.log import Telemetry
+
+    if records is None:
+        records = Telemetry(log_path).read_all()
+    if not any(record.get("type") == "header" for record in records):
+        return {"ok": False, "findings": ["missing-header"],
+                "pairs": 0, "steps": 0, "results": 0}
+    steps = logged_steps(records)
+    results = [record for record in records if record.get("type") == "result"]
+    findings = []
+    pairs = 0
+    limit = min(len(steps), len(results))
+    for index in range(limit):
+        step, result = steps[index], results[index]
+        action = step["args"]["action"]
+        if result.get("output") != action:
+            findings.append("output-mismatch:%d" % index)
+        if result.get("ok") is not True:
+            findings.append("ok-mismatch:%d" % index)
+        cost = result.get("cost")
+        if (isinstance(cost, bool) or not isinstance(cost, (int, float))
+                or abs(float(cost) - float(expected_cost)) > 1e-9):
+            findings.append("cost-mismatch:%d" % index)
+        pairs += 1
+    for index in range(limit, len(steps)):
+        findings.append("unpaired-step:%d" % index)
+    for index in range(limit, len(results)):
+        findings.append("extra-result:%d" % index)
+    return {
+        "ok": not findings,
+        "findings": findings,
+        "pairs": pairs,
+        "steps": len(steps),
+        "results": len(results),
+    }
+
+
 def replay_actions(task, seed, actions, max_steps=200):
     """Replay ``actions`` through a fresh world; return the visited states."""
     world = GridWorld(task, seed)
@@ -129,6 +176,9 @@ def verify_action_replay(log_path, records=None, max_steps=200,
                 replayed_reward = sum(item["reward"] for item in replay)
                 if abs(claimed["reward"] - replayed_reward) > 0.05:
                     findings.append("verdict-reward-mismatch")
+        # The result records are the loop's other self-report; check them
+        # against the steps they describe rather than trusting them.
+        findings.extend(verify_result_records(log_path, records)["findings"])
     return {
         "ok": not findings,
         "findings": findings,
