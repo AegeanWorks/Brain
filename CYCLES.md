@@ -3610,7 +3610,7 @@ only integration scores, cross-module dependencies, and ablation differentials.
 
 ## Cycle 88 - optional anchor-journal witness in claim-ref verification (fresh gap audit)
 
-- **Baseline** (commit 5e09fef, cycle 87; same T3:15/65 logs):
+- **Baseline** (commit f32556b, cycle 87; same T3:15/65 logs):
   - canonical gate: 393 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
   - the verifier checked the log hash chain but not an external witness; a valid truncated prefix or a fully rewritten chain still passed.
 - **Gap**: no anchor-journal comparison in claim verification. `verify_chain(path, journal_path=...)` can compare the log count/head with the latest journal anchor.
@@ -3636,7 +3636,7 @@ only integration scores, cross-module dependencies, and ablation differentials.
 
 ## Cycle 89 - header seed and independent episode-digest verification (fresh gap audit)
 
-- **Baseline** (commit ebc1fbb, cycle 88; same T3:15 run):
+- **Baseline** (commit 0f366eb, cycle 88; same T3:15 run):
   - canonical gate: 402 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
   - the header bound episode_sha256 but omitted seed, so the digest could not be rebuilt from the deterministic world; claim refs trusted an unverified episode binding.
 - **Gap**: no independent episode verifier. Adding seed to the header and recomputing input_digest from the stored task/seed/budget/policy closes it.
@@ -3662,7 +3662,7 @@ only integration scores, cross-module dependencies, and ablation differentials.
 
 ## Cycle 90 - optional expected-policy pin for episode and claim verification (fresh gap audit)
 
-- **Baseline** (commit 40decff, cycle 89; same T3:15 run):
+- **Baseline** (commit 64618ce, cycle 89; same T3:15 run):
   - canonical gate: 410 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
   - `verify_episode_header` recomputed from the header's own policy_sha256, so a forged policy paired with a matching episode digest passed internally.
 - **Gap**: no external policy expectation. An optional pin (the current policy_digest) can reject a header claiming a different policy even when its episode digest is self-consistent.
@@ -3698,7 +3698,7 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - **Tie-break / tour-order behavior changes**: rejected by the cycle-83/84 audits (28/28 least-visited choices; 13/13 optimal tours, 0 ties on the pin seed). No evidence supports a behavior change.
   - **Merkle journal pruning, calibration pruning, destructive retention**: rejected; archive/compaction already preserve evidence losslessly and pruning would discard it.
 - **Verdict**: zero-finding audit. The last 31 cycles are evidence/readout/digest extensions with unchanged actions, steps, rewards, scores and `policy_digest` (decbfce3...). No safe measurable gap remains that would not be an arbitrary policy choice, a semantic mismatch, or a re-measurement of an already-audited decision.
-- **State**: unittest 415 OK; aikit check brain 5/5; tree clean at commit 9dc7d98 before this record; no push made.
+- **State**: unittest 415 OK; aikit check brain 5/5; tree clean at commit 648d960 before this record; no push made.
 
 ## Cycle 92 (Push 1) - claim status must match verdict history
 
@@ -3780,10 +3780,10 @@ only integration scores, cross-module dependencies, and ablation differentials.
 
 ## Push-series review 1 to 9 and loop-back to the beginning
 
-- **Baseline**: branch `master` at `824870a` (98 commits, no remote configured). A "push" here is a verified local conventional commit; `git push` has no destination, so no network push was possible or made.
-- **Review 1 -> 3** (`b1af2c6`, `67d9b02`, `0dd9e07`): 3 commits, 15 files, 608 insertions. Claim status/verdict consistency, lock ownership tokens, episode workspace/policy pins. Cumulative gates: 430 tests OK; AIKit 5/5; claim store/evidence and episode batteries clean; `policy_digest` unchanged.
-- **Review 1 -> 6** (`+62a01a8`, `764e1f2`, `865fa5b`): 6 commits, 20 files, 1036 insertions. Keyed claim store, keyed store authentication through the ref verifier, streamed header reads (100k records: 124.2 MB -> 0.1 MB peak). Cumulative gates: 438 tests OK; AIKit 5/5; keyed/wrong/missing/tampered and workspace modes clean.
-- **Review 1 -> 9** (`+cbc062a`, `f493c7b`, `2a4b155`, docs `ced2b70`): 9 feature pushes, 25 files, 1487 insertions. Keyed calibration journal/rotation, keyed bridge pass-through, unkeyed-downgrade guards. Cumulative gates: 449 tests OK; AIKit 5/5; keyed claim store (correct/wrong/missing/tampered/downgrade), keyed calibration (correct/wrong/missing/rotation/mixed), keyed bridge 13/13 at Brier 0.230769, episode workspace pins, and `policy_digest` decbfce3... all clean.
+- **Baseline**: branch `master` at `bfe3ba6` (98 commits, no remote configured). A "push" here is a verified local conventional commit; `git push` has no destination, so no network push was possible or made.
+- **Review 1 -> 3** (`b6bbe55`, `7059769`, `7d55146`): 3 commits, 15 files, 608 insertions. Claim status/verdict consistency, lock ownership tokens, episode workspace/policy pins. Cumulative gates: 430 tests OK; AIKit 5/5; claim store/evidence and episode batteries clean; `policy_digest` unchanged.
+- **Review 1 -> 6** (`+fc623c8`, `4ae5aca`, `2aa67a3`): 6 commits, 20 files, 1036 insertions. Keyed claim store, keyed store authentication through the ref verifier, streamed header reads (100k records: 124.2 MB -> 0.1 MB peak). Cumulative gates: 438 tests OK; AIKit 5/5; keyed/wrong/missing/tampered and workspace modes clean.
+- **Review 1 -> 9** (`+cb7fcb2`, `c6829bc`, `e2cd251`, docs `f1a2a75`): 9 feature pushes, 25 files, 1487 insertions. Keyed calibration journal/rotation, keyed bridge pass-through, unkeyed-downgrade guards. Cumulative gates: 449 tests OK; AIKit 5/5; keyed claim store (correct/wrong/missing/tampered/downgrade), keyed calibration (correct/wrong/missing/rotation/mixed), keyed bridge 13/13 at Brier 0.230769, episode workspace pins, and `policy_digest` decbfce3... all clean.
 - **Loop-back to Push 1**: re-ran `tests.test_claims`, `tests.test_claims_store`, `tests.test_file_locks`, `tests.test_episode_verify` at HEAD: 57 tests OK; the Push 1 `Claim(status="supported")` inconsistency is still rejected; the full suite is 449 OK and AIKit 5/5. The beginning behavior survives all later pushes.
 - **Findings fixed**: claim status could contradict verdict history (Push 1); a stolen lock's successor could be deleted (Push 2); malformed policy/workspace digests were accepted and workspace was unverified (Push 3); claim snapshots were checksum-only (Push 4); the combined verifier bypassed a keyed store (Push 5); verification retained every action record (Push 6); calibration records were checksum-only (Push 7); the bridge could not pass a calibration key (Push 8); unkeyed writes could downgrade keyed evidence (Push 9).
 - **Result**: no regressions, no behavior/action/reward changes, no policy change. The reviewed range now starts and ends at the same verified state class: full tests green, AIKit 5/5, clean tree.

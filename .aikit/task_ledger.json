@@ -5,23 +5,12 @@
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794128351.5549634,
+    "updated_at": 1794129021.4774873,
     "owner": "opencode:publish",
     "started_by": "opencode:publish",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push7-calibration-hmac",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit Push 7",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794111193.296369,
-      "timestamp_str": "2026-11-08 07:13:13",
-      "agent": "opencode:push7"
-    },
     {
       "task_id": "brain-push7-calibration-hmac",
       "phase": "completed",
@@ -253,6 +242,17 @@
       "status": "in_progress",
       "timestamp": 1794128351.5549634,
       "timestamp_str": "2026-11-08 11:59:11",
+      "agent": "opencode:publish"
+    },
+    {
+      "task_id": "brain-publish-private",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[publish] history cleanup: removed hmac_key=None false positive from introducing commit, rebased 18 commits, refreshed recorded hashes; commits scan clean",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794129021.4774873,
+      "timestamp_str": "2026-11-08 12:10:21",
       "agent": "opencode:publish"
     }
   ]
