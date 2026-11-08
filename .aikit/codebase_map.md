@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `139`
-- **Total Classes**: `145`
-- **Total Top-Level Functions**: `457`
-- **Total Class Methods**: `676`
-- **Total Source Lines**: `19850`
+- **Total Python Modules**: `142`
+- **Total Classes**: `148`
+- **Total Top-Level Functions**: `464`
+- **Total Class Methods**: `690`
+- **Total Source Lines**: `20639`
 
 ---
 
@@ -518,13 +518,14 @@
 ### [`evals/estimators.py`](evals/estimators.py)
 > *Stdlib-only estimators for Brain evals.*
 
-**Size**: `183` lines (`5878` bytes)
+**Size**: `237` lines (`8065` bytes)
 
 **Functions:**
 - `def _discretize(values, bins)`
 - `def mutual_info_discrete(xs, ys, bins)` - *Mutual information in nats between discretized xs and ys.*
 - `def _solve(A, b)`
 - `def phi_ar(trace)` - *Residual-variance ratio: 1 - MSE(whole)/MSE(partitioned), clipped at 0.*
+- `def synergy_scope(trace, target)` - *Report which trace columns ``synergy`` reads, and whether they can decide.*
 - `def synergy(trace, target)` - *Joint-minus-marginals gap: (syn, syn_n).*
 - `def gbi(pre_decodable, post_decodable)` - *Headroom-normalized change: (post - pre) / (1 - pre).*
 - `def logistic_k(x, y)` - *Grid search over slope k; returns (best_k, r2).*
@@ -674,7 +675,7 @@
 ### [`evals/recompute.py`](evals/recompute.py)
 > *Recompute eval statistics from a JSONL log without trusting self-reports.*
 
-**Size**: `145` lines (`5526` bytes)
+**Size**: `149` lines (`5764` bytes)
 
 **Functions:**
 - `def _mean(xs)`
@@ -994,6 +995,24 @@
 - `def _index(records)`
 - `def diff_records(old_records, new_records)` - *Compare two record sets by ``(record_type, id)``.*
 - `def _fsync_dir(path)`
+
+---
+
+### [`state_machines.py`](state_machines.py)
+> *Explicit state-machine registry for Brain (PRINCIPLE-009, PRINCIPLE-016).*
+
+**Size**: `523` lines (`22720` bytes)
+
+**Classes:**
+- `class Machine` - *One lifecycle as data: states, intended transitions, and its source.*
+  - Method `.allows(source, target)` - *Return True when ``source -> target`` is a declared transition.*
+
+**Functions:**
+- `def as_dict()` - *Return a deterministic JSON-ready view of the whole registry.*
+- `def check_live()` - *Compare declared states with live product constants.*
+- `def run_transition(machine, source, target)` - *Print and return the triad verdict for one declared transition.*
+- `def print_machine(machine)` - *Render one machine for a human or agent reader.*
+- `def main(argv)` - *Run the read-only registry CLI.*
 
 ---
 
@@ -2379,6 +2398,22 @@
 
 ---
 
+### [`tests/test_state_machines.py`](tests/test_state_machines.py)
+> *Explicit state-machine registry: consistency, CLI contract and live drift.*
+
+**Size**: `110` lines (`5117` bytes)
+
+**Classes:**
+- `class TestStateMachineRegistry`
+  - Method `.test_registry_is_internally_consistent()`
+  - Method `.test_every_machine_renders_and_checks_every_state()`
+  - Method `.test_cli_matches_the_transition_table_for_every_machine()`
+  - Method `.test_list_json_and_representative_transitions()`
+  - Method `.test_misuse_and_unknown_names_exit_two()`
+  - Method `.test_live_vocabularies_match_declared_states()`
+
+---
+
 ### [`tests/test_store_recovery.py`](tests/test_store_recovery.py)
 > *Store recovery: a corrupt database file is quarantined, never fatal.*
 
@@ -2433,6 +2468,26 @@
 - `class TestSynergyCost`
   - Method `.test_discretize_is_not_per_row()`
   - Method `.test_synergy_values_preserved()`
+
+---
+
+### [`tests/test_synergy_scope.py`](tests/test_synergy_scope.py)
+> *Synergy scope: the criterion must report which trace columns it reads.*
+
+**Size**: `98` lines (`4093` bytes)
+
+**Classes:**
+- `class TestSynergyScope`
+  - Method `.test_scope_pins_the_two_columns_the_estimator_reads()`
+  - Method `.test_scope_names_the_columns_it_ignores()`
+  - Method `.test_appending_a_column_cannot_change_the_estimate()`
+  - Method `.test_constant_leading_column_is_flagged_insufficient()`
+  - Method `.test_sufficient_scope_is_reported_for_a_varying_pair()`
+  - Method `.test_empty_trace_degrades_without_raising()`
+  - Method `.test_recompute_reports_scope_with_the_estimate()`
+
+**Functions:**
+- `def _rows(width, n)`
 
 ---
 

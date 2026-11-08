@@ -3890,6 +3890,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.coldstart --capture` -> 16/8/13/6 unchanged.
 - **Pinned regression baselines for cycle 104**: unittest 458 OK; aikit 5/5; fresh store no migration; legacy store migrated once with row preserved; synergy 4000 rows 0.0123 s with `_discretize` calls 7; legacy layout row backfilled (cold B 6/1.0); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 104 - explicit read-only state-machine registry
+
+- **Baseline** (commit 4b3a6ce, cycle 103):
+  - canonical gate: 458 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the tree had no registry: states lived in JSON fields, verdict words, reason strings and file presence across `agent.py`, `telemetry/`, `claims*`, `calibration_store.py`, `identity.py`, `planner/` and `budget.py`; `python state_machines.py` did not exist.
+- **Gap**: 21 lifecycles were implicit. A developer or agent had to infer states and legal moves from code, and the `claim`/`verdict`/`resume-policy` vocabularies could drift without any check. This is the "find all implicit state machines" deliverable for Brain.
+- **Target delta**: one read-only registry with 21 machines, a CLI for listing/inspecting/checking transitions, a live-vocabulary drift check, an inventory doc and a scored proposal doc; zero behavior change.
+- **Falsifier**: an inconsistent transition table; a declared state set that disagrees with its live constant; any standing/cold-start/trace/policy pin moves.
+- **Change**: `state_machines.py` (frozen `Machine` data + read-only CLI: `--list`, `--json`, `--machine`, `--from/--to`, `--check-status`, `--check`); `tests/test_state_machines.py` (consistency, every machine/state, every declared and one disallowed transition, list/JSON, misuse exit 2, live vocabularies); `.aikit/state_machines.md` (inventory) and `.aikit/state_machine_proposals.md` (UX/DX/AX-scored proposals); README quick-reference row and tree line. No product module imports the registry. ADR-098. The working tree also carried a completed `synergy_scope` readout (7 tests) from a parallel edit; it was committed immediately before this cycle so the tree and codebase map stay consistent, and it is not part of the registry change.
+- **After** (same tree):
+  - `python state_machines.py --list` -> 21 machines; `--json` -> 21 records; `--machine model-decision` renders 9 states and the known gap.
+  - `python state_machines.py --check` -> `claim-status`, `resume-policy`, `verdict-event` all `ok`, exit 0.
+  - `python state_machines.py --machine claim-status --from proposed --to supported` -> allowed; `--from supported --to proposed` would be refused (declared false in the transition table).
+  - behavior/standing/cold-start/fixed-rig/`policy_digest` unchanged.
+- **Ablation / sensitivity**:
+  - deleting `state_machines.py` makes the test module unimportable and every CLI mode absent; no product path references it, so behavior is identical with or without it (documentation-only integration).
+  - changing a declared live-vocabulary state (for example adding a claim status to the registry only) makes `--check` exit 1, so drift is detectable rather than silent.
+- **Verdict**: documentation/DX/AX integration with a read-only registry and a live drift check. No behavior or emergence claim. Proposals P3/P6 deferred and P4/P5 rejected with reasons in `.aikit/state_machine_proposals.md`.
+- **Gates**: unittest 471/471 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_state_machines -v` -> 6 OK.
+  - `python state_machines.py --list` -> 21 machines; `--check` -> 3/3 ok; representative transition allowed.
+  - `python -m unittest discover -s tests -t .` -> 471 OK.
+  - `python -m evals.coldstart --capture` -> 16/8/13/6 unchanged.
+- **Pinned regression baselines for cycle 105**: unittest 471 OK; aikit 5/5; registry 21 machines with 3/3 live checks ok; fresh store no migration; legacy store migrated once with row preserved; synergy 4000 rows 0.0123 s with `_discretize` calls 7; legacy layout row backfilled (cold B 6/1.0); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
+
+
 
 
 

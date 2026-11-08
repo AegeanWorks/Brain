@@ -147,6 +147,7 @@ Deterministic agent substrate with memory planner self-model and integration tel
 | Phase 4: every gate | `python aikit.py check brain` |
 | Repair memory and map, then check | `python aikit.py fix brain` |
 | Resume an interrupted task | `python aikit.py resume brain` |
+| Inspect lifecycle state machines | `python state_machines.py --list` |
 
 ## 📦 What's Inside
 
@@ -154,7 +155,7 @@ Deterministic agent substrate with memory planner self-model and integration tel
 brain/
 ├── .gitignore
 ├── COMMERCIAL.md
-├── CYCLES.md                   <- append-only improvement-cycle ledger
+├── CYCLES.md                   <- cycle ledger
 ├── LICENSE
 ├── LICENSES/
 ├── REUSE.toml
@@ -162,23 +163,24 @@ brain/
 ├── assets/
 ├── inventory.py
 ├── demo.py
-├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
+├── state_machines.py          <- explicit lifecycle registry (read-only)
+├── agent.py                  <- rule-based perceive-plan-act-observe loop
 ├── budget.py                 <- opt-in step/LLM/token/time budgets
-├── identity.py               <- canonical episode digest + resume policy
+├── identity.py               <- episode digest + resume policy
 ├── workspace.py              <- deterministic source-tree hash for run evidence
-├── snapshot.py               <- portable run snapshots + deterministic diff
-├── calibration.py            <- Brier/log-loss/reliability scoring for forecasts
-├── calibration_store.py      <- append-only checksummed forecast journal
-├── claims.py                 <- immutable claim/kill-test/verdict ledger
-├── claims_store.py           <- checksummed snapshots + backup recovery
-├── claims_verify.py          <- read-only verdict-ref verification
+├── snapshot.py               <- portable snapshots + deterministic diff
+├── calibration.py            <- Brier/log-loss/reliability scoring
+├── calibration_store.py      <- checksummed forecast journal
+├── claims.py                 <- claim/kill-test/verdict ledger
+├── claims_store.py           <- checksummed snapshots + backup
+├── claims_verify.py          <- read-only verdict-ref check
 ├── episode_verify.py         <- independent episode-digest recomputation
-├── models/                   <- swappable small-model backends (seam + llama.cpp)
-├── memory/                   <- SQLite FTS5 store + per-task layout anchors (store.py)
-├── planner/                  <- explicit steps + recover (plan.py)
-├── self_model/               <- budget/error/confidence counters (model.py)
+├── models/                   <- swappable model backends (seam + llama.cpp)
+├── memory/                   <- SQLite FTS5 store + layout anchors (store.py)
+├── planner/                  <- explicit steps + recover
+├── self_model/               <- budget/error/confidence counters
 ├── worlds/                   <- deterministic 8x8 fixed-step tasks T1-T3 (grid.py)
-├── telemetry/                <- JSONL append-only (log.py) + ablation ops (ablate.py)
+├── telemetry/                <- JSONL append-only + ablation ops
 ├── evals/                    <- evidence and verification batteries
 ├── tests/                    <- unittest gate, tempdir only
 └── .aikit/
