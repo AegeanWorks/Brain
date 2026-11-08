@@ -15,7 +15,8 @@ import unittest
 from pathlib import Path
 
 from claims import ClaimLedger
-from claims_store import (load_ledger, save_ledger, verify_ledger_file)
+from claims_store import (_digest, load_ledger, save_ledger,
+                          verify_ledger_file)
 
 STAMP = 1700000000.0
 AT = "2026-11-07T00:00:00Z"
@@ -69,6 +70,23 @@ class TestClaimStore(unittest.TestCase):
             verified = verify_ledger_file(path)
         self.assertEqual(loaded.get("C1").verdicts[0].ref, "episode-a")
         self.assertTrue(verified["ok"], verified["findings"])
+
+    def test_forged_status_with_valid_checksum_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "claims.json")
+            save_ledger(_ledger(), path, saved_at=STAMP)
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+            payload["claims"][0]["status"] = "refuted"
+            payload["sha256"] = _digest(payload)
+            Path(path).write_text(json.dumps(payload, sort_keys=True) + "\n",
+                                  encoding="utf-8")
+            verified = verify_ledger_file(path)
+            with self.assertRaises(ValueError):
+                load_ledger(path)
+        self.assertFalse(verified["ok"])
+        self.assertTrue(any("claims are invalid" in finding
+                            for finding in verified["findings"]),
+                        verified["findings"])
 
     def test_missing_primary_returns_empty(self):
         with tempfile.TemporaryDirectory() as tmp:

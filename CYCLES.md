@@ -3700,3 +3700,12 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Verdict**: zero-finding audit. The last 31 cycles are evidence/readout/digest extensions with unchanged actions, steps, rewards, scores and `policy_digest` (decbfce3...). No safe measurable gap remains that would not be an arbitrary policy choice, a semantic mismatch, or a re-measurement of an already-audited decision.
 - **State**: unittest 415 OK; aikit check brain 5/5; tree clean at commit 9dc7d98 before this record; no push made.
 
+## Cycle 92 (Push 1) - claim status must match verdict history
+
+- **Audit finding**: `ClaimLedger.from_dict`/`_validate_claim` accepted a `status` that contradicted the verdict history (`supported` with no verdicts, or with only refuting verdicts) and did not validate verdict evidence/timestamps. A rewritten claim-store snapshot with a recomputed checksum could assert an unsupported status.
+- **Failing-first**: `Claim("C1","text","kill", status="supported")` and the mismatched-verdict variants raised nothing; forged store status with recomputed SHA-256 verified `ok=true`.
+- **Change**: `Verdict.__post_init__` validates status/evidence/at/ref; `Claim.__post_init__` validates the claim; `_validate_claim` derives the expected status from the last verdict and rejects mismatches, and re-validates verdict texts/refs. `from_dict` and the claim store inherit the invariant. Four tests in `tests/test_claims.py`; one forged-checksum store test.
+- **After**: 420 tests OK. A consistent supports/refutes history loads (`refuted`); `supported` with no verdicts, `supported`+refutes, `proposed`+supports, empty evidence and empty timestamps all raise; a status rewrite with a valid checksum fails `verify_ledger_file` (`claim store claims are invalid`) and `load_ledger`. Existing claim refs (f9343058.../3622529a...), claim store 6/6 + backup 3/3, claim/evidence and claim-ref batteries unchanged; policy decbfce3... unchanged.
+- **Ablation**: without the invariant the forged snapshot verifies; with it the same checksum-valid snapshot is rejected. The checksum detects accidental edits; consistency blocks a self-consistent status lie (but not a fully fabricated history).
+- **Gates**: unittest 420/420 OK; aikit check brain 5/5 PASS.
+

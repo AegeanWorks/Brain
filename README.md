@@ -540,8 +540,12 @@ store-level `append`/`append-noop` modes.
 or `inconclusive` verdict and returns a new immutable claim; the previous
 record is never mutated. Statuses are `proposed/supported/refuted/
 inconclusive`, `summary()` counts claims/verdicts, and `to_dict`/
-`from_dict` roundtrip as JSON. Declared confidence does not decide the
-verdict. `python -m evals.claims` judges six T3 claims: 3 supported, 2
+`from_dict` roundtrip as JSON. A claim's status is derived from its
+verdict history (`proposed` with none, otherwise the last verdict's
+status); a claim or snapshot whose status contradicts that history is
+rejected, even when its checksum was recomputed. Verdict evidence and
+timestamps are validated on load too. Declared confidence does not decide
+the verdict. `python -m evals.claims` judges six T3 claims: 3 supported, 2
 refuted, 1 inconclusive, with the 13/6-step/1.0 runs unchanged.
 
 `claims_store.py` makes the ledger durable. `save_ledger(ledger, path)`

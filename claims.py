@@ -32,6 +32,14 @@ class Verdict:
     at: str
     ref: str = None
 
+    def __post_init__(self):
+        if self.status not in VERDICT_STATUSES:
+            raise ValueError("Why: unknown verdict status %r. Fix: use %s."
+                             % (self.status, VERDICT_STATUSES))
+        _validate_text(self.evidence, "verdict evidence")
+        _validate_text(self.at, "verdict at")
+        _validate_ref(self.ref)
+
 
 def _validate_ref(value):
     if value is None:
@@ -51,6 +59,9 @@ class Claim:
     status: str = "proposed"
     confidence: float = 0.5
     verdicts: tuple = field(default_factory=tuple)
+
+    def __post_init__(self):
+        _validate_claim(self)
 
 
 def _validate_text(value, name):
@@ -81,7 +92,16 @@ def _validate_claim(claim):
             raise ValueError("verdicts must be Verdict records")
         if verdict.status not in VERDICT_STATUSES:
             raise ValueError("unknown verdict status %r" % verdict.status)
+        _validate_text(verdict.evidence, "verdict evidence")
+        _validate_text(verdict.at, "verdict at")
         _validate_ref(verdict.ref)
+    expected = ("proposed" if not claim.verdicts
+                else _VERDICT_TO_CLAIM[claim.verdicts[-1].status])
+    if claim.status != expected:
+        raise ValueError(
+            "Why: claim status %r does not match its verdict history (%r). "
+            "Fix: load a consistent snapshot or rebuild the claim."
+            % (claim.status, expected))
     return claim
 
 

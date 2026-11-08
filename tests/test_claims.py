@@ -145,6 +145,51 @@ class TestClaims(unittest.TestCase):
         self.assertEqual(restored.claims(), ledger.claims())
         json.dumps(payload)
 
+    def test_status_must_match_verdict_history(self):
+        with self.assertRaises(ValueError):
+            Claim("C1", "text", "kill", status="supported")
+        with self.assertRaises(ValueError):
+            Claim("C1", "text", "kill", status="supported",
+                  verdicts=(Verdict("refutes", "e", STAMP),))
+        with self.assertRaises(ValueError):
+            Claim("C1", "text", "kill", status="proposed",
+                  verdicts=(Verdict("supports", "e", STAMP),))
+        Claim("C1", "text", "kill", status="refuted",
+              verdicts=(Verdict("supports", "e", STAMP),
+                        Verdict("refutes", "e2", STAMP)))
+        Claim("C1", "text", "kill")
+
+    def test_from_dict_rejects_inconsistent_status(self):
+        payload = {"claims": [{
+            "id": "C1", "text": "text", "kill_test": "kill",
+            "status": "supported", "confidence": 0.5, "verdicts": [],
+        }]}
+        with self.assertRaises(ValueError):
+            ClaimLedger.from_dict(payload)
+        payload["claims"][0]["verdicts"] = [
+            {"status": "refutes", "evidence": "e", "at": STAMP}]
+        with self.assertRaises(ValueError):
+            ClaimLedger.from_dict(payload)
+
+    def test_verdict_texts_validated_on_load(self):
+        base = {"id": "C1", "text": "text", "kill_test": "kill",
+                "status": "supported", "confidence": 0.5}
+        for verdict in ({"status": "supports", "evidence": "", "at": STAMP},
+                        {"status": "supports", "evidence": "e", "at": ""}):
+            payload = {"claims": [dict(base, verdicts=[verdict])]}
+            with self.assertRaises(ValueError):
+                ClaimLedger.from_dict(payload)
+
+    def test_consistent_legacy_payload_loads(self):
+        payload = {"claims": [{
+            "id": "C1", "text": "text", "kill_test": "kill",
+            "status": "supported", "confidence": 0.5,
+            "verdicts": [{"status": "supports", "evidence": "e",
+                          "at": STAMP}],
+        }]}
+        restored = ClaimLedger.from_dict(payload)
+        self.assertEqual(restored.get("C1").status, "supported")
+
     def test_dataclasses_frozen(self):
         claim = Claim("C1", "text", "kill")
         with self.assertRaises(Exception):
