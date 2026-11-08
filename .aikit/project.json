@@ -14,8 +14,21 @@
   "mechanics_required": false,
   "created": "2026-11-07",
   "has_ui": false,
-  "ui_kind": "library",
-  "ui_evidence": [],
-  "ui_checked_at": "2026-11-07",
+  "ui_kind": "cli",
+  "ui_evidence": [
+    "evals/anchor_journal.py",
+    "evals/calibration.py",
+    "evals/calibration_autoretention.py",
+    "evals/calibration_bridge.py",
+    "evals/calibration_retention.py",
+    "evals/calibration_store.py",
+    "evals/chain_anchor.py",
+    "evals/claim_evidence.py",
+    "evals/claim_ref_verify.py",
+    "evals/claims.py",
+    "evals/claims_store.py",
+    "evals/coldstart.py"
+  ],
+  "ui_checked_at": "2026-11-08",
   "ui_source": "detected"
 }

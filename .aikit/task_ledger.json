@@ -5,23 +5,12 @@
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794127661.2735693,
+    "updated_at": 1794128351.5549634,
     "owner": "opencode:publish",
     "started_by": "opencode:publish",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push7-calibration-hmac",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] 443 tests OK; keyed ok, wrong/missing/tampered fail, keyed rotation 10 records 0.129, wrong rotation byte-identical; unkeyed unchanged; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794111192.994546,
-      "timestamp_str": "2026-11-08 07:13:12",
-      "agent": "opencode:push7"
-    },
     {
       "task_id": "brain-push7-calibration-hmac",
       "phase": "in_progress",
@@ -253,6 +242,17 @@
       "status": "in_progress",
       "timestamp": 1794127661.2735693,
       "timestamp_str": "2026-11-08 11:47:41",
+      "agent": "opencode:publish"
+    },
+    {
+      "task_id": "brain-publish-private",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[publish] delivery baseline: codebase_map.md generated, assets tree + ui_kind refreshed; checklists: passed; ready to publish",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794128351.5549634,
+      "timestamp_str": "2026-11-08 11:59:11",
       "agent": "opencode:publish"
     }
   ]

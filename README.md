@@ -159,6 +159,7 @@ brain/
 ├── LICENSES/
 ├── REUSE.toml
 ├── README.md
+├── assets/
 ├── inventory.py
 ├── demo.py
 ├── agent.py                  <- rule-based perceive-plan-act-observe loop + hub
