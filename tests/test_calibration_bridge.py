@@ -7,6 +7,7 @@ that run, under a header-derived unique id prefix, after the verdict.
 The bridge is opt-in and must not change actions or rewards.
 """
 
+import hashlib
 import json
 import os
 import tempfile
@@ -89,6 +90,48 @@ class TestCalibrationBridge(unittest.TestCase):
                          memory["counts"]["resolved"])
         self.assertAlmostEqual(persisted["brier"], 0.230769, places=6)
         self.assertAlmostEqual(persisted["brier"], memory["brier"], places=6)
+
+    def test_keyed_bridge_roundtrip_and_wrong_key(self):
+        key = hashlib.sha256(b"bridge-key").digest()
+        wrong = hashlib.sha256(b"bridge-wrong").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            log_path = os.path.join(tmp, "run.jsonl")
+            trace = Agent(self_model=SelfModel()).run_task_logged(
+                "T3_navigate", 15, max_steps=200, log_path=log_path,
+                calibration_path=path, calibration_hmac_key=key)
+            records = load_forecasts(path, hmac_key=key)
+            verified = verify_forecast_file(path, hmac_key=key)
+            with self.assertRaises(ValueError):
+                load_forecasts(path, hmac_key=wrong)
+        self.assertEqual(len(trace), 13)
+        self.assertEqual(len(records), 13)
+        self.assertTrue(verified["ok"], verified["findings"])
+        self.assertTrue(verified["hmac"])
+
+    def test_keyed_bridge_requires_a_path(self):
+        key = hashlib.sha256(b"bridge-key").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = os.path.join(tmp, "run.jsonl")
+            with self.assertRaises(ValueError):
+                Agent(self_model=SelfModel()).run_task_logged(
+                    "T3_navigate", 15, max_steps=200, log_path=log_path,
+                    calibration_hmac_key=key)
+            log_exists = Path(log_path).exists()
+        self.assertFalse(log_exists)
+
+    def test_invalid_bridge_key_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            for value in ("text", b"", 3):
+                log_path = os.path.join(tmp, "run-%s.jsonl" % str(value))
+                with self.assertRaises(ValueError):
+                    Agent(self_model=SelfModel()).run_task_logged(
+                        "T3_navigate", 15, max_steps=200,
+                        log_path=log_path, calibration_path=path,
+                        calibration_hmac_key=value)
+                self.assertFalse(Path(log_path).exists())
+        self.assertFalse(Path(path).exists())
 
     def test_default_none_writes_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:

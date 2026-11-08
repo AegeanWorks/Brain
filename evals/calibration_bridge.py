@@ -8,6 +8,7 @@ corrupt journal fail loudly; actions and rewards stay identical.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
@@ -19,15 +20,17 @@ from calibration_store import load_forecasts, verify_forecast_file
 from self_model.model import SelfModel
 from telemetry.log import Telemetry
 
-MODES = ("default", "logged", "two-runs", "missing-self-model",
+MODES = ("default", "logged", "two-runs", "keyed", "missing-self-model",
          "corrupt-store", "actions")
 
 
-def _run(agent, task, seed, tmp, name, calibration_path=None):
+def _run(agent, task, seed, tmp, name, calibration_path=None,
+         hmac_key=None):
     log_path = os.path.join(tmp, name + ".jsonl")
     trace = agent.run_task_logged(task, seed, max_steps=200,
                                   log_path=log_path,
-                                  calibration_path=calibration_path)
+                                  calibration_path=calibration_path,
+                                  calibration_hmac_key=hmac_key)
     return trace, log_path
 
 
@@ -50,7 +53,29 @@ def measure_case(mode="logged", directory=None):
               "in_memory_resolved": None, "in_memory_brier": None,
               "file_before": False, "file_after": False,
               "prefixes": 0, "unique_ids": None, "log_verdict": None,
-              "actions_match": None, "error": None}
+              "actions_match": None, "hmac": None, "error": None}
+    if mode == "keyed":
+        key = hashlib.sha256(b"bridge-eval-key").digest()
+        wrong = hashlib.sha256(b"bridge-eval-wrong").digest()
+        model = SelfModel()
+        trace, _log = _run(Agent(self_model=model), "T3_navigate", 15,
+                           directory, "keyed", path, key)
+        records = load_forecasts(path, hmac_key=key)
+        verified = verify_forecast_file(path, hmac_key=key)
+        try:
+            load_forecasts(path, hmac_key=wrong)
+        except ValueError as exc:
+            result["error"] = str(exc)
+        result.update(_stats(records))
+        result.update({"steps": len(trace),
+                       "reward": sum(r["reward"] for r in trace),
+                       "in_memory_resolved": model.calibration(
+                           min_resolved=2)["counts"]["resolved"],
+                       "in_memory_brier": model.calibration(
+                           min_resolved=2)["brier"],
+                       "hmac": verified["hmac"],
+                       "file_after": Path(path).exists()})
+        return result
     if mode == "missing-self-model":
         log_path = os.path.join(directory, "missing.jsonl")
         try:

@@ -3761,6 +3761,14 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: without a key the checksum-only journal accepts the recomputed tamper; with the key the MAC rejects it. Rotation without a key cannot read a keyed journal (it raises), preventing silent MAC loss.
 - **Gates**: unittest 443/443 OK; aikit check brain 5/5 PASS.
 
+## Cycle 98b (Push 8, recorded after Push 9) - pass a calibration HMAC key through the logged-run bridge
+
+- **Audit finding**: the bridge could not pass the calibration journal's HMAC key, so a keyed journal could not be appended through a real run.
+- **Failing-first**: `calibration_hmac_key` was an unexpected keyword.
+- **Change**: `run_task_logged` takes `calibration_hmac_key` (non-empty bytes, requires `calibration_path`, validated before the run) and passes it to `append_forecasts`; three tests and a keyed bridge-battery mode.
+- **After**: keyed T3:15 appends 13 records/13 resolved with Brier 0.230769 and `hmac=true`; a wrong key is rejected; a key without a path or an invalid key fails before the log; default/two-run/actions modes unchanged.
+- **Gates**: 11 bridge tests pass; final cumulative suite 449 OK; AIKit 5/5; no behavior or policy change.
+
 ## Cycle 99 (Push 9) - refuse unkeyed writes over keyed evidence
 
 - **Audit finding**: an unkeyed calibration append over a keyed journal created a mixed journal that keyed loads reject; an unkeyed rotation moved keyed records unauthenticated; an unkeyed claim-store save replaced a keyed primary with an unkeyed snapshot.

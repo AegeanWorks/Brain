@@ -1426,7 +1426,8 @@ class Agent:
     def run_task_logged(self, task_id, seed, max_steps=200, log_path=None,
                         budget=None, workspace_root=None,
                         calibration_path=None,
-                        calibration_keep_recent=None):
+                        calibration_keep_recent=None,
+                        calibration_hmac_key=None):
         """Run task with header, per-step actions+results, and verdict.
 
         Writes header (seq 0), one kind "step" action plus one result
@@ -1438,10 +1439,21 @@ class Agent:
         the calibration journal after the verdict, under a prefix taken
         from the header digest. ``calibration_keep_recent`` optionally
         rotates the journal immediately after that append, keeping the
-        newest N live and archiving older records. The bridge is opt-in
-        and does not change actions; a calibration-store failure raises
-        after the verdict.
+        newest N live and archiving older records.
+        ``calibration_hmac_key`` appends keyed records and verifies the
+        existing journal first. The bridge is opt-in and does not change
+        actions; a calibration-store failure raises after the verdict.
         """
+        if calibration_hmac_key is not None:
+            if calibration_path is None:
+                raise ValueError(
+                    "Why: calibration_hmac_key needs calibration_path. "
+                    "Fix: pass calibration_path=... or omit the key.")
+            if (not isinstance(calibration_hmac_key, (bytes, bytearray))
+                    or not calibration_hmac_key):
+                raise ValueError(
+                    "Why: calibration_hmac_key must be non-empty bytes or "
+                    "None. Fix: pass the verifier-held bytes key, or omit it.")
         if calibration_keep_recent is not None:
             if calibration_path is None:
                 raise ValueError(
@@ -1509,7 +1521,8 @@ class Agent:
             forecasts = self.self_model.forecasts(
                 prefix, start=forecast_start)
             append_forecasts(forecasts, calibration_path,
-                             keep_recent=calibration_keep_recent)
+                             keep_recent=calibration_keep_recent,
+                             hmac_key=calibration_hmac_key)
         return trace
 
     def substrate_errors(self):

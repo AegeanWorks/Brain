@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-push9-downgrade-guard",
+    "task_id": "brain-push8-keyed-bridge",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794111884.7069492,
-    "owner": "opencode:push9",
-    "started_by": "opencode:push9",
+    "updated_at": 1794112582.874525,
+    "owner": "opencode:push8",
+    "started_by": "opencode:push8",
     "continuations": [],
-    "completed_at": 1794111884.8951182
+    "completed_at": 1794112584.1246977
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push5-store-auth",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: authenticate a keyed claim store through verify_claim_store",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109993.6296027,
-      "timestamp_str": "2026-11-08 06:53:13",
-      "agent": "opencode:push5",
-      "impact_assessment": {
-        "why": "The combined verifier loaded keyed claim snapshots without passing the store key, silently bypassing the new MAC.",
-        "benefits": "store_hmac_key authenticates the snapshot through the combined verifier; wrong keys raise; the unkeyed path stays compatible.",
-        "risks": "contract: one optional verifier kwarg; dependency: claims_store load; concurrency: read-only; state: none.",
-        "mitigation": "Pass the key to load_ledger, report store_hmac, test correct/wrong/unkeyed, and rerun 435 tests plus AIKit."
-      },
-      "plan_digest": "1ee20e9b5f88edb2ae69e6445c121d6c0d7f68b3669962fc9ffd73eca33a9cbd"
-    },
-    {
-      "task_id": "brain-push5-store-auth",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first store_hmac_key TypeError; pass-through, store_hmac result, test/eval, README/ADR-089",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109994.0507972,
-      "timestamp_str": "2026-11-08 06:53:14",
-      "agent": "opencode:push5"
-    },
-    {
-      "task_id": "brain-push5-store-auth",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] 435 tests OK; keyed store 2/2 store_hmac true, wrong key rejected, unkeyed unchanged; aikit 5/5; policy unchanged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109994.4703171,
-      "timestamp_str": "2026-11-08 06:53:14",
-      "agent": "opencode:push5"
-    },
-    {
-      "task_id": "brain-push5-store-auth",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit Push 5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109994.9200134,
-      "timestamp_str": "2026-11-08 06:53:14",
-      "agent": "opencode:push5"
-    },
-    {
-      "task_id": "brain-push5-store-auth",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-push5-store-auth' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794109995.3063965,
-      "timestamp_str": "2026-11-08 06:53:15",
-      "agent": "opencode:push5"
-    },
     {
       "task_id": "brain-push6-header-reader",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794111884.89512,
       "timestamp_str": "2026-11-08 07:24:44",
       "agent": "opencode:push9"
+    },
+    {
+      "task_id": "brain-push8-keyed-bridge",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: pass a calibration HMAC key through the logged-run bridge",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794112580.6623883,
+      "timestamp_str": "2026-11-08 07:36:20",
+      "agent": "opencode:push8",
+      "impact_assessment": {
+        "why": "The bridge could not pass the journal HMAC key, so a keyed journal could not be appended through a real run.",
+        "benefits": "calibration_hmac_key appends keyed records through a run; wrong/invalid keys fail before the log; default behavior unchanged.",
+        "risks": "contract: one optional kwargs pair on run_task_logged; dependency: calibration_store; concurrency: unchanged lock; state: optional MAC field.",
+        "mitigation": "Validate bytes/path before the run, pass to append_forecasts, test keyed/wrong/no-path/invalid, rerun bridge and full suites."
+      },
+      "plan_digest": "863e19838d16c56d6d53a34161396a3c21a52a43204a2a902311b5d56be21e30"
+    },
+    {
+      "task_id": "brain-push8-keyed-bridge",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Completed: bridge key pass-through, tests, keyed eval, README/ADR-092",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794112581.457216,
+      "timestamp_str": "2026-11-08 07:36:21",
+      "agent": "opencode:push8"
+    },
+    {
+      "task_id": "brain-push8-keyed-bridge",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] 11 bridge tests; keyed 13/13 0.230769 hmac true, wrong key rejected, no-path/invalid fail before log; final 449 tests; aikit 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794112582.3443723,
+      "timestamp_str": "2026-11-08 07:36:22",
+      "agent": "opencode:push8"
+    },
+    {
+      "task_id": "brain-push8-keyed-bridge",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit Push 8",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794112582.874525,
+      "timestamp_str": "2026-11-08 07:36:22",
+      "agent": "opencode:push8"
+    },
+    {
+      "task_id": "brain-push8-keyed-bridge",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-push8-keyed-bridge' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794112584.1246998,
+      "timestamp_str": "2026-11-08 07:36:24",
+      "agent": "opencode:push8"
     }
   ]
 }

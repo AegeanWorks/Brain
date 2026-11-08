@@ -513,14 +513,17 @@ committed.
 real run to the journal. It requires a persistent `SelfModel` (the
 `self_model.model` class) and captures the pre-run `forecast_count()`;
 after the verdict it appends only that run's confidence/outcome pairs,
-with ids prefixed by the run header digest (first 12 hex). A default
+with ids prefixed by the run header digest (first 12 hex).
+`calibration_hmac_key=bytes` appends keyed records through the bridge; it
+requires `calibration_path` and is validated before the run. A default
 run keeps the 13 T3:15 forecasts in memory and writes no file; the
 logged run persists 13 with the same Brier 0.230769; a second run on the
 same self-model appends only its 6 new forecasts (19 total, two
-prefixes). Actions and rewards are unchanged. A missing self-model or a
+prefixes); the keyed run persists 13 keyed records that load only with
+the key. Actions and rewards are unchanged. A missing self-model or a
 corrupt journal raises; the verdict is already written when the journal
 append fails. `python -m evals.calibration_bridge` shows
-default/logged/two-runs/missing-self-model/corrupt-store/actions.
+default/logged/two-runs/keyed/missing-self-model/corrupt-store/actions.
 
 `rotate_forecast_journal(path, keep_recent=100, archive_path=None)`
 bounds the live journal. Older records move to `.archive`, the newest N
