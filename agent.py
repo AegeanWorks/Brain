@@ -1237,14 +1237,27 @@ class Agent:
                 except (TypeError, ValueError):
                     existing_state = None
                 if self._layout_complete(existing_state):
-                    try:
-                        same_world = get_layout(task, seed,
-                                                fingerprint=fingerprint)
-                    except Exception:
-                        self._substrate_errors["memory_store"] += 1
-                        same_world = existing
-                    if same_world is not None:
-                        return
+                    fp_api = getattr(store, "layout_fingerprint", None)
+                    backfill = False
+                    if callable(fp_api):
+                        try:
+                            stored_fp = fp_api(task, seed)
+                        except Exception:
+                            self._substrate_errors["memory_store"] += 1
+                            stored_fp = None
+                        # A legacy complete row has no fingerprint; write the
+                        # current (complete) state and fingerprint so the
+                        # collision guard is active on upgraded stores.
+                        backfill = (stored_fp is None and fingerprint is not None)
+                    if not backfill:
+                        try:
+                            same_world = get_layout(task, seed,
+                                                    fingerprint=fingerprint)
+                        except Exception:
+                            self._substrate_errors["memory_store"] += 1
+                            same_world = existing
+                        if same_world is not None:
+                            return
                 replace = True
         try:
             save_layout(task, seed, json.dumps(state, sort_keys=True),

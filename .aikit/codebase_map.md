@@ -9,8 +9,8 @@
 - **Total Python Modules**: `137`
 - **Total Classes**: `143`
 - **Total Top-Level Functions**: `456`
-- **Total Class Methods**: `670`
-- **Total Source Lines**: `19695`
+- **Total Class Methods**: `671`
+- **Total Source Lines**: `19734`
 
 ---
 
@@ -19,7 +19,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1556` lines (`63769` bytes)
+**Size**: `1569` lines (`64542` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -1777,7 +1777,7 @@
 ### [`tests/test_layout_fingerprint.py`](tests/test_layout_fingerprint.py)
 > *Layout fingerprints: distinct worlds sharing (task, seed) must not collide.*
 
-**Size**: `93` lines (`3527` bytes)
+**Size**: `119` lines (`4684` bytes)
 
 **Classes:**
 - `class _World` - *T3 world with forced geometry, optionally hiding goal fields.*
@@ -1788,6 +1788,7 @@
   - Method `.test_distinct_worlds_same_key_do_not_collide()`
   - Method `.test_builtin_fingerprint_stable_across_reset()`
   - Method `.test_blind_fingerprint_ablation_restores_collision()`
+  - Method `.test_legacy_row_gains_fingerprint_and_stops_colliding()`
 
 **Functions:**
 - `def _run(store, target, obstacles, hidden, max_steps)`

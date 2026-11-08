@@ -3815,4 +3815,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python scripts/update_knowledge_base.py --workspace .../projects/brain` -> map updated; `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 101**: unittest 452 OK; aikit 5/5; custom-world collision fixed (cold B 6/1.0, stored B geometry); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 101 - backfill layout fingerprints onto legacy rows
+
+- **Baseline** (commit 84d1091, cycle 100; same probe worlds and store):
+  - canonical gate: 452 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - legacy-row probe (simulate a pre-ADR-094 row with `save_layout(..., fingerprint=None)`): the row's fingerprint is NULL; warm A, warm B then hidden cold B still produced 200 steps/0.0, because `_remember_layout` returned early for the complete legacy row and never wrote a fingerprint.
+  - `_remember_layout` therefore left the cycle-100 collision guard inert on every store created before the upgrade.
+- **Gap**: an upgraded store never gains a fingerprint, so distinct worlds sharing `(task, seed)` still collide there. The guard must activate on the first complete run over a legacy row.
+- **Target delta**: legacy row gains a fingerprint on the first warm run; warm A / warm B / cold B recovers B at 6 steps/1.0; built-in pins unchanged.
+- **Falsifier**: the legacy row's fingerprint stays NULL; cold B stays 200/0; any built-in cold-start, standing or fixed-rig pin moves.
+- **Change**: `agent.py` `_remember_layout` treats a complete row with a NULL stored fingerprint (and a world fingerprint available) as a backfill target and rewrites the current complete state plus fingerprint with `replace=True`; stores without the accessor and worlds without a fingerprint keep the old logic. `tests/test_layout_fingerprint.py` adds the legacy-row test. No new dependencies; no built-in behavior or policy change. ADR-095.
+- **After** (same probe worlds and store):
+  - legacy row backfilled: fingerprint non-NULL after the first warm run; warm A 13/1.0, warm B 6/1.0, cold B 6/1.0.
+  - built-in warm-cold still 16/8/13/6 with 3/1/1/1; standing 466/240/217; fixed-rig and `policy_digest` unchanged.
+- **Ablation / sensitivity**:
+  - removing the backfill (the pre-change behavior measured above) restores the 200/0.0 collision on the legacy store; the same test fails. The backfill is the load-bearing cut.
+  - the blind-fingerprint ablation from cycle 100 still restores the collision on a fresh store, so both the source channel and the upgrade path are pinned.
+- **Verdict**: recovery-correctness completion. The measured delta is legacy-store cold recovery 200/0.0 -> 6/1.0 after the first warm run backfills the fingerprint. No emergence claim.
+- **Gates**: unittest 453/453 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_layout_fingerprint.TestLayoutFingerprint.test_legacy_row_gains_fingerprint_and_stops_colliding -v` -> before: FAIL (fingerprint None), after: OK.
+  - `python -m unittest tests.test_layout_fingerprint -v` -> 4 OK.
+  - `python -m unittest discover -s tests -t .` -> 453 OK.
+  - `python -m evals.coldstart --capture` -> 16/8/13/6 unchanged.
+- **Pinned regression baselines for cycle 102**: unittest 453 OK; aikit 5/5; legacy row backfilled (cold B 6/1.0); fresh-world collision fixed; blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
+
+
 

@@ -8,6 +8,7 @@ stale complete row, and a mismatched row is never recalled. The ablation
 (blind fingerprint) restores the collision.
 """
 
+import json
 import os
 import tempfile
 import unittest
@@ -85,6 +86,31 @@ class TestLayoutFingerprint(unittest.TestCase):
                     cold = _run(store, (3, 3), [(3, 2)], hidden=True)
                 self.assertEqual(len(cold), 200)
                 self.assertEqual(sum(r["reward"] for r in cold), 0.0)
+            finally:
+                store.close()
+
+    def test_legacy_row_gains_fingerprint_and_stops_colliding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "mem.db")
+            store = MemoryStore(path)
+            try:
+                legacy = {"target": [6, 7], "obstacles": [[6, 1]],
+                          "task": "T3_navigate", "x": 0, "y": 0}
+                store.save_layout("T3_navigate", 0, json.dumps(legacy))
+                self.assertIsNone(
+                    store.layout_fingerprint("T3_navigate", 0))
+            finally:
+                store.close()
+            store = MemoryStore(path)
+            try:
+                first = _run(store, (6, 7), [(6, 1)], hidden=False)
+                self.assertEqual(len(first), 13)
+                self.assertIsNotNone(
+                    store.layout_fingerprint("T3_navigate", 0))
+                _run(store, (3, 3), [(3, 2)], hidden=False)
+                cold = _run(store, (3, 3), [(3, 2)], hidden=True)
+                self.assertEqual(len(cold), 6)
+                self.assertEqual(sum(r["reward"] for r in cold), 1.0)
             finally:
                 store.close()
 
