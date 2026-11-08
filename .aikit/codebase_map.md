@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `146`
-- **Total Classes**: `152`
-- **Total Top-Level Functions**: `471`
-- **Total Class Methods**: `711`
-- **Total Source Lines**: `21116`
+- **Total Python Modules**: `148`
+- **Total Classes**: `154`
+- **Total Top-Level Functions**: `480`
+- **Total Class Methods**: `721`
+- **Total Source Lines**: `21401`
 
 ---
 
@@ -807,6 +807,23 @@
 - `def run_battery(cases, trust_window, noop_guard, backend_name, max_steps, skip_after_distrust)` - *Measure every case in one temporary directory.*
 - `def _parse_case(text)`
 - `def main()`
+
+---
+
+### [`evals/vector_audit.py`](evals/vector_audit.py)
+> *Audit a telemetry vector matrix for degenerate (non-independent) columns.*
+
+**Size**: `110` lines (`3847` bytes)
+
+**Functions:**
+- `def _width(rows)`
+- `def _label(index)`
+- `def column_report(rows)` - *Return the constant columns, row/column counts, and their labels.*
+- `def duplicate_pairs(rows)` - *Return sorted label pairs whose columns are byte-identical.*
+- `def distinct_columns(rows)` - *Return the number of distinct non-constant column value sequences.*
+- `def degenerate_columns(rows)` - *Return labels of columns that repeat another column's values.*
+- `def audit_rows(rows)` - *Report the independence of one vector matrix in a single mapping.*
+- `def audit_vectors(vectors)` - *Audit ``(M, P, S, hub)`` tuples directly, flattening them first.*
 
 ---
 
@@ -2679,6 +2696,30 @@
 
 **Functions:**
 - `def _steps(task, seed, max_steps)`
+
+---
+
+### [`tests/test_vector_audit.py`](tests/test_vector_audit.py)
+> *Vector independence: the M/P/S/hub blocks are not independent readouts.*
+
+**Size**: `175` lines (`6829` bytes)
+
+**Classes:**
+- `class TestVectorAudit`
+  - Method `.test_block_labels_match_the_agent_layout()`
+  - Method `.test_column_report_names_constants()`
+  - Method `.test_duplicate_pairs_are_named()`
+  - Method `.test_distinct_nonconstant_columns_collapse_to_zero()`
+  - Method `.test_independent_blocks_report_no_degeneracy()`
+  - Method `.test_identical_column_content_is_detected_not_assumed()`
+  - Method `.test_empty_rows_degrade_without_raising()`
+- `class TestLiveVectorDegeneracy` - *Pin the real substrate's vector structure, measured not assumed.*
+  - Method `._rows(agent, task, seed)`
+  - Method `.test_default_agent_store_path_has_three_constant_columns()`
+  - Method `.test_full_wiring_collapses_four_counters_onto_one()`
+
+**Functions:**
+- `def _rows(vectors)` - *Expand (M, P, S, hub) tuples into flat 9-column rows.*
 
 ---
 

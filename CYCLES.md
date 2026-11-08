@@ -4019,6 +4019,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 109**: unittest 488 OK; aikit 5/5; `SelfModel.size()` O(1) and default Agent makes 0 `history()` calls; recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1 and `store_reads` 1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 109 - audit the telemetry vector matrix for degenerate columns
+
+- **Baseline** (commit 3aaeb4c; `T1_forage:71`, 16 steps):
+  - canonical gate: 488 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - default `Agent(memory_store=...)`: constant columns `[P0, P1, S0]`; duplicate pairs `M0==M1==S1` and `P0==P1==S0`; the only varying content is the step counter.
+  - full wiring (store + tracker + persistent self-model): no constants, but `M0==M1==P0==S1`, leaving 6 distinct columns of 9.
+- **Gap**: the M/P/S block is presented as three module readouts (memory, planner, self-model). One save, one record and one mark happen per loop step, so those counters are the step index by construction; the matrix cannot express memory, planner and self-model activity as three independent signals. Cross-module numbers computed from it (including the `syn` this repo reports) are therefore not evidence of module coupling, and nothing in the tree said so.
+- **Target delta**: the degeneracy becomes a measured, machine-readable fact with a pinned live value; no vector, estimate or behavior change.
+- **Falsifier**: any pinned value moves; the audit reports no duplicate pairs on the real matrix; or a "distinct" count above the true number of independent columns.
+- **Change**: `evals/vector_audit.py` adds `BLOCK_LABELS`, `column_report`, `duplicate_pairs`, `distinct_columns`, `degenerate_columns`, `audit_rows`, `audit_vectors` and `MIN_DISTINCT = 3`; `tests/test_vector_audit.py` adds 7 pure tests and 2 live-substrate pins (default-path constants/pairs, full-wiring `M0==M1==P0==S1`). ADR-103. No README section: README.md is at its 32,500-char cap and this is an evidence addition, not a caller contract.
+- **After** (same matrix):
+  - default path: `constant [P0, P1, S0]`, `distinct` 4 including hub, `sufficient: true`.
+  - full wiring: `duplicates [(M0,M1), (M0,P0), (M0,S1), (M1,P0), (M1,S1), (P0,S1)]`, `distinct` 6 of 9.
+  - fixed-rig `syn` 0.054115320909768228, `syn_n` 0.10814360275702875, `phi` 0.0, standing 89/11.0, T1 1581, holdout 738 and `policy_digest` unchanged.
+- **Ablation**: without `evals/vector_audit.py` the matrix is read as three module blocks; with it the same rows report the duplicate pairs, and deleting the module restores the unfalsifiable reading. The audit reports the rows it is given, so the property dies with the module and returns with it.
+- **Verdict**: telemetry-honesty extension on the substrate's own instrumentation. The measured delta is the disclosure that 3 of 9 components are one counter; no behavior, estimate or pin moves. Boundary recorded: the audit makes the degeneracy visible, it does not fix it; making the counters independent would change the vectors and therefore the pinned `syn`, which is a separate decision needing its own re-baseline.
+- **Gates**: unittest 497/497 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_vector_audit` -> before: ModuleNotFoundError (`evals.vector_audit`); after: 9 OK.
+  - `python ..\..\scratch\probe_full_wiring.py` -> default path 0 distinct non-constant columns before hub; full wiring `M0==M1==P0==S1`.
+  - `python ..\..\scratch\ablate_109.py` -> pins hold; audit duplicate pairs; ablation recorded.
+  - `python -m unittest discover -s tests -t .` -> 497 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 110**: unittest 497 OK; aikit 5/5; `vector_audit` default path `constant [P0,P1,S0]` and `M0==M1==S1`; full wiring `M0==M1==P0==S1` and `distinct` 6; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
