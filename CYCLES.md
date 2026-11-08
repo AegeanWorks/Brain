@@ -3864,6 +3864,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 455 OK.
 - **Pinned regression baselines for cycle 103**: unittest 455 OK; aikit 5/5; synergy 4000 rows 0.0123 s with `_discretize` calls 7; legacy layout row backfilled (cold B 6/1.0); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 103 - declare the layouts fingerprint column in the base schema
+
+- **Baseline** (commit 7249d3e, cycle 102):
+  - canonical gate: 455 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - declared schema: `_SCHEMA_LAYOUT` has no `fingerprint` column; a fresh store therefore runs `_ensure_layout_fingerprint` -> `ALTER TABLE` on every open and `_ensure_layout_fingerprint` returns `None`.
+  - probe: `tests/test_store_schema.py` -> 3 failures on the intact tree (declaration missing the column, fresh store reports no boolean, legacy assertion path unreachable).
+- **Gap**: the declared table shape and the live/migrated table shape disagree. A fresh database pays a hidden migration on every open, and anyone reading the schema (developer or agent) is misled about the store it describes.
+- **Target delta**: declaration includes `fingerprint`; a fresh store creates it directly and reports `_ensure_layout_fingerprint(...) is False`; a legacy file is migrated once, keeps its row, and reports no further migration.
+- **Falsifier**: a fresh store still alters the schema; the legacy row is lost; any existing store/cold-start/standing pin moves.
+- **Change**: `memory/store.py` `_SCHEMA_LAYOUT` gains `fingerprint TEXT`; `_ensure_layout_fingerprint` returns `True` on migration and `False` when the column is already declared; `tests/test_store_schema.py` adds the declaration, fresh-store and legacy-migration pins. No API, format or behavior change. ADR-097.
+- **After** (same store paths):
+  - fresh store: `fingerprint` column present from `CREATE TABLE`; `_ensure_layout_fingerprint` returns `False` (no `ALTER`).
+  - legacy store (old five-column table plus one row): opens, column added once, `_ensure_layout_fingerprint` returns `False` afterwards, row content preserved, `layout_fingerprint` initially `None`.
+  - cold-start 16/8/13/6 with 3/1/1/1; standing 466/240/217; `policy_digest` unchanged.
+- **Ablation / sensitivity**:
+  - restoring the old declaration (the measured baseline above) makes all three schema tests fail and reintroduces the hidden `ALTER` on every fresh open; the migration return value is the load-bearing cut.
+  - the legacy fixture proves the migration path still works, so the fix removes the redundant migration without removing the upgrade.
+- **Verdict**: schema/DX alignment with a deterministic before/after. No behavior or emergence claim.
+- **Gates**: unittest 458/458 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_store_schema -v` -> before: 3 failures; after: 3 OK.
+  - `python -m unittest tests.test_store_schema tests.test_store_recovery tests.test_memory tests.test_layout_fingerprint -v` -> 14 OK.
+  - `python -m unittest discover -s tests -t .` -> 458 OK.
+  - `python -m evals.coldstart --capture` -> 16/8/13/6 unchanged.
+- **Pinned regression baselines for cycle 104**: unittest 458 OK; aikit 5/5; fresh store no migration; legacy store migrated once with row preserved; synergy 4000 rows 0.0123 s with `_discretize` calls 7; legacy layout row backfilled (cold B 6/1.0); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
+
+
 
 
 

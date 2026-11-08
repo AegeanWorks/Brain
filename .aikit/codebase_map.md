@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `138`
-- **Total Classes**: `144`
-- **Total Top-Level Functions**: `456`
-- **Total Class Methods**: `673`
-- **Total Source Lines**: `19776`
+- **Total Python Modules**: `139`
+- **Total Classes**: `145`
+- **Total Top-Level Functions**: `457`
+- **Total Class Methods**: `676`
+- **Total Source Lines**: `19850`
 
 ---
 
@@ -842,7 +842,7 @@
 ### [`memory/store.py`](memory/store.py)
 > *SQLite-backed store with FTS5 index and LIKE fallback.*
 
-**Size**: `301` lines (`11872` bytes)
+**Size**: `310` lines (`12184` bytes)
 
 **Classes:**
 - `class MemoryStore` - *Persisted key/content map with full-text lookup.*
@@ -2388,6 +2388,22 @@
 - `class TestStoreRecovery`
   - Method `.test_corrupt_file_quarantined_and_store_functional()`
   - Method `.test_healthy_file_never_quarantined()`
+
+---
+
+### [`tests/test_store_schema.py`](tests/test_store_schema.py)
+> *Layouts schema: the declared shape matches the migrated shape.*
+
+**Size**: `65` lines (`2475` bytes)
+
+**Classes:**
+- `class TestLayoutSchema`
+  - Method `.test_declared_schema_includes_fingerprint()`
+  - Method `.test_fresh_store_needs_no_migration()`
+  - Method `.test_legacy_store_is_migrated_and_row_survives()`
+
+**Functions:**
+- `def _layout_columns(conn)`
 
 ---
 

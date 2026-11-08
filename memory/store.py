@@ -35,6 +35,7 @@ _SCHEMA_LAYOUT = (
     "seed INTEGER NOT NULL, "
     "content TEXT NOT NULL, "
     "ts REAL NOT NULL, "
+    "fingerprint TEXT, "
     "PRIMARY KEY(task, seed))"
 )
 
@@ -103,11 +104,19 @@ class MemoryStore:
             raise
 
     def _ensure_layout_fingerprint(self, conn):
-        """Add the layouts fingerprint column to an older store in place."""
+        """Add the layouts fingerprint column to an older store in place.
+
+        Returns True when this call altered the schema, False when the
+        column was already declared. A fresh store creates the column
+        directly from ``_SCHEMA_LAYOUT``; only pre-ADR-094 databases are
+        migrated.
+        """
         columns = [row[1] for row in
                    conn.execute("PRAGMA table_info(layouts)").fetchall()]
         if "fingerprint" not in columns:
             conn.execute("ALTER TABLE layouts ADD COLUMN fingerprint TEXT")
+            return True
+        return False
 
     def _quarantine_corrupt(self, reason):
         """Move the unreadable database file (plus WAL sidecars) aside."""
