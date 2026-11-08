@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `137`
-- **Total Classes**: `143`
+- **Total Python Modules**: `138`
+- **Total Classes**: `144`
 - **Total Top-Level Functions**: `456`
-- **Total Class Methods**: `671`
-- **Total Source Lines**: `19734`
+- **Total Class Methods**: `673`
+- **Total Source Lines**: `19776`
 
 ---
 
@@ -518,7 +518,7 @@
 ### [`evals/estimators.py`](evals/estimators.py)
 > *Stdlib-only estimators for Brain evals.*
 
-**Size**: `182` lines (`5856` bytes)
+**Size**: `183` lines (`5878` bytes)
 
 **Functions:**
 - `def _discretize(values, bins)`
@@ -2405,6 +2405,18 @@
   - Method `.test_exposes_zero_counters_after_clean_run()`
   - Method `.test_persistent_ok_reflects_reward()`
   - Method `.test_faulty_store_counted_and_run_continues()`
+
+---
+
+### [`tests/test_synergy_cost.py`](tests/test_synergy_cost.py)
+> *Synergy estimator cost: the c1 discretization is computed once.*
+
+**Size**: `41` lines (`1436` bytes)
+
+**Classes:**
+- `class TestSynergyCost`
+  - Method `.test_discretize_is_not_per_row()`
+  - Method `.test_synergy_values_preserved()`
 
 ---
 

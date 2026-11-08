@@ -3840,5 +3840,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.coldstart --capture` -> 16/8/13/6 unchanged.
 - **Pinned regression baselines for cycle 102**: unittest 453 OK; aikit 5/5; legacy row backfilled (cold B 6/1.0); fresh-world collision fixed; blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 102 - hoist the per-row discretization in the synergy estimator
+
+- **Baseline** (commit c66b325, cycle 101; same synthetic input):
+  - canonical gate: 453 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals.estimators.synergy` on 4000 rows: 8.056 s (`syn` 0.000005, `syn_n` 0.739649); `_discretize` call count on 50 rows is 56.
+- **Gap**: the joint code is built with `_discretize(c1, 8)[i]` inside a per-row comprehension, so the second column is discretized once per row — quadratic in the trace length. `recompute` runs this per captured log, so evidence/ablation cost scales badly.
+- **Target delta**: hoist the column discretization; outputs byte-identical; `_discretize` calls 56 -> 7 on 50 rows; 4000-row time 8.056 s -> well under a second.
+- **Falsifier**: any estimator reference or fixed-rig pin moves; the call count stays `n + 6`; or the returned `syn`/`syn_n` differ.
+- **Change**: `evals/estimators.py` `synergy` computes `c1_bins = _discretize(c1, 8)` once before the comprehension; `tests/test_synergy_cost.py` counts calls under `mock.patch` and checks value equality plus the XOR synergy. No new dependencies; no behavior or policy change. ADR-096.
+- **After** (same input):
+  - 4000 rows: 0.0123 s (about 655x faster) with `syn` 0.000005 and `syn_n` 0.739649 unchanged; `_discretize` calls 7 on 50 rows.
+  - estimator references and fixed-rig integration pins unchanged; standing 466/240/217; `policy_digest` unchanged.
+- **Ablation / sensitivity**:
+  - restoring the inline expression (the pre-change code measured above) reproduces the 56 calls and the 8.056 s cost; the call-count test fails. The hoist is the load-bearing cut.
+  - values are unchanged by construction (same function and input), confirmed by comparing patched and unpatched results and by the existing XOR/independent-target assertions.
+- **Verdict**: harness performance win with identical measurement output. No behavior or emergence claim.
+- **Gates**: unittest 455/455 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_synergy_cost -v` -> before: 1 failure (56 > 10); after: 2 OK.
+  - `python -m unittest tests.test_synergy_cost tests.test_estimators tests.test_integration_differentials -v` -> 12 OK.
+  - timing probe n=4000 -> 8.056 s before, 0.0123 s after, identical syn/syn_n.
+  - `python -m unittest discover -s tests -t .` -> 455 OK.
+- **Pinned regression baselines for cycle 103**: unittest 455 OK; aikit 5/5; synergy 4000 rows 0.0123 s with `_discretize` calls 7; legacy layout row backfilled (cold B 6/1.0); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
+
+
 
 

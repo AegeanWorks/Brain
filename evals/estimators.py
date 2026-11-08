@@ -111,7 +111,8 @@ def synergy(trace, target):
         return (0.0, 0.0)
     c0 = [float(r[0]) for r in trace]
     c1 = [float(r[1]) for r in trace] if len(trace[0]) > 1 else [0.0] * len(trace)
-    tj = [float(c0[i]) * 8.0 + float(_discretize(c1, 8)[i]) for i in range(len(c0))]
+    c1_bins = _discretize(c1, 8)
+    tj = [float(c0[i]) * 8.0 + float(c1_bins[i]) for i in range(len(c0))]
     i1 = mutual_info_discrete(c0, list(target))
     i2 = mutual_info_discrete(c1, list(target))
     ij = mutual_info_discrete(tj, list(target), bins=64)
