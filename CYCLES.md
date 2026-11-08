@@ -3916,6 +3916,35 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.coldstart --capture` -> 16/8/13/6 unchanged.
 - **Pinned regression baselines for cycle 105**: unittest 471 OK; aikit 5/5; registry 21 machines with 3/3 live checks ok; fresh store no migration; legacy store migrated once with row preserved; synergy 4000 rows 0.0123 s with `_discretize` calls 7; legacy layout row backfilled (cold B 6/1.0); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
 
+## Cycle 105 - the synergy estimate carries its column scope
+
+- **Baseline** (commit 4b3a6ce, then a35a409; same probe traces):
+  - canonical gate: 471 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `synergy` reads `trace[0]` and `trace[1]` only: 2-column and 3-column calls on the same leading pair both return 0.11181316771575098.
+  - cold-start T3:15: `syn` 0.0 while column 0 has 1 unique value and column 7 carries MI 0.271189; the battery prints `syn 0.0` with no scope qualifier.
+  - `hub_zero_rows` reaches `syn` 0.0 because hub[2] is the target column; swapping hub x/y with the reward kept leaves `syn` at 0.05411532090976823, identical to baseline.
+- **Gap**: the reported number is unfalsifiable at the read site. `0.0` conflates "these two columns carry nothing about the target" with "the criterion cannot see the signal", so the integration and emergence readouts can neither claim nor refute integration outside columns 0-1. `lesion_p`/`lesion_s` "change nothing" follows from the same blindness rather than from a measured invariant.
+- **Target delta**: every `syn` is accompanied by a machine-checkable statement of what it measured and whether that scope could decide; no estimate changes; no pinned value moves.
+- **Falsifier**: any pinned `syn`/`syn_n`/`phi`/step/reward/`policy_digest` moves; a trailing column changes the estimate; a constant scope column is reported `sufficient`.
+- **Killed candidates** (by measurement, before writing code):
+  - Joint code over all 8 scope columns: 8 bins^8 at n=15 puts nearly every row in its own cell and inflates MI instead of measuring it.
+  - Pairwise block interaction (M/P/S/hub) versus a permutation null: 0 of 6 pairs beat the null at n=15 (best obs -0.038304 vs null +0.031462), and 0 of 5 seeds beat it at n in 6..14. Not reproducible at these sample sizes, so not shipped as a criterion.
+- **Change**: `evals/estimators.py` adds `SYNERGY_COLUMNS = (0, 1)` and `synergy_scope(trace, target)` returning `columns`, `ignored_columns`, `n_rows`, `n_columns`, `constant_columns`, `sufficient`, `reason`; `evals/recompute.py` adds `syn_scope` beside `syn`; `tests/test_synergy_scope.py` adds 7 tests. `synergy` itself is untouched. ADR-099.
+- **After** (same traces):
+  - fixed rig: `syn` 0.054115320909768228 and `syn_n` 0.10814360275702875 bit-identical to their pins; `syn_scope` = `{columns: [0,1], ignored_columns: [2..7], n_rows: 30, n_columns: 8, constant_columns: [], sufficient: true, reason: null}`.
+  - all four cold-start cases: `sufficient: false`, `reason: constant-scope-column`, `constant_columns: [0]`; the same 0.0 is now labelled insufficient instead of being read as absence.
+- **Ablation** (same cold log, two readers): reading `syn == 0.0` as an integration verdict yields "no integration"; reading the shipped `syn_scope.sufficient` yields "insufficient: constant-scope-column". The false-negative property dies with the scope field and returns with it. The estimate is unchanged either way, so the field is the only difference.
+- **Verdict**: telemetry-honesty extension. The measured delta is a false "no integration" read replaced by an explicit insufficiency on the exact traces where the criterion is blind; no behavior, estimate, standing, cold-start or `policy_digest` change. Boundary recorded: `syn` stays a two-column statistic, so `sufficient: true` with 0.0 still only means those two columns carry nothing, and a wider criterion needs samples these traces do not supply (`phi` remains the cross-column readout).
+- **Gates**: unittest 471/471 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_synergy_scope -v` -> before: ImportError (`SYNERGY_COLUMNS` absent); after: 6 OK, then 7 OK with the recompute case.
+  - `python -m unittest tests.test_synergy_scope tests.test_estimators tests.test_recompute tests.test_wiring tests.test_integration_differentials tests.test_synergy_cost` -> 23 OK.
+  - `python ..\..\scratch\ablate_103.py` -> pinned `syn`/`syn_n` identical; cold scope `constant-scope-column`; ablation old-read "no integration" vs scoped "insufficient".
+  - `python -m unittest discover -s tests -t .` -> 471 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 106**: unittest 471 OK; aikit 5/5; `syn_scope` present on every `recompute` result and JSON-serialisable; fixed-rig `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0 with `sufficient: true`; cold-start cases `sufficient: false` / `constant-scope-column`; registry 21 machines 3/3 ok; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; policy decbfce3...; all other cycle-104 pins unchanged.
+
+
 
 
 

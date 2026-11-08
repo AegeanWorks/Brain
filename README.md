@@ -15,130 +15,37 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m unittest discover -s tests -t .
   ```
-- **Cold-Start Recovery Battery**:
-  ```bash
-  python -m evals.coldstart --capture
-  ```
-- **Model-Trust Battery**:
-  ```bash
-  python -m evals.trust
-  ```
-- **Progress-Guard Battery**:
-  ```bash
-  python -m evals.progress_guard
-  ```
-- **Rule-Confidence Battery**:
-  ```bash
-  python -m evals.rule_confidence
-  ```
-- **Telemetry Lock Battery**:
-  ```bash
-  python -m evals.telemetry_lock
-  ```
-- **Cycle-Escape Battery**:
-  ```bash
-  python -m evals.escape
-  ```
-- **Manifest-Binding Battery**:
-  ```bash
-  python -m evals.manifest_binding
-  ```
-- **Dead-Pool Guard Battery**:
-  ```bash
-  python -m evals.dead_pool
-  ```
-- **Chain-Anchor Battery**:
-  ```bash
-  python -m evals.chain_anchor
-  ```
-- **Anchor-Journal Battery**:
-  ```bash
-  python -m evals.anchor_journal
-  ```
-- **Keyed Telemetry Battery**:
-  ```bash
-  python -m evals.telemetry_mac
-  ```
-- **Prompt-Budget Battery**:
-  ```bash
-  python -m evals.prompt_budget
-  ```
-- **Merkle-Anchor Battery**:
-  ```bash
-  python -m evals.merkle_anchor
-  ```
-- **Merkle-Journal Battery**:
-  ```bash
-  python -m evals.merkle_journal
-  ```
-- **Merkle-Compaction Battery**:
-  ```bash
-  python -m evals.merkle_compaction
-  ```
-- **Execution-Budget Battery**:
-  ```bash
-  python -m evals.execution_budget
-  ```
-- **Resume-Identity Battery**:
-  ```bash
-  python -m evals.resume_identity
-  ```
-- **Workspace-Binding Battery**:
-  ```bash
-  python -m evals.workspace_binding
-  ```
-- **Snapshot-Diff Battery**:
-  ```bash
-  python -m evals.snapshot_diff
-  ```
-- **Snapshot-Digest Battery**:
-  ```bash
-  python -m evals.snapshot_digest
-  ```
-- **Calibration Battery**:
-  ```bash
-  python -m evals.calibration
-  ```
-- **Calibration-Store Battery**:
-  ```bash
-  python -m evals.calibration_store
-  ```
-- **Calibration-Bridge Battery**:
-  ```bash
-  python -m evals.calibration_bridge
-  ```
-- **Calibration-Retention Battery**:
-  ```bash
-  python -m evals.calibration_retention
-  ```
-- **Calibration-Autoretention Battery**:
-  ```bash
-  python -m evals.calibration_autoretention
-  ```
-- **Claim-Verdict Battery**:
-  ```bash
-  python -m evals.claims
-  ```
-- **Claim-Store Battery**:
-  ```bash
-  python -m evals.claims_store
-  ```
-- **Claim-Evidence Battery**:
-  ```bash
-  python -m evals.claim_evidence
-  ```
-- **Claim-Ref Battery**:
-  ```bash
-  python -m evals.claim_ref_verify
-  ```
-- **Episode-Header Battery**:
-  ```bash
-  python -m evals.episode_header
-  ```
-- **Header-Reader Battery**:
-  ```bash
-  python -m evals.header_reader
-  ```
+- **Cold-Start Recovery Battery**: `python -m evals.coldstart --capture`
+- **Model-Trust Battery**: `python -m evals.trust`
+- **Progress-Guard Battery**: `python -m evals.progress_guard`
+- **Rule-Confidence Battery**: `python -m evals.rule_confidence`
+- **Telemetry Lock Battery**: `python -m evals.telemetry_lock`
+- **Cycle-Escape Battery**: `python -m evals.escape`
+- **Manifest-Binding Battery**: `python -m evals.manifest_binding`
+- **Dead-Pool Guard Battery**: `python -m evals.dead_pool`
+- **Chain-Anchor Battery**: `python -m evals.chain_anchor`
+- **Anchor-Journal Battery**: `python -m evals.anchor_journal`
+- **Keyed Telemetry Battery**: `python -m evals.telemetry_mac`
+- **Prompt-Budget Battery**: `python -m evals.prompt_budget`
+- **Merkle-Anchor Battery**: `python -m evals.merkle_anchor`
+- **Merkle-Journal Battery**: `python -m evals.merkle_journal`
+- **Merkle-Compaction Battery**: `python -m evals.merkle_compaction`
+- **Execution-Budget Battery**: `python -m evals.execution_budget`
+- **Resume-Identity Battery**: `python -m evals.resume_identity`
+- **Workspace-Binding Battery**: `python -m evals.workspace_binding`
+- **Snapshot-Diff Battery**: `python -m evals.snapshot_diff`
+- **Snapshot-Digest Battery**: `python -m evals.snapshot_digest`
+- **Calibration Battery**: `python -m evals.calibration`
+- **Calibration-Store Battery**: `python -m evals.calibration_store`
+- **Calibration-Bridge Battery**: `python -m evals.calibration_bridge`
+- **Calibration-Retention Battery**: `python -m evals.calibration_retention`
+- **Calibration-Autoretention Battery**: `python -m evals.calibration_autoretention`
+- **Claim-Verdict Battery**: `python -m evals.claims`
+- **Claim-Store Battery**: `python -m evals.claims_store`
+- **Claim-Evidence Battery**: `python -m evals.claim_evidence`
+- **Claim-Ref Battery**: `python -m evals.claim_ref_verify`
+- **Episode-Header Battery**: `python -m evals.episode_header`
+- **Header-Reader Battery**: `python -m evals.header_reader`
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -301,6 +208,14 @@ ablation. Single-blocker and open-field paths keep their existing
 rules. `python -m evals.escape` shows both recovered three-blocker
 layouts, the escape-off and memory-blind controls, and the unchanged
 first prompt hash.
+
+## 📏 Synergy Column Scope
+
+`synergy` reads trace columns 0 and 1 only, so `syn` 0.0 cannot separate
+"nothing there" from "signal outside them". `SYNERGY_COLUMNS` and
+`synergy_scope(...)` expose the pair, ignored/constant columns and
+sufficiency; `recompute` returns `syn_scope`. Values are unchanged, and
+cold-start cases read `constant-scope-column` instead of a bare `0.0`.
 
 ## 🧷 Terminal Telemetry Anchor
 
@@ -490,9 +405,8 @@ skill, five reliability bins and small-sample / over-confidence
 warnings. `outcome=None` is ignored and reflected in coverage.
 `SelfModel.calibration()` scores the confidence/outcome pairs the
 persistent self-model already records, without changing actions.
-`python -m evals.calibration` shows perfect (Brier 0, skill 1),
-calibrated (0.166), inverted (1.0, skill −3), small/ignored warnings
-and the real 13-step/1.0 T3:15 readout.
+`python -m evals.calibration` shows perfect, calibrated, inverted
+and small-sample readouts.
 
 `calibration_store.py` makes forecasts durable across runs.
 `append_forecasts(forecasts, path, at=...)` validates each `{id,
@@ -509,11 +423,8 @@ same key, so a keyed journal can be rotated without dropping its MACs.
 An unkeyed append or rotation over a keyed journal is refused, so a
 mixed unauthenticated journal cannot be created by accident.
 `python -m evals.calibration_store` shows the in-memory
-file-before/after ablation, a 6-forecast first run (Brier 0.185, skill
-0.26, descriptive warning), two runs aggregating to 10 resolved (Brier
-0.129, skill 0.484), duplicate refusal, tamper/corrupt findings,
-missing, stale-lock steal, fresh-lock timeout, and keyed correct,
-wrong, missing-record-MAC and keyed-rotation modes. Keep the journal
+file-before/after ablation, duplicate refusal, tamper/corrupt
+findings, lock modes and the keyed modes. Keep the journal
 under `.aikit/` or outside the source tree; it is local evidence, not
 committed.
 
@@ -524,21 +435,19 @@ after the verdict it appends only that run's confidence/outcome pairs,
 with ids prefixed by the run header digest (first 12 hex).
 `calibration_hmac_key=bytes` appends keyed records through the bridge; it
 requires `calibration_path` and is validated before the run. A default
-run keeps the 13 T3:15 forecasts in memory and writes no file; the
-logged run persists 13 with the same Brier 0.230769; a second run on the
-same self-model appends only its 6 new forecasts (19 total, two
-prefixes); the keyed run persists 13 keyed records that load only with
-the key. Actions and rewards are unchanged. A missing self-model or a
-corrupt journal raises; the verdict is already written when the journal
-append fails. `python -m evals.calibration_bridge` shows
-default/logged/two-runs/keyed/missing-self-model/corrupt-store/actions.
+run keeps the forecasts in memory and writes no file; the logged run
+persists them, a second run appends only its new pairs, and the keyed
+run writes records that load only with the key. Actions and rewards are
+unchanged. A missing self-model or a corrupt journal raises; the verdict
+is already written when the journal append fails. `python -m
+evals.calibration_bridge` shows every mode.
 
 `rotate_forecast_journal(path, keep_recent=100, archive_path=None)`
 bounds the live journal. Older records move to `.archive`, the newest N
 stay live, the pre-rotation journal is copied to `.bak`, and a
 `.rotation` sidecar records source/archive counts and last checksums.
 `load_all_forecasts` combines archive+live with disjoint ids and the
-original Brier/skill; a short, missing or already-rotated journal is a
+original scores; a short, missing or already-rotated journal is a
 no-op. Id conflicts and corrupt files are refused; rotation holds the
 store's writer lock. `python -m evals.calibration_retention` shows 19
 records rotating to 10 live/9 archived with identical Brier 0.181579 /
