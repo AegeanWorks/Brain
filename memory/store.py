@@ -90,6 +90,7 @@ class MemoryStore:
             conn.execute(_SCHEMA_LAYOUT)
             for stmt in _TRIGGERS:
                 conn.execute(stmt)
+            self._ensure_layout_fingerprint(conn)
             checked = conn.execute("PRAGMA quick_check").fetchall()
             if any(row[0] != "ok" for row in checked):
                 raise sqlite3.DatabaseError("quick_check failed: %r" % (checked[:3],))
@@ -100,6 +101,13 @@ class MemoryStore:
             except sqlite3.Error as close_exc:
                 self._recovery_notes.append("close after failure: %s" % close_exc)
             raise
+
+    def _ensure_layout_fingerprint(self, conn):
+        """Add the layouts fingerprint column to an older store in place."""
+        columns = [row[1] for row in
+                   conn.execute("PRAGMA table_info(layouts)").fetchall()]
+        if "fingerprint" not in columns:
+            conn.execute("ALTER TABLE layouts ADD COLUMN fingerprint TEXT")
 
     def _quarantine_corrupt(self, reason):
         """Move the unreadable database file (plus WAL sidecars) aside."""
@@ -154,7 +162,7 @@ class MemoryStore:
         ).fetchone()
         return int(row[0])
 
-    def save_layout(self, task, seed, content, replace=False):
+    def save_layout(self, task, seed, content, replace=False, fingerprint=None):
         """Persist one initial task state; first write wins by default.
 
         Returns True when this call inserted or replaced a row and
@@ -162,7 +170,9 @@ class MemoryStore:
         is reserved for a complete layout replacing an incomplete one;
         later routine writes never overwrite the recovered initial
         state, so a cold restart can re-read the layout after the
-        episode itself has advanced.
+        episode itself has advanced. A known ``fingerprint`` that differs
+        from a known stored fingerprint also replaces the row: the task
+        geometry changed, so the old layout belongs to another world.
         """
         if not isinstance(task, str) or not task:
             raise ValueError("Why: task must be a non-empty string. Fix: pass task=str.")
@@ -170,23 +180,60 @@ class MemoryStore:
             raise ValueError("Why: seed must be an int. Fix: pass seed=int.")
         if not isinstance(content, str):
             raise ValueError("Why: content must be a string. Fix: pass content=str.")
+        if fingerprint is not None and not isinstance(fingerprint, str):
+            raise ValueError(
+                "Why: fingerprint must be a string or None. "
+                "Fix: pass the world's layout fingerprint.")
+        row = self._conn.execute(
+            "SELECT fingerprint FROM layouts WHERE task=? AND seed=?",
+            (task, int(seed)),
+        ).fetchone()
+        if row is not None and not replace:
+            stored = row[0]
+            if (fingerprint is not None and stored is not None
+                    and stored != fingerprint):
+                replace = True
         if replace:
             sql = (
-                "INSERT INTO layouts(task, seed, content, ts) VALUES(?, ?, ?, ?) "
+                "INSERT INTO layouts(task, seed, content, ts, fingerprint) "
+                "VALUES(?, ?, ?, ?, ?) "
                 "ON CONFLICT(task, seed) DO UPDATE SET "
-                "content=excluded.content, ts=excluded.ts"
+                "content=excluded.content, ts=excluded.ts, "
+                "fingerprint=excluded.fingerprint"
             )
         else:
-            sql = "INSERT OR IGNORE INTO layouts(task, seed, content, ts) VALUES(?, ?, ?, ?)"
-        cur = self._conn.execute(sql, (task, int(seed), content, time.time()))
+            sql = (
+                "INSERT OR IGNORE INTO layouts"
+                "(task, seed, content, ts, fingerprint) VALUES(?, ?, ?, ?, ?)"
+            )
+        cur = self._conn.execute(
+            sql, (task, int(seed), content, time.time(), fingerprint))
         written = cur.rowcount > 0
         self._persist()
         return written
 
-    def get_layout(self, task, seed):
-        """Return the stored initial-state content for (task, seed), or None."""
+    def get_layout(self, task, seed, fingerprint=None):
+        """Return the stored initial-state content for (task, seed), or None.
+
+        When ``fingerprint`` is supplied and the stored row carries a
+        different known fingerprint, the row belongs to another world
+        and is treated as absent.
+        """
         row = self._conn.execute(
-            "SELECT content FROM layouts WHERE task=? AND seed=?",
+            "SELECT content, fingerprint FROM layouts WHERE task=? AND seed=?",
+            (str(task), int(seed)),
+        ).fetchone()
+        if row is None:
+            return None
+        if (fingerprint is not None and row[1] is not None
+                and row[1] != fingerprint):
+            return None
+        return row[0]
+
+    def layout_fingerprint(self, task, seed):
+        """Return the stored layout fingerprint for (task, seed), or None."""
+        row = self._conn.execute(
+            "SELECT fingerprint FROM layouts WHERE task=? AND seed=?",
             (str(task), int(seed)),
         ).fetchone()
         return None if row is None else row[0]

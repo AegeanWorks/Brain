@@ -124,6 +124,25 @@ class GridWorld:
             state["obstacles"] = [list(c) for c in self._obstacles]
         return state
 
+    def layout_fingerprint(self):
+        """Return a deterministic SHA-256 over this world's task geometry.
+
+        Stable within and across resets. Two worlds that share
+        ``(task_id, seed)`` but build different target/obstacle/item/cue
+        geometry get different fingerprints, so a persisted layout is
+        never recalled into the wrong world.
+        """
+        geometry = {
+            "size": SIZE,
+            "task": self.task_id,
+            "target": list(self._target),
+            "obstacles": [list(o) for o in self._obstacles],
+            "items": [list(c) for c in self._initial_items],
+            "cue": self._cue,
+        }
+        payload = json.dumps(geometry, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
     def is_viable(self):
         """Return True while energy > 0 and steps < 200."""
         return self.energy > 0 and self.steps < MAX_STEPS

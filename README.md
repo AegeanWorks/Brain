@@ -189,7 +189,8 @@ brain/
 A warm run stores one full initial state per `(task, seed)` in the additive
 `layouts` table (first write wins). Only task-complete states are written: a
 cold-first run cannot poison the row, and a later complete run replaces an
-incomplete one. A cold run whose observations omit goal fields reads that
+incomplete one. Rows store a geometry hash. A cold run whose
+observations omit goal fields reads that
 layout once per episode; the planner probe records `store_reads` plus the
 fields supplied by `state`, `memory`, or `persistent`, and the same fields
 reach the model-seam observation. Cutting the source with

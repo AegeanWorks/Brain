@@ -3788,3 +3788,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Findings fixed**: claim status could contradict verdict history (Push 1); a stolen lock's successor could be deleted (Push 2); malformed policy/workspace digests were accepted and workspace was unverified (Push 3); claim snapshots were checksum-only (Push 4); the combined verifier bypassed a keyed store (Push 5); verification retained every action record (Push 6); calibration records were checksum-only (Push 7); the bridge could not pass a calibration key (Push 8); unkeyed writes could downgrade keyed evidence (Push 9).
 - **Result**: no regressions, no behavior/action/reward changes, no policy change. The reviewed range now starts and ends at the same verified state class: full tests green, AIKit 5/5, clean tree.
 
+## Cycle 100 - world-geometry fingerprint for persisted layouts
+
+- **Baseline** (commit 7e424cf, cycle 99; same probe worlds and store):
+  - canonical gate: 449 tests OK; aikit check 5/5; policy decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - standing behavior: 30-seed T1 466 / T2 240 / T3 217; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0.
+  - collision probe (two `GridWorld` subclasses sharing task T3_navigate seed 0): warm A (target [6,7], obstacle [6,1]) 13 steps/1.0; warm B (target [3,3], obstacle [3,2]) 6 steps/1.0, but the stored layout still read `target [6,7]`; cold B with hidden goal fields 200 steps/0.0.
+- **Gap**: layouts are keyed only by `(task, seed)` and first-write-wins keeps the first complete row. A second distinct world reusing the same task id and seed therefore never persists, and its cold run recalls the first world's target — recovery silently targets the wrong geometry.
+- **Target delta**: cold B 200/0.0 -> 6/1.0 with B's geometry stored; built-in warm-cold, cold-first, standing and `policy_digest` unchanged.
+- **Falsifier**: cold B stays 200/0; any built-in cold-start, standing or fixed-rig pin moves; or the blind-fingerprint ablation does not restore the 200/0 collision.
+- **Change**: `worlds/grid.py` adds deterministic `layout_fingerprint()` (SHA-256 over size/task/target/obstacles/initial items/cue); `agent.py` adds `world_fingerprint(world)` and passes it to `get_layout`/`save_layout` in `_persistent_layout`/`_remember_layout`; `memory/store.py` adds the nullable `fingerprint` column (in-place `ALTER TABLE` for older stores), replace-on-known-mismatch in `save_layout`, a fingerprint-aware `get_layout`, and `layout_fingerprint(task, seed)`; `tests/test_layout_fingerprint.py` adds three tests. No new dependencies; no policy or built-in behavior change. ADR-094; README cold-start contract.
+- **After** (same probe worlds and store):
+  - collision fixed: warm A 13/1.0, warm B 6/1.0, stored layout `target [3,3]` / `obstacles [[3,2]]`, cold B 6/1.0.
+  - built-in warm-cold unchanged: 16/8/13/6 steps with 3/1/1/1, probe `store_reads` 1 cold / 0 warm; cold-first unchanged: cold1 200, warm 16/8/13/6, cold2 16/8/13/6 with 3/1/1/1.
+  - standing 466/240/217; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; `policy_digest` decbfce3... unchanged.
+- **Ablation** (patch `agent.world_fingerprint` to return None, same probe worlds and store):
+  - warm A 13/1.0; warm B cannot replace A's complete row; cold B 200/0.0 (exactly the baseline). The collision fix dies with the fingerprint cut and returns with the restore.
+  - Fingerprint stability is also pinned: two resets of `GridWorld("T3_navigate", 15)` agree, and seeds 15/65 differ.
+- **Verdict**: recovery-correctness integration. Built-in worlds and all behavior/trace pins are unchanged; the measured delta is custom-world cold recovery 200/0.0 -> 6/1.0 with the correct persisted geometry. No emergence claim: the fingerprint identifies geometry, not memory coupling.
+- **Gates**: unittest 452/452 OK; aikit check brain 5/5 PASS (after regenerating `.aikit/codebase_map.md` for the new test file).
+- **Commands run**:
+  - `python -m unittest tests.test_layout_fingerprint -v` -> before: 1 failure (200 != 6), 2 errors (missing `world_fingerprint`/`layout_fingerprint`); after: 3 OK.
+  - `python -m unittest discover -s tests -t .` -> 452 OK.
+  - `python -m evals.coldstart --capture` -> 16/8/13/6 with store_reads 1; `--scenario cold-first --capture` -> 200 then 16/8/13/6.
+  - `python -m unittest tests.test_coldstart_recovery tests.test_memory tests.test_substrate_errors tests.test_store_recovery tests.test_wiring` -> 20 OK.
+  - `python scripts/update_knowledge_base.py --workspace .../projects/brain` -> map updated; `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 101**: unittest 452 OK; aikit 5/5; custom-world collision fixed (cold B 6/1.0, stored B geometry); blind-fingerprint ablation 200/0.0; built-in cold-start 16/8/13/6 with 3/1/1/1; cold-first 200 then 16/8/13/6; standing 466/240/217; T1 0-99 1581; holdout 500-599 1581/800/738; ranges 683/732/800/1646; fixed-rig syn 0.05411532 syn_n 0.10814360 phi 0.0; policy decbfce3...; multi 9/16/11/13/14; three 15/12/10/13/19; trust 16/8/13/6; escape 19/18; goldens 9/9 + multi 5/5 + three 5/5.
+
+

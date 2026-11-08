@@ -95,6 +95,23 @@ def model_label(backend):
     return type(backend).__name__
 
 
+def world_fingerprint(world):
+    """Return a world's deterministic layout fingerprint, or None.
+
+    A world that exposes ``layout_fingerprint()`` (built-in and
+    subclassed GridWorlds do) is distinguished by its task geometry, so
+    persisted layouts keyed by (task, seed) do not collide across
+    distinct worlds that reuse the same task id and seed.
+    """
+    if world is None:
+        return None
+    method = getattr(world, "layout_fingerprint", None)
+    if not callable(method):
+        return None
+    value = method()
+    return value if isinstance(value, str) and value else None
+
+
 class Memory:
     """Ordered store of observed state dicts."""
 
@@ -1155,8 +1172,9 @@ class Agent:
         seed = getattr(world, "seed", None)
         if task is None or seed is None:
             return None
+        fingerprint = world_fingerprint(world)
         try:
-            content = get_layout(task, seed)
+            content = get_layout(task, seed, fingerprint=fingerprint)
         except Exception:
             self._substrate_errors["memory_store"] += 1
             return None
@@ -1204,6 +1222,7 @@ class Agent:
         seed = getattr(world, "seed", None)
         if task is None or seed is None:
             return
+        fingerprint = world_fingerprint(world)
         replace = False
         get_layout = getattr(store, "get_layout", None)
         if callable(get_layout):
@@ -1218,11 +1237,18 @@ class Agent:
                 except (TypeError, ValueError):
                     existing_state = None
                 if self._layout_complete(existing_state):
-                    return
+                    try:
+                        same_world = get_layout(task, seed,
+                                                fingerprint=fingerprint)
+                    except Exception:
+                        self._substrate_errors["memory_store"] += 1
+                        same_world = existing
+                    if same_world is not None:
+                        return
                 replace = True
         try:
             save_layout(task, seed, json.dumps(state, sort_keys=True),
-                        replace=replace)
+                        replace=replace, fingerprint=fingerprint)
         except Exception:
             self._substrate_errors["memory_store"] += 1
 

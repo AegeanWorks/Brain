@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `136`
-- **Total Classes**: `141`
-- **Total Top-Level Functions**: `454`
-- **Total Class Methods**: `661`
-- **Total Source Lines**: `19510`
+- **Total Python Modules**: `137`
+- **Total Classes**: `143`
+- **Total Top-Level Functions**: `456`
+- **Total Class Methods**: `670`
+- **Total Source Lines**: `19695`
 
 ---
 
@@ -19,7 +19,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1530` lines (`62665` bytes)
+**Size**: `1556` lines (`63769` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -74,6 +74,7 @@
 - `def _probe_safe(value)` - *Coerce a recalled value into JSON-safe probe data.*
 - `def policy_digest(policy)` - *SHA-256 over the canonical declared planner configuration.*
 - `def model_label(backend)` - *Stable model label for run headers: 'rule' with no backend.*
+- `def world_fingerprint(world)` - *Return a world's deterministic layout fingerprint, or None.*
 - `def _first_of_best_tour(pos, cells)` - *First cell of the shortest Manhattan tour from pos through cells.*
 - `def _tour_audit(pos, cells)` - *Audit first-item ties in the exhaustive shortest item tour.*
 - `def _enters_blocked_corridor(nxt, goal, obstacles)` - *True when stepping onto the goal's column/row while an obstacle*
@@ -841,18 +842,20 @@
 ### [`memory/store.py`](memory/store.py)
 > *SQLite-backed store with FTS5 index and LIKE fallback.*
 
-**Size**: `254` lines (`9794` bytes)
+**Size**: `301` lines (`11872` bytes)
 
 **Classes:**
 - `class MemoryStore` - *Persisted key/content map with full-text lookup.*
   - Method `.__init__(path)` - *Open or create the store at path. Uses WAL mode.*
   - Method `._connect_validated()` - *Connect, apply the schema, and reject files failing checks.*
+  - Method `._ensure_layout_fingerprint(conn)` - *Add the layouts fingerprint column to an older store in place.*
   - Method `._quarantine_corrupt(reason)` - *Move the unreadable database file (plus WAL sidecars) aside.*
   - Method `.recovery_notes()` - *Return a copy of the recovery log (empty on a clean open).*
   - Method `._persist()` - *Commit then flush the database file to storage.*
   - Method `.save(key, content, conf)` - *Insert or replace one record by key. Returns the row id.*
-  - Method `.save_layout(task, seed, content, replace)` - *Persist one initial task state; first write wins by default.*
-  - Method `.get_layout(task, seed)` - *Return the stored initial-state content for (task, seed), or None.*
+  - Method `.save_layout(task, seed, content, replace, fingerprint)` - *Persist one initial task state; first write wins by default.*
+  - Method `.get_layout(task, seed, fingerprint)` - *Return the stored initial-state content for (task, seed), or None.*
+  - Method `.layout_fingerprint(task, seed)` - *Return the stored layout fingerprint for (task, seed), or None.*
   - Method `.recall(query, limit)` - *Return up to limit records matching query, ordered by id ASC.*
   - Method `.snapshot()` - *Return a deterministic dict view of all records ordered by id.*
   - Method `.count()` - *Return the number of stored records.*
@@ -1771,6 +1774,26 @@
 
 ---
 
+### [`tests/test_layout_fingerprint.py`](tests/test_layout_fingerprint.py)
+> *Layout fingerprints: distinct worlds sharing (task, seed) must not collide.*
+
+**Size**: `93` lines (`3527` bytes)
+
+**Classes:**
+- `class _World` - *T3 world with forced geometry, optionally hiding goal fields.*
+  - Method `.__init__(target, obstacles, hidden)`
+  - Method `._build_layout(rng)`
+  - Method `._state()`
+- `class TestLayoutFingerprint`
+  - Method `.test_distinct_worlds_same_key_do_not_collide()`
+  - Method `.test_builtin_fingerprint_stable_across_reset()`
+  - Method `.test_blind_fingerprint_ablation_restores_collision()`
+
+**Functions:**
+- `def _run(store, target, obstacles, hidden, max_steps)`
+
+---
+
 ### [`tests/test_llamacpp.py`](tests/test_llamacpp.py)
 > *llama.cpp backend: deterministic prompt building and action parsing.*
 
@@ -2592,7 +2615,7 @@
 ### [`worlds/grid.py`](worlds/grid.py)
 > *Deterministic 8x8 grid worlds with fixed-step updates.*
 
-**Size**: `205` lines (`6883` bytes)
+**Size**: `224` lines (`7687` bytes)
 
 **Classes:**
 - `class GridWorld` - *Deterministic grid world for one task id and seed.*
@@ -2600,6 +2623,7 @@
   - Method `._all_cells()`
   - Method `._build_layout(rng)`
   - Method `._state()`
+  - Method `.layout_fingerprint()` - *Return a deterministic SHA-256 over this world's task geometry.*
   - Method `.is_viable()` - *Return True while energy > 0 and steps < 200.*
   - Method `.reset()` - *Rebuild layout from seed and return the initial state dict.*
   - Method `._blocked(nx, ny)`
