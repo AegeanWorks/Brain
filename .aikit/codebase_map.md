@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `148`
-- **Total Classes**: `154`
-- **Total Top-Level Functions**: `480`
-- **Total Class Methods**: `721`
-- **Total Source Lines**: `21401`
+- **Total Python Modules**: `150`
+- **Total Classes**: `155`
+- **Total Top-Level Functions**: `485`
+- **Total Class Methods**: `727`
+- **Total Source Lines**: `21617`
 
 ---
 
@@ -243,6 +243,18 @@
 
 **Functions:**
 - `def _parse_seed(argv)`
+
+---
+
+### [`episode_replay.py`](episode_replay.py)
+> *Replay a log's actions through the world its header names.*
+
+**Size**: `94` lines (`3986` bytes)
+
+**Functions:**
+- `def logged_steps(records)` - *Return the action records that carry a step, in log order.*
+- `def replay_actions(task, seed, actions, max_steps)` - *Replay ``actions`` through a fresh world; return the visited states.*
+- `def verify_action_replay(log_path, records, max_steps)` - *Replay a log's actions and report where the trajectory diverges.*
 
 ---
 
@@ -1642,6 +1654,26 @@
   - Method `.test_guard_deterministic()`
   - Method `.test_policy_declares_dead_pool_filter()`
   - Method `.test_invalid_dead_pool_filter_rejected()`
+
+---
+
+### [`tests/test_episode_replay.py`](tests/test_episode_replay.py)
+> *Action-replay verification: a valid chain does not prove the trajectory.*
+
+**Size**: `122` lines (`5561` bytes)
+
+**Classes:**
+- `class TestActionReplay`
+  - Method `.test_logged_steps_are_the_step_actions()`
+  - Method `.test_replay_reproduces_the_recorded_trajectory()`
+  - Method `.test_valid_chain_with_replaced_actions_is_caught()`
+  - Method `.test_replay_stops_at_the_world_terminal()`
+  - Method `.test_invalid_actions_are_named_not_raised()`
+  - Method `.test_missing_header_is_named()`
+
+**Functions:**
+- `def _write_log(directory, name, task, seed)`
+- `def _rewrite(log_path, out_path, action)` - *Re-emit a log through Telemetry with every step action replaced.*
 
 ---
 

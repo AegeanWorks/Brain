@@ -228,6 +228,20 @@ readout's blindness, not a module finding; `phi` is invisible to all four.
 `tests/test_lesion_detectability.py` pins the surface so a vacuous lesion is
 recorded, not read as absent integration.
 
+## 🔁 Action Replay
+
+`verify_chain` proves the bytes were not edited and
+`verify_episode_header` proves the header config; neither reads the
+actions, so a chain-valid log whose every action was replaced still
+verified. `episode_replay.verify_action_replay(log_path)` replays the
+logged actions through `GridWorld(task, seed)` and compares each step's
+reward with the world's own value, the terminal `done` flag and the step
+count, naming `reward-mismatch:<n>`, `done-mismatch` or
+`replay-short:<n><<m>`. A forgery re-emitted through `Telemetry` with
+`wait` for every action passes chain and header and fails replay
+(`tests/test_episode_replay.py`). It proves the actions fit the named
+world, not that a model produced them.
+
 ## 🧷 Terminal Telemetry Anchor
 
 A run can write a separate `.anchor` sidecar with the final head digest
@@ -237,9 +251,8 @@ compares both: a shorter log reports
 `anchor-mismatch`, and a missing witness reports `missing-anchor`.
 Without the anchor, a truncated prefix remains internally valid; the
 anchor is a separate witness and must be kept outside the tampered
-log's control. `python -m evals.chain_anchor` shows intact (pass),
-truncated (detected) and anchor-off (the old exposure). The sidecar
-contains hashes and counts only and is never committed.
+log's control. `python -m evals.chain_anchor` shows intact, truncated and
+anchor-off modes; the sidecar has hashes and counts only.
 
 `Telemetry.write_anchor_journal()` appends the same head/count to a
 `.anchors` JSONL journal where each anchor's `prev` links to the
@@ -260,8 +273,8 @@ MAC. `verify_chain(path, hmac_key=...)` reports `missing-mac:<index>` or
 `bad-mac:<index>`. Without a key, records and bytes are unchanged; a
 keyed verifier rejects an unkeyed log, and an unkeyed verifier cannot
 check the MAC. Keys come from a secret store or environment, never from
-the repository. `python -m evals.telemetry_mac` shows correct key,
-wrong key, missing MAC, recomputed-digest tamper and unkeyed parity.
+the repository. `python -m evals.telemetry_mac` shows correct/wrong key, missing
+MAC, recomputed-digest tamper and unkeyed parity.
 
 ## 🎚️ Prompt Token Budget
 
@@ -274,9 +287,8 @@ obstacles and cue; the visits line is last, so it is dropped first and
 single-line prompt byte-identical. `prompt_stats` returns
 `tokens/omitted/lines`, and `LlamaCppBackend(prompt_budget=...)` applies
 the budget and records `last_prompt_stats`; the manifest binds the
-capped prompt. `python -m evals.prompt_budget` shows uncapped 63 /
-budgeted 52 tokens with 13 omitted visit lines on T3:15 while the rule
-actions, steps and reward stay identical.
+capped prompt. `python -m evals.prompt_budget` shows uncapped 63 / budgeted 52
+tokens with 13 omitted visit lines, actions unchanged.
 
 ## 🌿 Merkle Batch Anchors
 
@@ -370,8 +382,8 @@ claims-workspace paths. The recomputation trusts the stored
 task/seed/budget/policy; it proves internal consistency, not that the run
 happened, and old headers without a seed report `missing-seed`.
 Verification reads only headers via `Telemetry.read_headers()`, so a long
-action log costs O(1) retained memory; `python -m evals.header_reader`
-shows 100k records at 0.1 MB peak vs 124.2 MB for `read_all`.
+action log costs O(1) retained memory; `python -m evals.header_reader` shows 100k records at 0.1 MB
+peak vs 124.2 MB for `read_all`.
 
 ## 📁 Workspace Evidence Binding
 
@@ -405,8 +417,8 @@ meta_path=...)` writes a `.meta` sidecar atomically;
 `verify_snapshot` reports `record-count`, `graph-mismatch`,
 `content-mismatch` or `missing-meta`. A re-capture changes the graph
 digest but not content; a changed steps/action/syn field moves both.
-`python -m evals.snapshot_digest` shows recapture, real change, and
-intact/tampered/missing meta over the 13/6-step T3:15/65 battery.
+`python -m evals.snapshot_digest` shows recapture, real change and
+intact/tampered/missing meta.
 
 ## 📐 Calibration Scoring
 

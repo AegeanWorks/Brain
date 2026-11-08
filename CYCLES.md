@@ -4044,6 +4044,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 110**: unittest 497 OK; aikit 5/5; `vector_audit` default path `constant [P0,P1,S0]` and `M0==M1==S1`; full wiring `M0==M1==P0==S1` and `distinct` 6; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 110 - replay a log's actions through the world its header names
+
+- **Baseline** (commit e4ea7c2):
+  - canonical gate: 497 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `verify_chain` proves the recorded bytes were not edited; `verify_episode_header` proves the header config. Neither reads the actions.
+  - measured: a `T3_navigate:15` log whose every step action was replaced by `wait` and re-emitted through `Telemetry` (chain recomputed honestly) returned `verify_chain ok: True` and `verify_episode_header ok: True`, while replaying those actions leaves the world at `(0, 0)` with no reward.
+- **Gap**: the trajectory was unverified. A log could claim a solved episode it never ran, and every shipped verifier accepted it, because chain and header checks are about bytes and config, not about what the actions do in the world the header names.
+- **Target delta**: a third independent check that replays the logged actions through `GridWorld(task, seed)` and names the first divergence; the same forgery must fail it.
+- **Falsifier**: the honest log fails replay; the forged log passes replay; or a pinned behavior/`policy_digest` value moves.
+- **Change**: `episode_replay.py` adds `logged_steps`, `replay_actions` and `verify_action_replay` (per-step reward comparison against the world's own value, terminal `done` comparison, length comparison, named findings); `tests/test_episode_replay.py` adds 6 tests including the chain-valid forgery. ADR-104.
+- **After** (same logs):
+  - honest log: `chain=True header=True replay=True`, `steps=13`, `replayed=13`, terminal `(6, 7)`.
+  - forged log: `chain=True header=True replay=False`, findings `['reward-mismatch:12', 'done-mismatch']`.
+  - standing 89 steps / 11.0 reward and `policy_digest` unchanged.
+- **Ablation**: without `episode_replay` the forgery is accepted by both shipped verifiers; with it the same bytes report the first divergent step and the terminal mismatch. Deleting the module restores acceptance, restoring it returns the rejection.
+- **Verdict**: evidence-integrity extension. The measured delta is a chain-valid trajectory forgery that passed every prior check and now fails with named findings; no behavior, estimator or pin moves. Boundary: replay proves the actions are consistent with the named world and seed, not that a model produced them; a forger who computes a different winning trajectory the world accepts would still verify, so this raises the cost of a trajectory lie without making logs unforgeable.
+- **Gates**: unittest 503/503 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_episode_replay -v` -> 6 OK.
+  - `python ..\..\scratch\probe_forge.py` -> forged chain valid, header valid, world ends at (0,0).
+  - `python ..\..\scratch\ablate_110.py` -> honest True/True/True; forged True/True/False with named findings; standing 89/11.0.
+  - `python -m unittest discover -s tests -t .` -> 503 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 111**: unittest 503 OK; aikit 5/5; `verify_action_replay` honest True (13/13, terminal 6,7) and chain-valid forgery False (`reward-mismatch:12`, `done-mismatch`); `vector_audit` default `[P0,P1,S0]` / `M0==M1==S1`, full wiring `M0==M1==P0==S1`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
