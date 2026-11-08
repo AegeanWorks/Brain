@@ -13,7 +13,29 @@ rewards against what the log recorded. It is read-only, deterministic, and
 needs no trust in the log's self-reported summaries.
 """
 
+import re
+
 from worlds.grid import GridWorld
+
+#: The verdict reason ``Agent._episode_verdict`` writes: a machine claim.
+_VERDICT_REASON = re.compile(r"steps=(\d+)\s+reward=(-?[0-9]*\.?[0-9]+)")
+
+
+def parse_verdict_reason(reason):
+    """Parse ``"steps=<n> reward=<r>"`` into ``{"steps", "reward"}`` or None.
+
+    ``Agent._episode_verdict`` emits exactly this format, so it is a claim
+    that can be checked against the trajectory rather than trusted.
+    """
+    if not isinstance(reason, str):
+        return None
+    match = _VERDICT_REASON.search(reason)
+    if match is None:
+        return None
+    try:
+        return {"steps": int(match.group(1)), "reward": float(match.group(2))}
+    except ValueError:
+        return None
 
 
 def logged_steps(records):
@@ -41,7 +63,8 @@ def replay_actions(task, seed, actions, max_steps=200):
     return states
 
 
-def verify_action_replay(log_path, records=None, max_steps=200):
+def verify_action_replay(log_path, records=None, max_steps=200,
+                         check_verdict=False):
     """Replay a log's actions and report where the trajectory diverges.
 
     The header supplies ``task``/``seed``; each ``kind == "step"`` action
@@ -49,6 +72,11 @@ def verify_action_replay(log_path, records=None, max_steps=200):
     terminal state is compared with the log's own ``done`` flag and with
     the reward the log recorded for that step. Findings name the first
     divergence instead of reporting a bare boolean.
+
+    ``check_verdict=True`` also parses the verdict record's machine claim
+    (``"steps=<n> reward=<r>"``) and rejects a step count or reward the
+    replay does not support, so an honest trajectory cannot carry a
+    rewritten verdict. The claim is reported as ``claimed``.
     """
     from telemetry.log import Telemetry
 
@@ -57,9 +85,10 @@ def verify_action_replay(log_path, records=None, max_steps=200):
     headers = [record for record in records if record.get("type") == "header"]
     steps = logged_steps(records)
     findings = []
+    claimed = None
     if not headers:
         return {"ok": False, "findings": ["missing-header"],
-                "steps": len(steps), "replayed": 0}
+                "steps": len(steps), "replayed": 0, "claimed": None}
     header = headers[0]
     task, seed = header.get("task"), header.get("seed")
     if not isinstance(task, str) or not task:
@@ -85,10 +114,26 @@ def verify_action_replay(log_path, records=None, max_steps=200):
             findings.append("done-mismatch")
     if len(replay) < len(steps):
         findings.append("replay-short:%d<%d" % (len(replay), len(steps)))
+    if check_verdict:
+        verdicts = [record for record in records
+                    if record.get("type") == "verdict"]
+        if not verdicts:
+            findings.append("missing-verdict")
+        else:
+            claimed = parse_verdict_reason(verdicts[-1].get("reason"))
+            if claimed is None:
+                findings.append("unparsable-verdict-reason")
+            else:
+                if claimed["steps"] != len(replay):
+                    findings.append("verdict-steps-mismatch")
+                replayed_reward = sum(item["reward"] for item in replay)
+                if abs(claimed["reward"] - replayed_reward) > 0.05:
+                    findings.append("verdict-reward-mismatch")
     return {
         "ok": not findings,
         "findings": findings,
         "steps": len(steps),
         "replayed": len(replay),
+        "claimed": claimed,
         "terminal": replay[-1]["state"] if replay else None,
     }

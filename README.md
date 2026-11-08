@@ -219,29 +219,27 @@ cold-start cases read `constant-scope-column` instead of a bare `0.0`.
 
 ## 🧪 Lesion Detectability
 
-A lesion test ("zero module X, the score moves") is evidence only when the
-readout can move for X. `evals.lesion_audit.detectability(rows)` substitutes
-each module block (M/P/S/hub) with seeded pseudo-random values and reports
-which modules each readout separates from noise. On the fixed rig `synergy`
-detects `M`/`hub` and is invisible to `P`/`S`, so that invariance is the
-readout's blindness, not a module finding; `phi` is invisible to all four.
-`tests/test_lesion_detectability.py` pins the surface so a vacuous lesion is
-recorded, not read as absent integration.
+A lesion test is evidence only when the readout can move for the
+module. `evals.lesion_audit.detectability(rows)` substitutes each block
+(M/P/S/hub) with seeded noise and reports which modules each readout
+separates from noise. On the fixed rig `synergy` detects `M`/`hub` and
+is blind to `P`/`S`, so that invariance is the readout's blindness, not
+a module finding; `phi` is blind to all four. Pinned by
+`tests/test_lesion_detectability.py`.
 
 ## 🔁 Action Replay
 
 `verify_chain` proves the bytes were not edited and
 `verify_episode_header` proves the header config; neither reads the
-actions, so a chain-valid log whose every action was replaced still
-verified. `episode_replay.verify_action_replay(log_path)` replays the
-logged actions through `GridWorld(task, seed)` and compares each step's
-reward with the world's own value, the terminal `done` flag and the step
-count, naming `reward-mismatch:<n>`, `done-mismatch` or
-`replay-short:<n><<m>`. A forgery re-emitted through `Telemetry` with
-`wait` for every action passes chain and header and fails replay
-(`verify_claim_refs(..., verify_replay=True)` composes it into claim
-checks). It proves the actions fit the named world, not that a model
-produced them.
+actions, so a chain-valid log whose actions were all replaced still
+verified. `episode_replay.verify_action_replay(log_path)` replays them
+through `GridWorld(task, seed)` and compares each reward with the
+world's own, the terminal `done` and the step count, naming
+`reward-mismatch:<n>`, `done-mismatch` or `replay-short:<n><<m>`.
+`verify_claim_refs(..., verify_replay=True)` composes it into claim
+checks, and `check_verdict=True` rejects a verdict claim the replay
+does not support. It proves the actions fit the named world, not that
+a model produced them.
 
 ## 🧷 Terminal Telemetry Anchor
 

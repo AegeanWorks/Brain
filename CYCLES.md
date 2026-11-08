@@ -4095,6 +4095,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 112**: unittest 508 OK; aikit 5/5; `verify_claim_refs(verify_replay=True)` honest True and chain-valid forgery rejected; default `verify_replay=False` preserves `ok=True` on the forgery; `verify_action_replay` 13/13 terminal (6,7); `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 112 - check a verdict's machine claim against the replay
+
+- **Baseline** (commit 06c72e9):
+  - canonical gate: 508 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `Agent._episode_verdict` writes the verdict reason as `"steps=%d reward=%.1f"`; `verify_action_replay` compared step records against the world but never read that claim.
+  - measured: a `T3_navigate:15` log re-emitted with its verdict reason rewritten to `"steps=1 reward=99.0 success=true"` kept a valid chain and passed `verify_action_replay` (`ok: True`), because only the summary was false.
+- **Gap**: the verdict's own claim was unverified. A log could report steps and reward the run never produced, and even the replay-enabled claim check accepted it, so the last self-reported number in the evidence chain was the one nobody checked.
+- **Target delta**: an opt-in verdict check that parses the machine claim and rejects a step count or reward the replay does not support; default behavior unchanged.
+- **Falsifier**: the honest log fails the verdict check; an inflated claim passes with it enabled; or a pinned value moves.
+- **Change**: `episode_replay.py` adds `parse_verdict_reason` and `verify_action_replay(..., check_verdict=False)` naming `missing-verdict`, `unparsable-verdict-reason`, `verdict-steps-mismatch`, `verdict-reward-mismatch`, and reporting `claimed`; `claims_verify.py` passes `check_verdict=True` under `verify_replay`; `tests/test_verdict_claim.py` adds 7 tests. ADR-106.
+- **After** (same logs):
+  - honest log: `chain=True`, `replay-verdict=True`, `claimed {'steps': 13, 'reward': 1.0}`.
+  - forged verdict: `chain=True`, default replay `True` (unchanged), verdict check `False` with `['verdict-steps-mismatch', 'verdict-reward-mismatch']`, `claimed {'steps': 1, 'reward': 99.0}`.
+  - `verify_claim_refs(verify_replay=True)` on the forged log raises with those two findings.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: with `check_verdict` off the claim is unread and the forged log is accepted; with it on the same bytes are rejected. The trajectory is identical in both readings, so the delta is the read.
+- **Verdict**: evidence-integrity extension covering the last self-reported number. The measured delta is an inflated verdict claim that every prior check accepted and the verdict check refuses; no behavior, estimator or pin moves. Boundary: the check compares claim against replay, so a forger who rewrites both consistently still passes; the one-decimal reason format bounds reward resolution to 0.05, which is the tolerance used.
+- **Gates**: unittest 515/515 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_verdict_claim` -> before: 1 error (`parse_verdict_reason` absent); after: 7 OK.
+  - `python ..\..\scratch\ablate_112.py` -> honest True/True; forged chain True, default replay True, verdict False with two findings; claim refused; standing 89/11.0.
+  - `python -m unittest discover -s tests -t .` -> 515 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 113**: unittest 515 OK; aikit 5/5; `parse_verdict_reason` round-trips `"steps=13 reward=1.0"`; honest verdict check True with `claimed {13, 1.0}`; inflated claim yields `verdict-steps-mismatch` + `verdict-reward-mismatch`; default `check_verdict=False` unchanged; `verify_claim_refs(verify_replay=True)` rejects it; `verify_action_replay` 13/13 terminal (6,7); `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

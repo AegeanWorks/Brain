@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `151`
-- **Total Classes**: `156`
-- **Total Top-Level Functions**: `486`
-- **Total Class Methods**: `733`
-- **Total Source Lines**: `21757`
+- **Total Python Modules**: `152`
+- **Total Classes**: `157`
+- **Total Top-Level Functions**: `489`
+- **Total Class Methods**: `740`
+- **Total Source Lines**: `21950`
 
 ---
 
@@ -224,7 +224,7 @@
 ### [`claims_verify.py`](claims_verify.py)
 > *Read-only verification of claim verdict refs against logged episodes.*
 
-**Size**: `260` lines (`11087` bytes)
+**Size**: `260` lines (`11107` bytes)
 
 **Functions:**
 - `def _validate_options(hmac_key, verify_logs)`
@@ -249,12 +249,13 @@
 ### [`episode_replay.py`](episode_replay.py)
 > *Replay a log's actions through the world its header names.*
 
-**Size**: `94` lines (`3986` bytes)
+**Size**: `139` lines (`5783` bytes)
 
 **Functions:**
+- `def parse_verdict_reason(reason)` - *Parse ``"steps=<n> reward=<r>"`` into ``{"steps", "reward"}`` or None.*
 - `def logged_steps(records)` - *Return the action records that carry a step, in log order.*
 - `def replay_actions(task, seed, actions, max_steps)` - *Replay ``actions`` through a fresh world; return the visited states.*
-- `def verify_action_replay(log_path, records, max_steps)` - *Replay a log's actions and report where the trajectory diverges.*
+- `def verify_action_replay(log_path, records, max_steps, check_verdict)` - *Replay a log's actions and report where the trajectory diverges.*
 
 ---
 
@@ -2789,6 +2790,27 @@
 
 **Functions:**
 - `def _run_logged(trust_window, noop_guard, waiting, task, seed)`
+
+---
+
+### [`tests/test_verdict_claim.py`](tests/test_verdict_claim.py)
+> *Verdict claims must be checked against the replayed trajectory.*
+
+**Size**: `148` lines (`7047` bytes)
+
+**Classes:**
+- `class TestVerdictClaim`
+  - Method `.test_parse_verdict_reason_reads_the_machine_claim()`
+  - Method `.test_parse_rejects_a_reason_without_the_fields()`
+  - Method `.test_honest_log_passes_verdict_check()`
+  - Method `.test_inflated_reward_claim_is_rejected()`
+  - Method `.test_step_count_claim_is_checked_separately()`
+  - Method `.test_verdict_check_is_opt_in()`
+  - Method `.test_missing_verdict_is_named_when_requested()`
+
+**Functions:**
+- `def _write_log(directory, name, task, seed)`
+- `def _rewrite_verdict(log_path, out_path, verdict, reason)` - *Re-emit a log through Telemetry with a replaced verdict record.*
 
 ---
 

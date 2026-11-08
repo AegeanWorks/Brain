@@ -178,7 +178,7 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
         from episode_replay import verify_action_replay
 
         for path in paths:
-            replay = verify_action_replay(str(path))
+            replay = verify_action_replay(str(path), check_verdict=True)
             if not replay["ok"]:
                 raise ValueError(
                     "log %s failed replay verification: %s. "
