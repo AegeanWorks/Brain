@@ -22,7 +22,7 @@ from claims_store import (_digest, load_ledger, save_ledger,
 
 MODES = ("in-memory", "roundtrip", "corrupt-primary", "tampered",
          "missing", "stale-lock", "fresh-lock", "keyed", "keyed-wrong",
-         "keyed-missing", "keyed-tampered")
+         "keyed-missing", "keyed-tampered", "keyed-downgrade")
 STAMP = 1700000000.0
 AT = "2026-11-07T00:00:00Z"
 
@@ -68,13 +68,28 @@ def measure_case(mode="roundtrip", directory=None):
               "quarantine": False, "lock_exists": None,
               "file_before": False, "file_after": False, "hmac": None,
               "primary_exists": None, "reload_claims": None, "error": None}
-    if mode in ("keyed", "keyed-wrong", "keyed-missing", "keyed-tampered"):
+    if mode in ("keyed", "keyed-wrong", "keyed-missing", "keyed-tampered",
+                "keyed-downgrade"):
         key = hashlib.sha256(b"claim-store-eval-key").digest()
         wrong = hashlib.sha256(b"claim-store-eval-wrong").digest()
         if mode == "keyed-missing":
             save_ledger(_ledger(), path, saved_at=STAMP)
         else:
             save_ledger(_ledger(), path, saved_at=STAMP, hmac_key=key)
+        if mode == "keyed-downgrade":
+            before = Path(path).read_bytes()
+            try:
+                save_ledger(_ledger(limit=3), path, saved_at=STAMP)
+            except ValueError as exc:
+                result["error"] = str(exc)
+            after = Path(path).read_bytes()
+            reloaded = load_ledger(path, hmac_key=key)
+            result.update({"claims": len(reloaded.claims()),
+                           "verdicts": sum(len(c.verdicts)
+                                           for c in reloaded.claims()),
+                           "ok": before == after, "hmac": True,
+                           "primary_exists": Path(path).exists()})
+            return result
         if mode == "keyed":
             loaded = load_ledger(path, hmac_key=key)
             verified = verify_ledger_file(path, hmac_key=key)

@@ -218,6 +218,29 @@ class TestCalibrationStore(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     load_forecasts(path, hmac_key=value)
 
+    def test_unkeyed_append_over_keyed_journal_refused(self):
+        key = hashlib.sha256(b"calibration-eval-key").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            append_forecasts(_forecasts(FIRST), path, at=AT, hmac_key=key)
+            before = Path(path).read_bytes()
+            with self.assertRaises(ValueError):
+                append_forecasts(_forecasts(SECOND), path, at=AT)
+            after = Path(path).read_bytes()
+        self.assertEqual(before, after)
+
+    def test_unkeyed_rotation_over_keyed_journal_refused(self):
+        key = hashlib.sha256(b"calibration-eval-key").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "forecasts.jsonl")
+            append_forecasts(_forecasts(FIRST + SECOND), path, at=AT,
+                             hmac_key=key)
+            before = Path(path).read_bytes()
+            with self.assertRaises(ValueError):
+                rotate_forecast_journal(path, keep_recent=6)
+            after = Path(path).read_bytes()
+        self.assertEqual(before, after)
+
     def test_missing_store_is_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "forecasts.jsonl")

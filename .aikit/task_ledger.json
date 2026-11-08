@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-push7-calibration-hmac",
+    "task_id": "brain-push9-downgrade-guard",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794111193.296369,
-    "owner": "opencode:push7",
-    "started_by": "opencode:push7",
+    "updated_at": 1794111884.7069492,
+    "owner": "opencode:push9",
+    "started_by": "opencode:push9",
     "continuations": [],
-    "completed_at": 1794111193.6371744
+    "completed_at": 1794111884.8951182
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push4-claim-hmac",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: optional HMAC-SHA256 for claim-store snapshots",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109298.6096728,
-      "timestamp_str": "2026-11-08 06:41:38",
-      "agent": "opencode:push4",
-      "impact_assessment": {
-        "why": "A rewritten claims payload with a recomputed checksum passed; the store boundary was checksum-only.",
-        "benefits": "A caller-held key authenticates the snapshot including its checksum; wrong/missing MACs fail while the valid primary is preserved.",
-        "risks": "contract: optional store kwargs, schema gains optional mac; dependency: stdlib hmac; concurrency: unchanged lock; state: optional field.",
-        "mitigation": "Exclude mac from the checksum, keep unkeyed snapshots byte-compatible, do not quarantine on MAC errors; test keyed/wrong/missing/tampered and rerun 434 tests."
-      },
-      "plan_digest": "674fe20e7acb8b54950dbe0b8a9908530474a79a84fbe6c33599c8077e1c7d6e"
-    },
-    {
-      "task_id": "brain-push4-claim-hmac",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first hmac_key TypeError; hmac helpers, keyed save/load/verify, MAC error without quarantine, tests/eval, README/ADR-088",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109299.1489093,
-      "timestamp_str": "2026-11-08 06:41:39",
-      "agent": "opencode:push4"
-    },
-    {
-      "task_id": "brain-push4-claim-hmac",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] 434 tests OK; keyed ok, wrong/missing/tampered fail with primary intact/no quarantine, correct key reloads; unkeyed modes unchanged; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109299.6882102,
-      "timestamp_str": "2026-11-08 06:41:39",
-      "agent": "opencode:push4"
-    },
-    {
-      "task_id": "brain-push4-claim-hmac",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit Push 4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109300.5313566,
-      "timestamp_str": "2026-11-08 06:41:40",
-      "agent": "opencode:push4"
-    },
-    {
-      "task_id": "brain-push4-claim-hmac",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-push4-claim-hmac' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794109301.5446022,
-      "timestamp_str": "2026-11-08 06:41:41",
-      "agent": "opencode:push4"
-    },
     {
       "task_id": "brain-push5-store-auth",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794111193.6371765,
       "timestamp_str": "2026-11-08 07:13:13",
       "agent": "opencode:push7"
+    },
+    {
+      "task_id": "brain-push9-downgrade-guard",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: refuse unkeyed writes over keyed evidence",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794111884.06186,
+      "timestamp_str": "2026-11-08 07:24:44",
+      "agent": "opencode:push9",
+      "impact_assessment": {
+        "why": "Unkeyed append/rotation over a keyed calibration journal and unkeyed save over a keyed claim store silently downgraded or mixed authenticated evidence.",
+        "benefits": "All three write paths refuse the downgrade and leave the file byte-identical; keyed reads still load.",
+        "risks": "contract: store-level guards only; dependency: none; concurrency: guards run under the existing lock; state: no schema change.",
+        "mitigation": "Guard append, rotation live/archive, and save; test byte equality and keyed reload; rerun 449 tests and AIKit."
+      },
+      "plan_digest": "f524cff6b0d2ba2757e20f0575527b3c434449d40f983876572134aadbf51b52"
+    },
+    {
+      "task_id": "brain-push9-downgrade-guard",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first three downgrades succeeded; guards in append/rotate/save, tests/eval modes, README/ADR-093",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794111884.2743728,
+      "timestamp_str": "2026-11-08 07:24:44",
+      "agent": "opencode:push9"
+    },
+    {
+      "task_id": "brain-push9-downgrade-guard",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] 449 tests OK; three downgrades raise and files are byte-identical; keyed reload works; unkeyed paths unchanged; aikit 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794111884.5002072,
+      "timestamp_str": "2026-11-08 07:24:44",
+      "agent": "opencode:push9"
+    },
+    {
+      "task_id": "brain-push9-downgrade-guard",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit Push 9",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794111884.7069492,
+      "timestamp_str": "2026-11-08 07:24:44",
+      "agent": "opencode:push9"
+    },
+    {
+      "task_id": "brain-push9-downgrade-guard",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-push9-downgrade-guard' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794111884.89512,
+      "timestamp_str": "2026-11-08 07:24:44",
+      "agent": "opencode:push9"
     }
   ]
 }

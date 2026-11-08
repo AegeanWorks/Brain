@@ -289,6 +289,16 @@ def save_ledger(ledger, path, saved_at=None, lock_timeout=3.0,
         payload["mac"] = _mac(payload, hmac_key)
     body = json.dumps(payload, sort_keys=True) + "\n"
     with _locked(target, lock_timeout):
+        if hmac_key is None and target.exists():
+            try:
+                _existing, existing_value = _read_payload(target)
+            except ValueError:
+                existing_value = None
+            if existing_value is not None and existing_value.get("mac"):
+                raise ValueError(
+                    "Why: the claim store is keyed; an unkeyed save would "
+                    "downgrade authenticated evidence. "
+                    "Fix: pass hmac_key=... or start a new store.")
         _write_atomic(target, body)
     return {
         "path": str(target),

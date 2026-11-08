@@ -142,6 +142,19 @@ class TestClaimStore(unittest.TestCase):
         self.assertTrue(any("mac" in finding.lower()
                             for finding in verified["findings"]))
 
+    def test_unkeyed_save_over_keyed_snapshot_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "claims.json")
+            key = b"claim-store-key-32-bytes-long!!"
+            save_ledger(_ledger(), path, saved_at=STAMP, hmac_key=key)
+            before = Path(path).read_bytes()
+            with self.assertRaises(ValueError):
+                save_ledger(_ledger(extra=True), path, saved_at=STAMP)
+            after = Path(path).read_bytes()
+            still = load_ledger(path, hmac_key=key)
+        self.assertEqual(before, after)
+        self.assertEqual(still.claims(), _ledger().claims())
+
     def test_invalid_hmac_key_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "claims.json")

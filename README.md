@@ -498,6 +498,8 @@ optional `hmac_key=bytes` adds a per-record HMAC-SHA256; `load_forecasts`,
 `load_all_forecasts`, `verify_forecast_file` and
 `rotate_forecast_journal`/`append_forecasts(keep_recent=...)` accept the
 same key, so a keyed journal can be rotated without dropping its MACs.
+An unkeyed append or rotation over a keyed journal is refused, so a
+mixed unauthenticated journal cannot be created by accident.
 `python -m evals.calibration_store` shows the in-memory
 file-before/after ablation, a 6-forecast first run (Brier 0.185, skill
 0.26, descriptive warning), two runs aggregating to 10 resolved (Brier
@@ -584,7 +586,9 @@ missing, stale-lock steal, a fresh-lock refusal, and keyed correct,
 wrong, missing and tampered snapshots. Keep the snapshot under `.aikit/`
 or outside the source tree; it is local evidence, not committed. The
 checksum detects accidental edits; the HMAC also detects a rewritten
-checksum when the key stays outside the store.
+checksum when the key stays outside the store. An unkeyed save over a
+keyed snapshot is refused, so authenticated evidence cannot be
+downgraded silently.
 
 `ClaimLedger.record(..., ref=...)` accepts an optional non-empty verdict
 ref, for example the `episode_sha256` from a logged run header. The ref

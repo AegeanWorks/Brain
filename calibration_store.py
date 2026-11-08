@@ -358,6 +358,11 @@ def append_forecasts(forecasts, path, at=None, lock_timeout=3.0,
         if findings:
             raise ValueError("calibration store is invalid: %s"
                              % findings[0])
+        if hmac_key is None and any(record.get("mac") for record in existing):
+            raise ValueError(
+                "Why: the calibration journal is keyed; an unkeyed append "
+                "would mix authenticated and unauthenticated records. "
+                "Fix: pass hmac_key=... or start a new journal.")
         existing_ids = {record["id"] for record in existing}
         duplicates = [identifier for identifier in identifiers
                       if identifier in existing_ids]
@@ -458,6 +463,11 @@ def _rotate_locked(target, archive, keep_recent, hmac_key=None):
     live, findings = _read_records(target, hmac_key=hmac_key)
     if findings:
         raise ValueError("calibration store is invalid: %s" % findings[0])
+    if hmac_key is None and any(record.get("mac") for record in live):
+        raise ValueError(
+            "Why: the calibration journal is keyed; an unkeyed rotation "
+            "would move records without authenticating them. "
+            "Fix: pass hmac_key=... or leave the journal unrotated.")
     if len(live) <= keep_recent:
         return {
             "rotated": False,
@@ -474,6 +484,11 @@ def _rotate_locked(target, archive, keep_recent, hmac_key=None):
     if archive_findings:
         raise ValueError("calibration archive is invalid: %s"
                          % archive_findings[0])
+    if hmac_key is None and any(record.get("mac") for record in archived):
+        raise ValueError(
+            "Why: the calibration archive is keyed; an unkeyed rotation "
+            "would extend it without authentication. "
+            "Fix: pass hmac_key=... or leave the journal unrotated.")
     archived_ids = {record["id"]: record for record in archived}
     older = live[:-keep_recent]
     recent = live[-keep_recent:]

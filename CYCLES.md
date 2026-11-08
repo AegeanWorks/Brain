@@ -3761,3 +3761,12 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: without a key the checksum-only journal accepts the recomputed tamper; with the key the MAC rejects it. Rotation without a key cannot read a keyed journal (it raises), preventing silent MAC loss.
 - **Gates**: unittest 443/443 OK; aikit check brain 5/5 PASS.
 
+## Cycle 99 (Push 9) - refuse unkeyed writes over keyed evidence
+
+- **Audit finding**: an unkeyed calibration append over a keyed journal created a mixed journal that keyed loads reject; an unkeyed rotation moved keyed records unauthenticated; an unkeyed claim-store save replaced a keyed primary with an unkeyed snapshot.
+- **Failing-first**: all three downgrade attempts succeeded and changed the file.
+- **Change**: `append_forecasts` refuses an unkeyed append when existing records carry `mac`; `_rotate_locked` refuses an unkeyed rotation when live/archive records carry `mac`; `save_ledger` refuses an unkeyed overwrite of a keyed payload. Errors leave the file untouched.
+- **After**: 449 tests OK. All three attempts raise and the file is byte-identical; keyed reads still load; keyed append/rotation/save and all unkeyed-existing paths are unchanged; behavior and policy unchanged.
+- **Ablation**: without the guard the file is downgraded/mixed; with it the write is refused before any byte changes.
+- **Gates**: unittest 449/449 OK; aikit check brain 5/5 PASS.
+

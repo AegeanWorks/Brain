@@ -21,7 +21,7 @@ from calibration_store import (append_forecasts, load_all_forecasts,
 
 MODES = ("in-memory", "first-run", "aggregated", "duplicate", "tampered",
          "corrupt-line", "missing", "stale-lock", "fresh-lock", "keyed",
-         "keyed-wrong", "keyed-missing", "keyed-rotation")
+         "keyed-wrong", "keyed-missing", "keyed-rotation", "keyed-mixed")
 AT = "2026-11-07T00:00:00Z"
 FIRST = (
     ("run1:0", 0.9, 1), ("run1:1", 0.8, 1), ("run1:2", 0.7, 0),
@@ -60,7 +60,8 @@ def measure_case(mode="first-run", directory=None):
               "file_before": False, "file_after": False,
               "lock_exists": None, "hmac": None, "primary_exists": None,
               "error": None}
-    if mode in ("keyed", "keyed-wrong", "keyed-missing", "keyed-rotation"):
+    if mode in ("keyed", "keyed-wrong", "keyed-missing", "keyed-rotation",
+                "keyed-mixed"):
         key = hashlib.sha256(b"calibration-eval-key").digest()
         wrong = hashlib.sha256(b"calibration-eval-wrong").digest()
         if mode == "keyed-rotation":
@@ -88,6 +89,18 @@ def measure_case(mode="first-run", directory=None):
             result.update({"ok": verified["ok"],
                            "findings": verified["findings"],
                            "hmac": verified["hmac"],
+                           "primary_exists": Path(path).exists()})
+            return result
+        if mode == "keyed-mixed":
+            before = Path(path).read_bytes()
+            try:
+                append_forecasts(_forecasts(SECOND), path, at=AT)
+            except ValueError as exc:
+                result["error"] = str(exc)
+            after = Path(path).read_bytes()
+            loaded = load_forecasts(path, hmac_key=key)
+            result.update({"records": len(loaded), "ok": before == after,
+                           "hmac": True,
                            "primary_exists": Path(path).exists()})
             return result
         target_key = key if mode == "keyed-missing" else wrong
