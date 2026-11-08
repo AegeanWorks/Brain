@@ -3778,3 +3778,13 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: without the guard the file is downgraded/mixed; with it the write is refused before any byte changes.
 - **Gates**: unittest 449/449 OK; aikit check brain 5/5 PASS.
 
+## Push-series review 1 to 9 and loop-back to the beginning
+
+- **Baseline**: branch `master` at `824870a` (98 commits, no remote configured). A "push" here is a verified local conventional commit; `git push` has no destination, so no network push was possible or made.
+- **Review 1 -> 3** (`b1af2c6`, `67d9b02`, `0dd9e07`): 3 commits, 15 files, 608 insertions. Claim status/verdict consistency, lock ownership tokens, episode workspace/policy pins. Cumulative gates: 430 tests OK; AIKit 5/5; claim store/evidence and episode batteries clean; `policy_digest` unchanged.
+- **Review 1 -> 6** (`+62a01a8`, `764e1f2`, `865fa5b`): 6 commits, 20 files, 1036 insertions. Keyed claim store, keyed store authentication through the ref verifier, streamed header reads (100k records: 124.2 MB -> 0.1 MB peak). Cumulative gates: 438 tests OK; AIKit 5/5; keyed/wrong/missing/tampered and workspace modes clean.
+- **Review 1 -> 9** (`+cbc062a`, `f493c7b`, `2a4b155`, docs `ced2b70`): 9 feature pushes, 25 files, 1487 insertions. Keyed calibration journal/rotation, keyed bridge pass-through, unkeyed-downgrade guards. Cumulative gates: 449 tests OK; AIKit 5/5; keyed claim store (correct/wrong/missing/tampered/downgrade), keyed calibration (correct/wrong/missing/rotation/mixed), keyed bridge 13/13 at Brier 0.230769, episode workspace pins, and `policy_digest` decbfce3... all clean.
+- **Loop-back to Push 1**: re-ran `tests.test_claims`, `tests.test_claims_store`, `tests.test_file_locks`, `tests.test_episode_verify` at HEAD: 57 tests OK; the Push 1 `Claim(status="supported")` inconsistency is still rejected; the full suite is 449 OK and AIKit 5/5. The beginning behavior survives all later pushes.
+- **Findings fixed**: claim status could contradict verdict history (Push 1); a stolen lock's successor could be deleted (Push 2); malformed policy/workspace digests were accepted and workspace was unverified (Push 3); claim snapshots were checksum-only (Push 4); the combined verifier bypassed a keyed store (Push 5); verification retained every action record (Push 6); calibration records were checksum-only (Push 7); the bridge could not pass a calibration key (Push 8); unkeyed writes could downgrade keyed evidence (Push 9).
+- **Result**: no regressions, no behavior/action/reward changes, no policy change. The reviewed range now starts and ends at the same verified state class: full tests green, AIKit 5/5, clean tree.
+
