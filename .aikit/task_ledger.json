@@ -3,42 +3,15 @@
   "active_task": {
     "task_id": "brain-publish-private",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1794129021.4774873,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794129186.3362267,
     "owner": "opencode:publish",
     "started_by": "opencode:publish",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794129186.64592
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push7-calibration-hmac",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-push7-calibration-hmac' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794111193.6371765,
-      "timestamp_str": "2026-11-08 07:13:13",
-      "agent": "opencode:push7"
-    },
-    {
-      "task_id": "brain-push9-downgrade-guard",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: refuse unkeyed writes over keyed evidence",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794111884.06186,
-      "timestamp_str": "2026-11-08 07:24:44",
-      "agent": "opencode:push9",
-      "impact_assessment": {
-        "why": "Unkeyed append/rotation over a keyed calibration journal and unkeyed save over a keyed claim store silently downgraded or mixed authenticated evidence.",
-        "benefits": "All three write paths refuse the downgrade and leave the file byte-identical; keyed reads still load.",
-        "risks": "contract: store-level guards only; dependency: none; concurrency: guards run under the existing lock; state: no schema change.",
-        "mitigation": "Guard append, rotation live/archive, and save; test byte equality and keyed reload; rerun 449 tests and AIKit."
-      },
-      "plan_digest": "f524cff6b0d2ba2757e20f0575527b3c434449d40f983876572134aadbf51b52"
-    },
     {
       "task_id": "brain-push9-downgrade-guard",
       "phase": "in_progress",
@@ -253,6 +226,27 @@
       "status": "in_progress",
       "timestamp": 1794129021.4774873,
       "timestamp_str": "2026-11-08 12:10:21",
+      "agent": "opencode:publish"
+    },
+    {
+      "task_id": "brain-publish-private",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[publish] Pushed to https://github.com/AegeanWorks/Brain: private, master, remote=local 9cd4d9f; topics set; dossier skipped for private",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794129186.3362267,
+      "timestamp_str": "2026-11-08 12:13:06",
+      "agent": "opencode:publish"
+    },
+    {
+      "task_id": "brain-publish-private",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-publish-private' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794129186.645922,
+      "timestamp_str": "2026-11-08 12:13:06",
       "agent": "opencode:publish"
     }
   ]
