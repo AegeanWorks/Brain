@@ -3736,3 +3736,12 @@ only integration scores, cross-module dependencies, and ablation differentials.
 - **Ablation**: unkeyed snapshot + same tamper passes the checksum but fails the MAC when a key is supplied; wrong key leaves evidence intact.
 - **Gates**: unittest 434/434 OK; aikit check brain 5/5 PASS.
 
+## Cycle 96 (Push 5) - authenticate a keyed claim store through the combined verifier
+
+- **Audit finding**: Push 4 added a claim-store HMAC, but `verify_claim_store` loaded the snapshot without a key, silently bypassing authentication in the combined verifier.
+- **Failing-first**: `store_hmac_key` was an unexpected keyword; a wrong store key was not rejected.
+- **Change**: `verify_claim_store` takes `store_hmac_key` (separate from the telemetry `hmac_key`) and passes it to `load_ledger`; results carry `store_hmac`. One test and a `store-keyed` battery mode.
+- **After**: 435 tests OK. Keyed store verifies 2/2 with `store_hmac=true`; wrong key raises `claim store MAC does not match its payload`; unkeyed store still verifies; all other claim-ref modes unchanged; behavior and policy unchanged.
+- **Ablation**: omitting `store_hmac_key` loads the keyed store unauthenticated (backward compatible); supplying it enforces the MAC.
+- **Gates**: unittest 435/435 OK; aikit check brain 5/5 PASS.
+

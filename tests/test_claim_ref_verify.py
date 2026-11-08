@@ -288,6 +288,23 @@ class TestClaimRefVerifier(unittest.TestCase):
         self.assertTrue(result["ok"], result["findings"])
         self.assertEqual(result["verified"], 1)
 
+    def test_store_verifier_authenticates_a_keyed_store(self):
+        key = hashlib.sha256(b"claim-ref-store-key").digest()
+        wrong = hashlib.sha256(b"claim-ref-store-wrong").digest()
+        with tempfile.TemporaryDirectory() as tmp:
+            _, episode, log1 = _run(tmp, "T3_navigate", 15, "store-keyed")
+            store = os.path.join(tmp, "claims.json")
+            save_ledger(_ledger(episode), store, saved_at=STAMP,
+                        hmac_key=key)
+            good = verify_claim_store(store, log1, store_hmac_key=key)
+            with self.assertRaises(ValueError):
+                verify_claim_store(store, log1, store_hmac_key=wrong)
+            unkeyed = verify_claim_store(store, log1)
+        self.assertTrue(good["ok"], good["findings"])
+        self.assertEqual(good["verified"], 1)
+        self.assertTrue(good["store_hmac"])
+        self.assertTrue(unkeyed["ok"], unkeyed["findings"])
+
     def test_invalid_inputs_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             _, episode, log1 = _run(tmp, "T3_navigate", 15, "first")

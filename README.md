@@ -592,12 +592,14 @@ for one log, or a per-log mapping) checks the log head/count against an
 anchor journal. A failed chain/MAC/journal check raises instead of
 trusting the header. It reports `verified/unverified/unreferenced` and
 names `unknown-episode` findings; `verify_claim_store` loads a snapshot
-first. `verify_logs=False` is the membership-only ablation and cannot
-take an `hmac_key` or journal. `python -m evals.claim_ref_verify` shows a
-2/2 verified pair, missing-log 1/1, fabricated 0/1, an unreferenced
-verdict, the store path, a tampered log (rejected; membership-only still
-1), a keyed log (correct key ok, wrong key `bad-mac`), journaled 2/2, a
-truncated log (chain-only 1, journal `truncated-tail:26<28`), and
+first and takes `store_hmac_key` to authenticate a keyed claim snapshot
+(separate from the telemetry `hmac_key`). `verify_logs=False` is the
+membership-only ablation and cannot take an `hmac_key` or journal.
+`python -m evals.claim_ref_verify` shows a 2/2 verified pair, missing-log
+1/1, fabricated 0/1, an unreferenced verdict, the unkeyed and keyed store
+paths, a tampered log (rejected; membership-only still 1), a keyed log
+(correct key ok, wrong key `bad-mac`), journaled 2/2, a truncated log
+(chain-only 1, journal `truncated-tail:26<28`), and
 missing/tampered-journal/no-header/missing-file errors. The chain check
 detects edited/deleted/reordered records but not a fully rewritten
 self-consistent log; HMAC requires key custody; the anchor journal is a

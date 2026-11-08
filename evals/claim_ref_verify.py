@@ -20,9 +20,9 @@ from claims_verify import verify_claim_refs, verify_claim_store
 from telemetry.log import Telemetry
 
 MODES = ("verified", "missing-log", "fabricated", "unreferenced", "store",
-         "tampered", "tampered-off", "keyed", "keyed-wrong", "journaled",
-         "truncated", "journal-missing", "journal-tampered", "no-header",
-         "missing-file")
+         "store-keyed", "tampered", "tampered-off", "keyed", "keyed-wrong",
+         "journaled", "truncated", "journal-missing", "journal-tampered",
+         "no-header", "missing-file")
 STAMP = 1700000000.0
 AT = "2026-11-07T00:00:00Z"
 
@@ -55,7 +55,7 @@ def measure_case(mode="verified", directory=None):
     result = {"mode": mode, "claims": 0, "verdicts": 0, "verified": 0,
               "unverified": 0, "unreferenced": 0, "episodes": 0,
               "ok": None, "findings": [], "error": None,
-              "verify_logs": None, "hmac": None,
+              "verify_logs": None, "hmac": None, "store_hmac": None,
               "membership_verified": None, "journals": 0,
               "chain_only_ok": None, "chain_only_verified": None}
     if mode == "journaled":
@@ -199,12 +199,15 @@ def measure_case(mode="verified", directory=None):
         ledger.add("unreferenced", "never")
         ledger.record("C1", "supports", "no ref", at=AT)
         logs = [log1, log2]
-    elif mode == "store":
+    elif mode in ("store", "store-keyed"):
         ledger = _ledger(first, second)
         store = os.path.join(directory, "claims-store.json")
-        save_ledger(ledger, store, saved_at=STAMP)
+        key = (hashlib.sha256(b"claim-ref-eval-store").digest()
+               if mode == "store-keyed" else None)
+        save_ledger(ledger, store, saved_at=STAMP, hmac_key=key)
         result.update(_summary(ledger))
-        verified = verify_claim_store(store, [log1, log2])
+        verified = verify_claim_store(store, [log1, log2],
+                                      store_hmac_key=key)
         result.update({"verified": verified["verified"],
                        "unverified": verified["unverified"],
                        "unreferenced": verified["unreferenced"],
@@ -213,7 +216,14 @@ def measure_case(mode="verified", directory=None):
                        "findings": verified["findings"],
                        "verify_logs": verified["verify_logs"],
                        "hmac": verified["hmac"],
+                       "store_hmac": verified["store_hmac"],
                        "journals": len(verified["journals"])})
+        if key is not None:
+            try:
+                verify_claim_store(store, [log1, log2],
+                                   store_hmac_key=b"wrong-key" * 4)
+            except ValueError as exc:
+                result["error"] = str(exc)
         return result
     else:
         ledger = _ledger(first, second)

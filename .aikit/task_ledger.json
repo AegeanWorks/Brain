@@ -1,78 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-push4-claim-hmac",
+    "task_id": "brain-push5-store-auth",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794109300.5313566,
-    "owner": "opencode:push4",
-    "started_by": "opencode:push4",
+    "updated_at": 1794109994.9200134,
+    "owner": "opencode:push5",
+    "started_by": "opencode:push5",
     "continuations": [],
-    "completed_at": 1794109301.5445998
+    "completed_at": 1794109995.3063936
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push1-claim-consistency",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Plan: enforce claim status/verdict consistency and verdict text validation",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794106706.9663994,
-      "timestamp_str": "2026-11-08 05:58:26",
-      "agent": "opencode:push1",
-      "impact_assessment": {
-        "why": "Claims could load with a status contradicting their verdict history, and verdict evidence/timestamps were unvalidated; a checksum-valid forged snapshot could assert an unsupported status.",
-        "benefits": "Status is derived from the last verdict; inconsistent claims, empty verdict evidence/timestamps and forged-checksum store snapshots are rejected while consistent legacy payloads still load.",
-        "risks": "contract: Claim/Verdict construction now validates, from_dict is stricter; dependency: none; concurrency: none; state: no schema change.",
-        "mitigation": "Preserve proposed-with-no-verdicts and last-verdict status; test construction and load; keep legacy consistent payloads; run 420 tests and AIKit."
-      },
-      "plan_digest": "20e2e258f716e8300757217ddafccacf437b02be63a2936c0f649c7da4e6e2eb"
-    },
-    {
-      "task_id": "brain-push1-claim-consistency",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Failing-first three tests; Verdict/Claim post_init, derived status, verdict text validation, forged-checksum store test, README/ADR-085",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794106707.2558558,
-      "timestamp_str": "2026-11-08 05:58:27",
-      "agent": "opencode:push1"
-    },
-    {
-      "task_id": "brain-push1-claim-consistency",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] 420 tests OK; forged status with valid checksum rejected; consistent legacy loads; claim refs/store pins unchanged; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794106707.5546157,
-      "timestamp_str": "2026-11-08 05:58:27",
-      "agent": "opencode:push1"
-    },
-    {
-      "task_id": "brain-push1-claim-consistency",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit Push 1",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794106707.8701801,
-      "timestamp_str": "2026-11-08 05:58:27",
-      "agent": "opencode:push1"
-    },
-    {
-      "task_id": "brain-push1-claim-consistency",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-push1-claim-consistency' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794106708.1946192,
-      "timestamp_str": "2026-11-08 05:58:28",
-      "agent": "opencode:push1"
-    },
     {
       "task_id": "brain-push2-lock-ownership",
       "phase": "in_progress",
@@ -255,6 +194,67 @@
       "timestamp": 1794109301.5446022,
       "timestamp_str": "2026-11-08 06:41:41",
       "agent": "opencode:push4"
+    },
+    {
+      "task_id": "brain-push5-store-auth",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Plan: authenticate a keyed claim store through verify_claim_store",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109993.6296027,
+      "timestamp_str": "2026-11-08 06:53:13",
+      "agent": "opencode:push5",
+      "impact_assessment": {
+        "why": "The combined verifier loaded keyed claim snapshots without passing the store key, silently bypassing the new MAC.",
+        "benefits": "store_hmac_key authenticates the snapshot through the combined verifier; wrong keys raise; the unkeyed path stays compatible.",
+        "risks": "contract: one optional verifier kwarg; dependency: claims_store load; concurrency: read-only; state: none.",
+        "mitigation": "Pass the key to load_ledger, report store_hmac, test correct/wrong/unkeyed, and rerun 435 tests plus AIKit."
+      },
+      "plan_digest": "1ee20e9b5f88edb2ae69e6445c121d6c0d7f68b3669962fc9ffd73eca33a9cbd"
+    },
+    {
+      "task_id": "brain-push5-store-auth",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Failing-first store_hmac_key TypeError; pass-through, store_hmac result, test/eval, README/ADR-089",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109994.0507972,
+      "timestamp_str": "2026-11-08 06:53:14",
+      "agent": "opencode:push5"
+    },
+    {
+      "task_id": "brain-push5-store-auth",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] 435 tests OK; keyed store 2/2 store_hmac true, wrong key rejected, unkeyed unchanged; aikit 5/5; policy unchanged",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109994.4703171,
+      "timestamp_str": "2026-11-08 06:53:14",
+      "agent": "opencode:push5"
+    },
+    {
+      "task_id": "brain-push5-store-auth",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] checklists: passed; ready to commit Push 5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794109994.9200134,
+      "timestamp_str": "2026-11-08 06:53:14",
+      "agent": "opencode:push5"
+    },
+    {
+      "task_id": "brain-push5-store-auth",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-push5-store-auth' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794109995.3063965,
+      "timestamp_str": "2026-11-08 06:53:15",
+      "agent": "opencode:push5"
     }
   ]
 }

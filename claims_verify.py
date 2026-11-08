@@ -216,13 +216,21 @@ def verify_claim_store(store_path, log_paths, hmac_key=None,
                        verify_logs=True, journal_paths=None,
                        verify_episodes=False,
                        expected_policy_sha256=None,
-                       expected_workspace_sha256=None):
-    """Load a claim-store snapshot and verify its verdict refs."""
+                       expected_workspace_sha256=None,
+                       store_hmac_key=None):
+    """Load a claim-store snapshot and verify its verdict refs.
+
+    ``hmac_key`` authenticates the telemetry logs; ``store_hmac_key``
+    authenticates the claim snapshot itself, so a keyed store is not
+    loaded unauthenticated through the combined verifier.
+    """
     from claims_store import load_ledger
 
-    return verify_claim_refs(load_ledger(store_path), log_paths,
-                             hmac_key=hmac_key, verify_logs=verify_logs,
-                             journal_paths=journal_paths,
-                             verify_episodes=verify_episodes,
-                             expected_policy_sha256=expected_policy_sha256,
-                             expected_workspace_sha256=expected_workspace_sha256)
+    ledger = load_ledger(store_path, hmac_key=store_hmac_key)
+    result = verify_claim_refs(
+        ledger, log_paths, hmac_key=hmac_key, verify_logs=verify_logs,
+        journal_paths=journal_paths, verify_episodes=verify_episodes,
+        expected_policy_sha256=expected_policy_sha256,
+        expected_workspace_sha256=expected_workspace_sha256)
+    result["store_hmac"] = store_hmac_key is not None
+    return result
