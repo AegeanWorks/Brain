@@ -4221,6 +4221,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 117**: unittest 541 OK; aikit 5/5; `expected_verdict_word` done iff ended and under budget; honest caps 5/8/10 truncated and 200 done; relabelled word yields `verdict-word-mismatch` with chain valid; `verify_result_records` 13/13; snapshot evidence; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 117 - pin the header's model label
+
+- **Baseline** (commit e10fe38):
+  - canonical gate: 541 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `verify_episode_header` validated task/seed/budget/policy/episode digests and supported external policy and workspace pins; the header's `model` field was stored verbatim and compared with nothing.
+  - measured: a `T3_navigate:15` log whose header `model` was rewritten from `rule` to `totally-different-model-99b` passed `verify_chain`, `verify_episode_header` and `verify_action_replay(check_verdict=True)`.
+- **Gap**: a log could attribute an episode to any backend. The episode digest covers the initial state and config, so no existing check could catch a swapped model label — the same structural hole the policy and workspace pins had before ADR-084/094.
+- **Target delta**: an external model pin names a swapped or missing label; omitting it changes nothing.
+- **Falsifier**: the honest log fails with a matching pin; the relabelled log passes with a pin; or a pinned value moves.
+- **Change**: `episode_verify.py` adds `expected_model=None` (non-empty string, `model-mismatch`/`missing-model`, echoed in the result); `claims_verify.py` threads it through `verify_claim_refs`/`verify_claim_store` with the same `verify_episodes=True` requirement; `tests/test_model_pin.py` adds 5 tests. ADR-111.
+- **After** (same logs):
+  - honest: unpinned True, pinned True.
+  - relabelled `totally-different-model-99b`: chain True, replay True, unpinned True (unchanged), pinned False with `['model-mismatch']` and the digest still recomputing.
+  - `verify_claim_refs(verify_episodes=True, expected_model='rule')` on the relabelled log raises `failed episode verification: model-mismatch`.
+  - episode/claim-ref/replay suites 54 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without the pin any label passes all three verifiers; with it the swap is named, and the trajectory and digest are byte-identical in both readings, so the delta is the pin.
+- **Verdict**: evidence-integrity extension closing the last unpinned header field. The measured delta is a model label that could be rewritten freely and now cannot be when the caller pins it; no behavior, estimator or pin moves. Boundary: a pin only works when the caller knows the expected label; the header still stores the label verbatim, and this does not bind the label to the weights — the manifest digest in `model_decision` records remains the weight-level binding.
+- **Gates**: unittest 546/546 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_model_pin` -> before: 5 errors (`expected_model` unexpected); after: 5 OK.
+  - `python -m unittest tests.test_episode_verify tests.test_claim_ref_verify tests.test_claim_replay tests.test_model_pin` -> 54 OK.
+  - `python ..\..\scratch\ablate_117.py` -> unpinned accepts, pinned names `model-mismatch`, claim refused; standing 89/11.0.
+  - `python -m unittest discover -s tests -t .` -> 546 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 118**: unittest 546 OK; aikit 5/5; `expected_model` matching True, wrong `model-mismatch`, missing `missing-model`, omitted unchanged, invalid raises; claim-ref pin refuses a relabelled log; `expected_verdict_word`; `verify_result_records` 13/13; snapshot evidence; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

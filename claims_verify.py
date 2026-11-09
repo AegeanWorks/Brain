@@ -114,7 +114,8 @@ def _log_episodes(path, hmac_key=None, verify_logs=True,
 def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
                       journal_paths=None, verify_episodes=False,
                       expected_policy_sha256=None,
-                      expected_workspace_sha256=None, verify_replay=False):
+                      expected_workspace_sha256=None, expected_model=None,
+                      verify_replay=False):
     """Check every verdict ref against the episodes found in the logs.
 
     ``verify_logs=True`` (default) first verifies each log's hash chain;
@@ -149,7 +150,8 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
             "Fix: enable chain verification or omit verify_replay.")
     for name, value in (("expected_policy_sha256", expected_policy_sha256),
                         ("expected_workspace_sha256",
-                         expected_workspace_sha256)):
+                         expected_workspace_sha256),
+                        ("expected_model", expected_model)):
         if value is not None and not verify_episodes:
             raise ValueError(
                 "Why: %s needs verify_episodes=True. "
@@ -168,7 +170,8 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
         for path in paths:
             episode = verify_episode_header(
                 path, expected_policy_sha256=expected_policy_sha256,
-                expected_workspace_sha256=expected_workspace_sha256)
+                expected_workspace_sha256=expected_workspace_sha256,
+                expected_model=expected_model)
             if not episode["ok"]:
                 raise ValueError(
                     "log %s failed episode verification: %s. "
@@ -230,6 +233,7 @@ def verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
         "replay": verify_replay,
         "expected_policy_sha256": expected_policy_sha256,
         "expected_workspace_sha256": expected_workspace_sha256,
+        "expected_model": expected_model,
     }
 
 
@@ -238,7 +242,8 @@ def verify_claim_store(store_path, log_paths, hmac_key=None,
                        verify_episodes=False,
                        expected_policy_sha256=None,
                        expected_workspace_sha256=None,
-                       store_hmac_key=None, verify_replay=False):
+                       store_hmac_key=None, expected_model=None,
+                       verify_replay=False):
     """Load a claim-store snapshot and verify its verdict refs.
 
     ``hmac_key`` authenticates the telemetry logs; ``store_hmac_key``
@@ -255,6 +260,7 @@ def verify_claim_store(store_path, log_paths, hmac_key=None,
         journal_paths=journal_paths, verify_episodes=verify_episodes,
         expected_policy_sha256=expected_policy_sha256,
         expected_workspace_sha256=expected_workspace_sha256,
+        expected_model=expected_model,
         verify_replay=verify_replay)
     result["store_hmac"] = store_hmac_key is not None
     return result

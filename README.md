@@ -367,17 +367,17 @@ reproducible. Stored policy and workspace digests must be 64-hex
 cites a different policy, even if its episode digest is self-consistent
 (a forged policy plus a matching digest); an optional
 `expected_workspace_sha256=` pin reports `workspace-mismatch`, or
-`missing-workspace` when the header has none.
+`missing-workspace` when the header has none; an optional `expected_model=`
+pin reports `model-mismatch` or `missing-model`, so a swapped backend label
+cannot pass.
 `verify_claim_refs(..., verify_episodes=True,
-expected_policy_sha256=..., expected_workspace_sha256=...)` opts into the
-same checks and requires episode verification for either pin. `python -m
-evals.episode_header` shows intact seed 15 / `f9343058…`, wrong
-seed/episode (`episode-mismatch`), missing seed/header, claims/tampered
-(the claim-ref check rejects; membership-only still verifies), a current
-policy pin (`ok`), a wrong pin (`policy-mismatch`), a forged
-policy+episode that passes internally but fails the pin, an invalid
-policy, workspace current/wrong/missing/invalid, and the claims-policy/
-claims-workspace paths. The recomputation trusts the stored
+expected_policy_sha256=..., expected_workspace_sha256=..., expected_model=...)`
+opts into the same checks and requires episode verification for any pin.
+`python -m evals.episode_header` shows intact, wrong seed/episode,
+missing seed/header, claims/tampered (membership-only still verifies),
+current/wrong/forged policy pins, invalid policy, workspace
+current/wrong/missing/invalid, and the claims-policy/-workspace paths.
+The recomputation trusts the stored
 task/seed/budget/policy; it proves internal consistency, not that the run
 happened, and old headers without a seed report `missing-seed`.
 Verification reads only headers via `Telemetry.read_headers()`, so a long

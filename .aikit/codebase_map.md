@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `156`
-- **Total Classes**: `161`
-- **Total Top-Level Functions**: `499`
-- **Total Class Methods**: `766`
-- **Total Source Lines**: `22557`
+- **Total Python Modules**: `157`
+- **Total Classes**: `162`
+- **Total Top-Level Functions**: `501`
+- **Total Class Methods**: `771`
+- **Total Source Lines**: `22687`
 
 ---
 
@@ -225,15 +225,15 @@
 ### [`claims_verify.py`](claims_verify.py)
 > *Read-only verification of claim verdict refs against logged episodes.*
 
-**Size**: `260` lines (`11107` bytes)
+**Size**: `266` lines (`11382` bytes)
 
 **Functions:**
 - `def _validate_options(hmac_key, verify_logs)`
 - `def _normalise_paths(log_paths)`
 - `def _normalise_journals(paths, journal_paths)`
 - `def _log_episodes(path, hmac_key, verify_logs, journal_path)`
-- `def verify_claim_refs(ledger, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256, verify_replay)` - *Check every verdict ref against the episodes found in the logs.*
-- `def verify_claim_store(store_path, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256, store_hmac_key, verify_replay)` - *Load a claim-store snapshot and verify its verdict refs.*
+- `def verify_claim_refs(ledger, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256, expected_model, verify_replay)` - *Check every verdict ref against the episodes found in the logs.*
+- `def verify_claim_store(store_path, log_paths, hmac_key, verify_logs, journal_paths, verify_episodes, expected_policy_sha256, expected_workspace_sha256, store_hmac_key, expected_model, verify_replay)` - *Load a claim-store snapshot and verify its verdict refs.*
 
 ---
 
@@ -265,11 +265,11 @@
 ### [`episode_verify.py`](episode_verify.py)
 > *Independent verification of a log header's episode digest.*
 
-**Size**: `106` lines (`4377` bytes)
+**Size**: `122` lines (`5270` bytes)
 
 **Functions:**
 - `def _valid_digest(value)`
-- `def verify_episode_header(log_path, expected_policy_sha256, expected_workspace_sha256)` - *Rebuild the episode identity from one log's header fields.*
+- `def verify_episode_header(log_path, expected_policy_sha256, expected_workspace_sha256, expected_model)` - *Rebuild the episode identity from one log's header fields.*
 
 ---
 
@@ -2147,6 +2147,25 @@
 
 **Functions:**
 - `def _rule_actions(task, seed, max_steps)`
+
+---
+
+### [`tests/test_model_pin.py`](tests/test_model_pin.py)
+> *The header's model label must be pinnable, like the policy digest.*
+
+**Size**: `108` lines (`4782` bytes)
+
+**Classes:**
+- `class TestModelPin`
+  - Method `.test_matching_model_pin_passes()`
+  - Method `.test_wrong_model_pin_is_named()`
+  - Method `.test_missing_model_is_named_when_pinned()`
+  - Method `.test_pin_is_opt_in()`
+  - Method `.test_invalid_model_pin_is_rejected()`
+
+**Functions:**
+- `def _write_log(directory, name, task, seed)`
+- `def _rewrite_model(log_path, out_path, model)`
 
 ---
 

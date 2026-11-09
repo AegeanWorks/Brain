@@ -18,7 +18,8 @@ def _valid_digest(value):
 
 
 def verify_episode_header(log_path, expected_policy_sha256=None,
-                          expected_workspace_sha256=None):
+                          expected_workspace_sha256=None,
+                          expected_model=None):
     """Rebuild the episode identity from one log's header fields.
 
     ``expected_policy_sha256`` optionally pins the producing policy; a
@@ -27,6 +28,9 @@ def verify_episode_header(log_path, expected_policy_sha256=None,
     ``expected_workspace_sha256`` optionally pins the source tree; a
     missing or different stored workspace is named. Malformed stored
     policy/workspace digests are reported as invalid.
+    ``expected_model`` optionally pins the backend label: a header naming a
+    different model reports ``model-mismatch``, and one with no model
+    reports ``missing-model``. Nothing is checked when the pin is omitted.
     """
     for name, value in (("expected_policy_sha256", expected_policy_sha256),
                         ("expected_workspace_sha256",
@@ -35,6 +39,11 @@ def verify_episode_header(log_path, expected_policy_sha256=None,
             raise ValueError(
                 "Why: %s must be a 64-hex digest or None. "
                 "Fix: pass the expected digest or omit it." % name)
+    if expected_model is not None and (not isinstance(expected_model, str)
+                                       or not expected_model.strip()):
+        raise ValueError(
+            "Why: expected_model must be a non-empty string or None. "
+            "Fix: pass the expected backend label or omit it.")
     try:
         headers = Telemetry(log_path).read_headers()
     except (OSError, ValueError) as exc:
@@ -79,6 +88,12 @@ def verify_episode_header(log_path, expected_policy_sha256=None,
                 findings.append("missing-workspace")
             elif workspace != expected_workspace_sha256:
                 findings.append("workspace-mismatch")
+        if expected_model is not None:
+            model = header.get("model")
+            if not isinstance(model, str) or not model:
+                findings.append("missing-model")
+            elif model != expected_model:
+                findings.append("model-mismatch")
         try:
             state = GridWorld(task, seed).reset()
             recomputed, _projection = input_digest(state, {
@@ -103,4 +118,5 @@ def verify_episode_header(log_path, expected_policy_sha256=None,
         "results": results,
         "expected_policy_sha256": expected_policy_sha256,
         "expected_workspace_sha256": expected_workspace_sha256,
+        "expected_model": expected_model,
     }
