@@ -174,6 +174,24 @@ def synergy(trace, target):
     return (syn, (syn / ij) if ij > 1e-12 else 0.0)
 
 
+def synergy_sign(syn, syn_n):
+    """Classify a synergy gap's direction as ``positive``, ``negative`` or ``zero``.
+
+    ``syn`` is ``I(joint) - I(c1) - I(c2)``, so it is negative whenever the
+    joint code carries less information than the sum of its marginals.
+    ``syn_n`` divides by ``I(joint)``, which means a negative gap can produce
+    ``syn_n == -1.0`` — the largest magnitude the ratio can reach. Read alone
+    that looks like the strongest possible interaction when it is the
+    opposite, so the direction travels with the number.
+
+    The classification follows the sign of ``syn``; ``syn_n`` is accepted so
+    a caller holding both does not have to re-derive which is authoritative.
+    """
+    if not syn:
+        return "zero"
+    return "positive" if float(syn) > 0.0 else "negative"
+
+
 def gbi(pre_decodable, post_decodable):
     """Headroom-normalized change: (post - pre) / (1 - pre)."""
     pre, post = float(pre_decodable), float(post_decodable)

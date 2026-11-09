@@ -4705,6 +4705,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 136**: unittest 675 OK; aikit 5/5; `prompt_stats` reports `within_budget`/`over_by` (120/60 True/0, 40 False/10, 9 False/41, uncapped None/0) and the prompt text is unchanged; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `push_budget`/`pop_budget` absent; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 136 - report a negative synergy gap as negative
+
+- **Baseline** (commit eeb2e43):
+  - canonical gate: 675 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `synergy` returns `syn = I(joint) - I(c1) - I(c2)` and `syn_n = syn / I(joint)`, so a negative gap can reach `syn_n = -1.0`, the largest magnitude the ratio can take.
+  - measured on the six pinned cases: T1:71 +0.037283/+0.077258; T2:3 -0.376770/-1.000000; T3:15 -0.057913/-0.213553; T3:65 -0.450561/-1.000000; T3:74 -0.040767/-0.116866; T3:479 -0.047824/-0.147114 — five of six negative, two at exactly -1.0.
+- **Gap**: a reader taking the magnitude as interaction strength would rank the two `-1.0` cases highest when they are the strongest anti-interaction. Nothing distinguished a maximal positive from a maximal negative without checking a second field's sign.
+- **Target delta**: the direction travels with the number as a pinned `syn_sign`; `syn`/`syn_n` unchanged.
+- **Falsifier**: the real run reports the wrong direction; `syn`/`syn_n` move; or a pinned value changes.
+- **Change**: `evals/estimators.py` adds `synergy_sign(syn, syn_n)` (positive/negative/zero from the gap's sign); `evals/recompute.py` reports it as `syn_sign`; `tests/test_synergy_sign.py` adds 6 tests. ADR-130.
+- **After** (same cases):
+  - T1:71 `positive`; the other five `negative`, including T2:3 and T3:65 at `syn_n = -1.0`.
+  - estimator/recompute/scope/wiring/snapshot-evidence suites 24 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `syn_sign` two of six pinned cases report `syn_n = -1.0` with nothing distinguishing them from a maximal positive interaction; with it both read `negative`.
+- **Verdict**: telemetry-honesty extension on the integration readout. The measured delta is the direction of an already-reported number; no value, action or pin moves. Boundary: it labels the direction — it does not make a negative gap positive, and five of six pinned cases genuinely show the joint carrying less than its marginals.
+- **Gates**: unittest 681/681 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_syn_sign.py` -> five of six negative, two at -1.0.
+  - `python -m unittest tests.test_synergy_sign` -> before: 1 error; after: 6 OK.
+  - `python ..\..\scratch\ablate_136.py` -> sign readout names both -1.0 cases negative.
+  - `python -m unittest discover -s tests -t .` -> 681 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 137**: unittest 681 OK; aikit 5/5; `syn_sign` positive for T1:71, negative for T2:3/T3:15/T3:65/T3:74/T3:479; `syn_n = -1.0` labelled negative; `prompt_stats` honesty fields; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

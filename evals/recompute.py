@@ -18,8 +18,8 @@ arrays and vectors via evals.estimators.
 import argparse
 import json
 
-from evals.estimators import (gbi, phi_ar, recovery, synergy,
-                             synergy_scope, transfer_gain)
+from evals.estimators import (gbi, phi_ar, recovery, synergy, synergy_scope,
+                             synergy_sign, transfer_gain)
 
 _EVAL_KINDS = ("eval_samples", "eval_decodability", "eval_transfer", "eval_recovery")
 
@@ -129,6 +129,7 @@ def recompute(log_path):
     return {
         "syn": syn,
         "syn_n": syn_n,
+        "syn_sign": synergy_sign(syn, syn_n),
         "syn_scope": synergy_scope(syn_trace, syn_targets),
         "phi": phi_ar(phi_rows) if len(phi_rows) >= 3 else 0.0,
         "gbi": gbi(_mean(acc["pres"]), _mean(acc["posts"])) if acc["pres"] else 0.0,

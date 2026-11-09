@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `176`
-- **Total Classes**: `180`
-- **Total Top-Level Functions**: `530`
-- **Total Class Methods**: `907`
-- **Total Source Lines**: `24971`
+- **Total Python Modules**: `177`
+- **Total Classes**: `181`
+- **Total Top-Level Functions**: `531`
+- **Total Class Methods**: `913`
+- **Total Source Lines**: `25059`
 
 ---
 
@@ -550,7 +550,7 @@
 ### [`evals/estimators.py`](evals/estimators.py)
 > *Stdlib-only estimators for Brain evals.*
 
-**Size**: `237` lines (`8065` bytes)
+**Size**: `255` lines (`8873` bytes)
 
 **Functions:**
 - `def _discretize(values, bins)`
@@ -559,6 +559,7 @@
 - `def phi_ar(trace)` - *Residual-variance ratio: 1 - MSE(whole)/MSE(partitioned), clipped at 0.*
 - `def synergy_scope(trace, target)` - *Report which trace columns ``synergy`` reads, and whether they can decide.*
 - `def synergy(trace, target)` - *Joint-minus-marginals gap: (syn, syn_n).*
+- `def synergy_sign(syn, syn_n)` - *Classify a synergy gap's direction as ``positive``, ``negative`` or ``zero``.*
 - `def gbi(pre_decodable, post_decodable)` - *Headroom-normalized change: (post - pre) / (1 - pre).*
 - `def logistic_k(x, y)` - *Grid search over slope k; returns (best_k, r2).*
 - `def transfer_gain(naive_steps, reuse_steps)` - *Relative step reduction: (naive - reuse) / naive.*
@@ -725,7 +726,7 @@
 ### [`evals/recompute.py`](evals/recompute.py)
 > *Recompute eval statistics from a JSONL log without trusting self-reports.*
 
-**Size**: `149` lines (`5764` bytes)
+**Size**: `150` lines (`5824` bytes)
 
 **Functions:**
 - `def _mean(xs)`
@@ -3014,6 +3015,22 @@
 
 **Functions:**
 - `def _rows(width, n)`
+
+---
+
+### [`tests/test_synergy_sign.py`](tests/test_synergy_sign.py)
+> *A negative synergy gap must be reported as such, not as a strong one.*
+
+**Size**: `69` lines (`2931` bytes)
+
+**Classes:**
+- `class TestSynergySign`
+  - Method `.test_a_positive_gap_is_reported_positive()`
+  - Method `.test_a_negative_ratio_at_minus_one_is_reported_negative()`
+  - Method `.test_a_small_negative_is_still_negative()`
+  - Method `.test_zero_is_reported_zero()`
+  - Method `.test_the_classification_uses_the_gap_not_the_ratio()`
+  - Method `.test_the_estimator_keeps_its_values()`
 
 ---
 
