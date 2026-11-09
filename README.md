@@ -101,13 +101,12 @@ A warm run stores one full initial state per `(task, seed)` in the additive
 `layouts` table (first write wins). Only task-complete states are written: a
 cold-first run cannot poison the row, and a later complete run replaces an
 incomplete one. Rows store a geometry hash. A cold run whose
-observations omit goal fields reads that
-layout once per episode; the planner probe records `store_reads` plus the
-fields supplied by `state`, `memory`, or `persistent`, and the same fields
-reach the model-seam observation. Cutting the source with
-`Planner.bind_recall_source(None)` restores the store-blind behavior; cutting
-the completeness gate restores cold-first poisoning. Property and trace share
-one ablation per scenario.
+observations omit goal fields reads that layout once per episode; the
+planner probe records `store_reads` plus the fields supplied by `state`,
+`memory` or `persistent`, and the same fields reach the model-seam
+observation. Cutting the source with `Planner.bind_recall_source(None)`
+restores the store-blind behavior; cutting the completeness gate restores
+cold-first poisoning. Property and trace share one ablation per scenario.
 
 ## 🤝 Model-Seam Trust Contract
 
@@ -127,19 +126,17 @@ T1 item tours or no-target states are untouched. Each rejection is
 counted in `progress_rejections` and the decision carries
 `progress_guard` plus `progress: {proposed, rule}`. After
 `progress_skip_after=3` consecutive progress rejections (the streak
-resets on any non-progress outcome), the planner stops calling the
-backend for the rest of the episode with `reason=skipped-progress` and
-`progress_distrusted=True`; `progress_skip_after=None` keeps the calls
-for the guard-only ablation, and the policy key is
-`backend_progress_skip: streak>=3->match-only`. `python -m
+resets on any non-progress outcome), calls stop for the rest of the
+episode with `reason=skipped-progress` and `progress_distrusted=True`;
+`progress_skip_after=None` keeps them for the guard-only ablation, and the
+policy key is `backend_progress_skip: streak>=3->match-only`. `python -m
 evals.progress_guard` shows T3:15 33 -> 13 steps, T3:65 26 -> 6, T2:3
 34 -> 8; calls 21 -> 13/6/8 with the guard alone and 4/4/3 with the
 skip (one equal-distance move resets the streak in T3), while T1 stays
 36/22.
 `skip_after_distrust=False` (battery `--no-skip`) restores the redundant
 calls for the cost ablation. `trust_window=None` plus `noop_guard=False`
-and `progress_guard=False` is the raw control. Each step's action record
-carries
+and `progress_guard=False` is the raw control. Each action record carries
 `proposed/rule/steps_since_reward/distrusted/accepted/reason/skipped`;
 `reason` is `stall` only on the triggering step, then `distrusted` (call
 kept) or `skipped` (call omitted). Rule-only runs and good-backend
@@ -156,10 +153,10 @@ ties 0.5; `collect`/`wait` at the goal read distance 0 and 1.0 with no
 alternatives. `rule_readout=False` removes the field for the ablation;
 it never selects an action. The policy key is
 `rule_readout: bfs-move-ties`. `python -m evals.rule_confidence` shows
-89/89 readouts, 113 alternatives over 28 tie steps, only 1 tie with
-differing visit counts, and the rule choosing the least-visited
-alternative in all 28 with identical on/off 89-step/11.0 traces, plus
-unique/tie/collect fixtures.
+89/89 readouts, 113 alternatives over 28 tie steps, 1 tie with differing
+visit counts, and the rule choosing the least-visited alternative in all
+28 with identical on/off 89-step/11.0 traces, plus unique/tie/collect
+fixtures.
 
 On T1 movement steps the same readout adds `probe.tour`: the sorted
 remaining items, the lexicographic shortest-tour first item, the
@@ -167,25 +164,25 @@ best/chosen tour lengths, every first item tied at the best length, and
 `optimal`. `python -m evals.rule_confidence` finds 13 T1:71 tour steps
 with 0 first-item ties and all 13 optimal; a synthetic two-item tie
 (`[1,0]`/`[0,1]` from `[0,0]`) has two tied firsts and still chooses a
-shortest tour. `rule_readout=False` removes the field; no tour-order
-behavior change is made.
+shortest tour. `rule_readout=False` removes the field; tour order is
+unchanged.
 
 ## 🔗 Model-Manifest Binding
 
 A backend that exposes `last_manifest` (model id, checkpoint label,
 prompt, observation, sampling) has its manifest SHA-256 copied into
-every `model_decision` as `model_manifest_sha256`. The trace therefore
-binds each action to the exact generation input, and a same-named
-checkpoint swap changes the hash while the action trace stays
-identical. A raising call records `null` instead of leaking a stale
-manifest. `probe_manifest=False` removes the readout as the executable
-ablation. Weights never enter the repo: the manifest carries labels and
-hashes only. `python -m evals.manifest_binding` shows intact, probe-off, A/B.
+every `model_decision` as `model_manifest_sha256`. The trace binds each
+action to its generation input, and a same-named checkpoint swap changes
+the hash while the action trace stays identical. A raising call records
+`null` instead of leaking a stale manifest. `probe_manifest=False`
+removes the readout as the executable ablation. Weights never enter the
+repo: the manifest carries labels and hashes only.
+`python -m evals.manifest_binding` shows intact, probe-off, A/B.
 
 ## 🧭 Two-Blocker Dead-Pool Guard
 
-For exactly two blockers, the planner compares BFS distance to the
-target for the live and dead goal candidates before ordering the pool.
+For exactly two blockers, the planner compares BFS distance to the target
+for the live and dead goal candidates before ordering the pool.
 When the best live candidate is at least as close as the best dead one,
 dead goal steps are dropped; the action record's `probe` gains
 `dead_pool` with `position/excluded/live_distance/dead_distance`.
@@ -212,12 +209,14 @@ first prompt hash.
 ## 📏 Synergy Column Scope
 
 `synergy` reads columns 0 and 1 only, so `syn` 0.0 cannot separate
-"nothing there" from "signal outside them". `SYNERGY_COLUMNS` and
-`synergy_scope(...)` expose the pair, ignored/constant/duplicate columns
-and sufficiency; `recompute` and each battery slot carry `syn_scope`.
-Equal scope columns mean no independent second signal, so an interaction
-claim is unsupported: `duplicate-scope-column`; a constant column reads
-`constant-scope-column`.
+absence from "signal outside them". `synergy_scope(...)` and
+`synergy_null.synergy_verdict(...)` expose what the pair can decide
+(ignored/constant/duplicate columns, sufficiency) and whether it beats
+a permutation null (`p_upper`/`p_lower`, `distinguishable`);
+`recompute` and each battery slot carry both. Equal scope columns mean
+no independent second signal: `duplicate-scope-column`; a constant reads
+`constant-scope-column`. Only 3 of 17 slots and 2 of 6 traces beat the
+null.
 
 ## 🧪 Lesion Detectability
 

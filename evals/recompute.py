@@ -20,6 +20,7 @@ import json
 
 from evals.estimators import (gbi, phi_ar, recovery, synergy, synergy_scope,
                              synergy_sign, transfer_gain)
+from evals.synergy_null import synergy_verdict
 
 _EVAL_KINDS = ("eval_samples", "eval_decodability", "eval_transfer", "eval_recovery")
 
@@ -131,6 +132,7 @@ def recompute(log_path):
         "syn_n": syn_n,
         "syn_sign": synergy_sign(syn, syn_n),
         "syn_scope": synergy_scope(syn_trace, syn_targets),
+        "syn_null": synergy_verdict(syn_trace, syn_targets),
         "phi": phi_ar(phi_rows) if len(phi_rows) >= 3 else 0.0,
         "gbi": gbi(_mean(acc["pres"]), _mean(acc["posts"])) if acc["pres"] else 0.0,
         "gain": transfer_gain(_mean(acc["naive"]), _mean(acc["reuse"])) if acc["naive"] else 0.0,

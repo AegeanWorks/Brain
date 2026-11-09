@@ -4902,7 +4902,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -W error::ResourceWarning -m unittest tests.test_joint_binning_scale` -> 5 OK, no unclosed file.
   - `python -m unittest discover -s tests -t .` -> 723 OK.
   - `python aikit.py check brain` -> 5/5.
-- **Pinned regression baselines for cycle 144**: unittest 723 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+- **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
+## Cycle 144 - a synergy gap needs its null
+
+- **Baseline** (commit 9d497dd):
+  - canonical gate: 723 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `syn` was reported bare, with `syn_scope` and `syn_sign` beside it; nothing said whether the gap was outside chance.
+- **Gap**: measured against a permutation null (trace fixed, target shuffled, 600 draws) most pinned gaps are not distinguishable. Only 2 of 6 are outside the null's middle 95%, and the null is negative on 4 of 6 — so "syn < 0" is the default, not a finding. `T1_forage:71`'s positive +0.037283 has `p_upper` 0.338 (a third of the null is above it); `T3_navigate:65` is at `p_lower` 0.015.
+- **Target delta**: every `syn` readout carries its observed value, the null's centre/range and both one-sided tails, plus `distinguishable`.
+- **Falsifier**: a trace reports a verdict that contradicts its own null; the real run does not reach the slot; or a numeric value moves.
+- **Change**: `evals/synergy_null.py` adds `permutation_null` (seeded, deterministic) and `synergy_verdict` (`observed`, `trials`, `null_median`, `null_min`, `null_max`, `p_upper`, `p_lower`, `direction`, `distinguishable` at `TAIL=0.05`); `recompute` reports `syn_null`; `_trace_slot` and `snapshot.run_record` carry it; `tests/test_synergy_null.py` (7) and `tests/test_synergy_null_wiring.py` (6) added. ADR-138, ADR-139.
+- **After** (same traces):
+  - 17/17 battery slots carry `syn_null` (was 0/17); only 3 of 17 are distinguishable — `dead_pool` 1/5, `escape` 1/2, `trust` 1/4, `coldstart` 0/4, `manifest_binding` 0/2.
+  - six pinned traces: 2 of 6 distinguishable.
+  - `syn`/`syn_n`/`syn_sign`/`syn_scope` unchanged; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: with a bare `syn` the six numbers read as "integration" or "none" by sign, but 4 of 6 are the null's own default and the one positive value sits inside the null — the sign misleads in both directions. With the null, 14 of 17 slots are `distinguishable=False`.
+- **Verdict**: interpretability fix on the integration readout. The measured delta is a number without a verdict becoming a number with one; no estimate, action or pin moves. Boundary: 200 trials resolves tails to about 0.005, and the null permutes the target only — a serial/autocorrelated alternative is untested.
+- **Gates**: unittest 736/736 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_syn_null.py` -> per-trace null intervals and p-values.
+  - `python ..\..\scratch\probe_null_shape.py` -> null median/range on six traces.
+  - `python ..\..\scratch\ablate_144.py` -> 2 of 6 distinguishable at 600 trials.
+  - `python -m unittest tests.test_synergy_null tests.test_synergy_null_wiring` -> 13 OK.
+  - `python -m unittest discover -s tests -t .` -> 736 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 145**: unittest 736 OK; aikit 5/5; `syn_null` in 17/17 battery slots and `run_record`; 3 of 17 distinguishable (`dead_pool` 1/5, `escape` 1/2, `trust` 1/4); six pinned traces 2 of 6 distinguishable (`T3:65` `p_lower` 0.015, `T3:74` `p_upper` 0.017); `T1:71` `p_upper` 0.338; sign trap documented (`p_lower` for negative, `p_upper` for above-null); duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
 
 

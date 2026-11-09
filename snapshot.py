@@ -44,6 +44,7 @@ def run_record(task, seed, trace, stats=None):
         "action_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
         "syn": float(stats.get("syn", 0.0)),
         "syn_sign": stats.get("syn_sign"),
+        "syn_null": stats.get("syn_null"),
         "phi": float(stats.get("phi", 0.0)),
         "syn_scope": stats.get("syn_scope"),
         "replay_ok": None if replay is None else bool(replay.get("ok")),

@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `185`
-- **Total Classes**: `188`
-- **Total Top-Level Functions**: `543`
-- **Total Class Methods**: `955`
-- **Total Source Lines**: `25758`
+- **Total Python Modules**: `188`
+- **Total Classes**: `190`
+- **Total Top-Level Functions**: `546`
+- **Total Class Methods**: `968`
+- **Total Source Lines**: `26029`
 
 ---
 
@@ -456,7 +456,7 @@
 ### [`evals/coldstart.py`](evals/coldstart.py)
 > *Cold-start recovery battery: behavior plus trace, before/after.*
 
-**Size**: `327` lines (`12525` bytes)
+**Size**: `329` lines (`12666` bytes)
 
 **Classes:**
 - `class ColdWorld` - *GridWorld whose observations omit the task's goal fields.*
@@ -739,7 +739,7 @@
 ### [`evals/recompute.py`](evals/recompute.py)
 > *Recompute eval statistics from a JSONL log without trusting self-reports.*
 
-**Size**: `150` lines (`5824` bytes)
+**Size**: `152` lines (`5932` bytes)
 
 **Functions:**
 - `def _mean(xs)`
@@ -807,6 +807,17 @@
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
 - `def main()`
+
+---
+
+### [`evals/synergy_null.py`](evals/synergy_null.py)
+> *A synergy gap plus the null it has to be read against.*
+
+**Size**: `91` lines (`3633` bytes)
+
+**Functions:**
+- `def permutation_null(trace, target, trials, seed)` - *Return ``trials`` synergy gaps for shuffled copies of ``target``.*
+- `def synergy_verdict(trace, target, trials, seed)` - *Report a synergy gap against its permutation null.*
 
 ---
 
@@ -1074,7 +1085,7 @@
 ### [`snapshot.py`](snapshot.py)
 > *Deterministic run snapshots and record-set diffing (lattice transfer).*
 
-**Size**: `273` lines (`9555` bytes)
+**Size**: `274` lines (`9598` bytes)
 
 **Functions:**
 - `def run_record(task, seed, trace, stats)` - *Build one snapshot record from a task/seed trace and trace stats.*
@@ -3105,6 +3116,42 @@
 **Functions:**
 - `def _fixture_15()`
 - `def _fixture_4()`
+
+---
+
+### [`tests/test_synergy_null.py`](tests/test_synergy_null.py)
+> *A ``syn`` value needs its null, or it is a number without a verdict.*
+
+**Size**: `102` lines (`4459` bytes)
+
+**Classes:**
+- `class TestPermutationNull`
+  - Method `.test_the_null_is_deterministic_for_a_seed()`
+  - Method `.test_the_null_keeps_the_trace_and_permutes_the_target()`
+  - Method `.test_a_negative_trace_is_reported_as_anti_synergistic()`
+  - Method `.test_the_positive_trace_is_not_distinguishable()`
+  - Method `.test_the_verdict_carries_the_null_it_used()`
+  - Method `.test_degenerate_input_degrades_without_raising()`
+  - Method `.test_a_bad_trial_count_is_rejected()`
+
+**Functions:**
+- `def _rows(task, seed)`
+
+---
+
+### [`tests/test_synergy_null_wiring.py`](tests/test_synergy_null_wiring.py)
+> *The synergy null must reach every place ``syn`` is reported.*
+
+**Size**: `73` lines (`2858` bytes)
+
+**Classes:**
+- `class TestSynergyNullWiring`
+  - Method `.test_trace_slot_carries_the_null()`
+  - Method `.test_trace_slot_defaults_to_none()`
+  - Method `.test_trace_slot_keeps_every_existing_field()`
+  - Method `.test_run_record_carries_the_null()`
+  - Method `.test_run_record_defaults_to_none()`
+  - Method `.test_the_real_run_reaches_the_slot_with_a_verdict()`
 
 ---
 
