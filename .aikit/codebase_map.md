@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `155`
-- **Total Classes**: `160`
-- **Total Top-Level Functions**: `496`
-- **Total Class Methods**: `761`
-- **Total Source Lines**: `22406`
+- **Total Python Modules**: `156`
+- **Total Classes**: `161`
+- **Total Top-Level Functions**: `499`
+- **Total Class Methods**: `766`
+- **Total Source Lines**: `22557`
 
 ---
 
@@ -250,11 +250,12 @@
 ### [`episode_replay.py`](episode_replay.py)
 > *Replay a log's actions through the world its header names.*
 
-**Size**: `189` lines (`8001` bytes)
+**Size**: `217` lines (`9216` bytes)
 
 **Functions:**
 - `def parse_verdict_reason(reason)` - *Parse ``"steps=<n> reward=<r>"`` into ``{"steps", "reward"}`` or None.*
 - `def logged_steps(records)` - *Return the action records that carry a step, in log order.*
+- `def expected_verdict_word(replay, budget)` - *Return the word the trajectory and budget support.*
 - `def verify_result_records(log_path, records, expected_cost)` - *Check each step's paired result record against the step itself.*
 - `def replay_actions(task, seed, actions, max_steps)` - *Replay ``actions`` through a fresh world; return the visited states.*
 - `def verify_action_replay(log_path, records, max_steps, check_verdict)` - *Replay a log's actions and report where the trajectory diverges.*
@@ -2875,6 +2876,25 @@
 **Functions:**
 - `def _write_log(directory, name, task, seed)`
 - `def _rewrite_verdict(log_path, out_path, verdict, reason)` - *Re-emit a log through Telemetry with a replaced verdict record.*
+
+---
+
+### [`tests/test_verdict_word.py`](tests/test_verdict_word.py)
+> *The verdict word must agree with the trajectory and the budget.*
+
+**Size**: `123` lines (`5764` bytes)
+
+**Classes:**
+- `class TestVerdictWord`
+  - Method `.test_pre_cap_completion_is_done_and_clean()`
+  - Method `.test_budget_exhaustion_is_truncated_and_clean()`
+  - Method `.test_truncated_run_relabelled_done_is_named()`
+  - Method `.test_done_relabelled_truncated_is_named()`
+  - Method `.test_unknown_verdict_word_is_named()`
+
+**Functions:**
+- `def _write_log(directory, name, task, seed, max_steps)`
+- `def _rewrite_verdict(log_path, out_path, verdict, reason)`
 
 ---
 

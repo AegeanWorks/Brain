@@ -47,6 +47,25 @@ def logged_steps(records):
             and isinstance(record["args"].get("action"), str)]
 
 
+#: The two verdict words ``Agent._episode_verdict`` can write.
+VERDICT_WORDS = ("done", "truncated")
+
+
+def expected_verdict_word(replay, budget):
+    """Return the word the trajectory and budget support.
+
+    ``Agent._episode_verdict`` writes ``done`` only when the run ended on
+    the world's own ``done`` flag *and* before the step budget; a run that
+    consumed the budget is ``truncated`` even though the world sets its
+    ``done`` flag at the cap. Recomputing it here keeps the word checkable.
+    """
+    if not replay:
+        return "truncated"
+    ended = bool(replay[-1]["done"])
+    at_cap = len(replay) >= int(budget)
+    return "done" if ended and not at_cap else "truncated"
+
+
 def verify_result_records(log_path, records=None, expected_cost=1.0):
     """Check each step's paired result record against the step itself.
 
@@ -176,6 +195,15 @@ def verify_action_replay(log_path, records=None, max_steps=200,
                 replayed_reward = sum(item["reward"] for item in replay)
                 if abs(claimed["reward"] - replayed_reward) > 0.05:
                     findings.append("verdict-reward-mismatch")
+                # The word itself: 'done' only for a pre-cap completion.
+                budget = header.get("budget")
+                if isinstance(budget, bool) or not isinstance(budget, int):
+                    budget = max_steps
+                word = verdicts[-1].get("verdict")
+                if word not in VERDICT_WORDS:
+                    findings.append("verdict-word-mismatch")
+                elif word != expected_verdict_word(replay, budget):
+                    findings.append("verdict-word-mismatch")
         # The result records are the loop's other self-report; check them
         # against the steps they describe rather than trusting them.
         findings.extend(verify_result_records(log_path, records)["findings"])

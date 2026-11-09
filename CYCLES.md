@@ -4196,6 +4196,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 116**: unittest 536 OK; aikit 5/5; `verify_result_records` honest 13/13 True and rewritten False with `output-mismatch`/`cost-mismatch`; composed replay rejects it while chain stays True; `check_verdict=False` unchanged; snapshot evidence fields; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 116 - recompute the verdict word from the trajectory and the budget
+
+- **Baseline** (commit e3d4f22):
+  - canonical gate: 536 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `Agent._episode_verdict` writes `done` only for a pre-cap completion; a full-budget run is `truncated` even though the world sets its `done` flag at the cap.
+  - measured: `T3_navigate:15` capped at 5, 8 and 10 steps each wrote `truncated` with reason `steps=<n> reward=0.0`; rewriting **only** the word to `done` and keeping that honest reason returned `ok: True` with no findings at all three caps.
+- **Gap**: the verdict word — the field a reader scans first — was the one part of the verdict nothing checked. Cycles 112 and 115 covered the reason's numbers and the result records, but a truncated run could still be labelled `done` and pass every verifier.
+- **Target delta**: the word is recomputed from the replayed trajectory and the header budget and compared; honest logs at every cap stay clean.
+- **Falsifier**: an honest capped run is rejected; a relabelled word passes; or a pinned value moves.
+- **Change**: `episode_replay.py` adds `VERDICT_WORDS` and `expected_verdict_word(replay, budget)` and checks the word under `check_verdict=True` as `verdict-word-mismatch` (unknown word or disagreement with the recomputation; header `budget` when valid, else `max_steps`); `tests/test_verdict_word.py` adds 5 tests. ADR-110.
+- **After** (same caps):
+  - honest: cap 5/8/10 → `truncated`, `replay_ok True`; cap 200 → `done` at 13 steps, `replay_ok True`.
+  - forged word `done`: `chain_ok True`, `replay_ok False`, findings `['verdict-word-mismatch']` at every cap.
+  - replay/verdict/result/snapshot/wiring suites 37 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without the word check a truncated run relabelled `done` passes; with it the same bytes are named, and the trajectory and reason are byte-identical in both readings, so the delta is the word read.
+- **Verdict**: evidence-integrity extension completing the verdict layer. The measured delta is a verdict word that contradicted its own trajectory and passed every prior check; no behavior, estimator or pin moves. Boundary: the rule is recomputed from the header's declared budget, so a forged budget plus a matching word still agrees; this catches an inconsistent word, not a fully consistent relabelling of budget, trajectory and word together.
+- **Gates**: unittest 541/541 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_verdict_word` -> before: 3 failures (word unchecked); after: 5 OK.
+  - `python -m unittest tests.test_verdict_word tests.test_verdict_claim tests.test_episode_replay tests.test_result_records tests.test_claim_replay tests.test_snapshot_evidence tests.test_wiring` -> 37 OK.
+  - `python ..\..\scratch\ablate_116.py` -> honest clean at 5/8/10/200; forged named at every cap; standing 89/11.0.
+  - `python -m unittest discover -s tests -t .` -> 541 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 117**: unittest 541 OK; aikit 5/5; `expected_verdict_word` done iff ended and under budget; honest caps 5/8/10 truncated and 200 done; relabelled word yields `verdict-word-mismatch` with chain valid; `verify_result_records` 13/13; snapshot evidence; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
