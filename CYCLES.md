@@ -4879,6 +4879,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 143**: unittest 718 OK; aikit 5/5; duplicate `T1_forage:7` -> `syn +0.05411532090976823` with `ij 0.5004024235381878 > i1 0.22314355131420976`; 4-value duplicate -> `syn == -MI`, `syn_n == -1.0`; joint codes injective; scope unchanged (17/17 insufficient); `syn_sign` 17/17 negative-or-positive per case; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 143 - one bin count cannot serve both the joint and the marginals
+
+- **Baseline** (commit 5d338be):
+  - canonical gate: 718 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `synergy` computes `ij` at `bins=64` but `i1`/`i2` at the default `bins=8`; `tj = c0*8 + bins(c1)` spans 8x the column range.
+  - measured: `T1_forage:71` (16 joint codes) `bins=8` -> `ij 0.222647`, `syn -0.222647`; `bins=64` -> `ij 0.482578`, `syn +0.037283`. `T3_navigate:15` -> `-0.164551` vs `-0.057913`.
+- **Gap**: a single bin constant cannot be right for two scales eight times apart. The gap moves up to 0.26 nats and on T1:71 flips **sign** — the same trace is "no synergy" or "positive synergy" from the constant alone.
+- **Target delta**: the sensitivity is a pinned fact with exact values, not an unexamined constant.
+- **Falsifier**: the two bin counts agree on `ij`; the sign does not flip; or the shipped value moves.
+- **Change**: `tests/test_joint_binning_scale.py` adds 5 tests (joint range 8x, `bins=8` vs `64` disagree, sign flip on T1:71, shipped value 0.0372826, `SYNERGY_COLUMNS` is the pair used). No production change. ADR-137.
+- **After** (same traces):
+  - disagreement and sign flip pinned; `bins=256`/`4096` identical to 64, so 64 is past the collision point for these traces.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: reverting the joint to `bins=8` moves T1:71 from `+0.037283` to `-0.222647` and T3:15 from `-0.057913` to `-0.164551`; the sign-flip test catches it.
+- **Verdict**: estimator-sensitivity documentation. The measured delta is an unexamined constant becoming a pinned, quantified hazard. Boundary: this does not choose a principled bin count — that moves every pinned `syn`, needs a null-model study, and is its own re-baseline.
+- **Gates**: unittest 723/723 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_bins_sensitivity.py` -> bin-count table for six traces.
+  - `python ..\..\scratch\probe_bins_exact.py` -> exact MI equals MI(c0) on duplicates.
+  - `python ..\..\scratch\probe_target_rebin.py` -> joint codes collide at `bins=8`.
+  - `python -W error::ResourceWarning -m unittest tests.test_joint_binning_scale` -> 5 OK, no unclosed file.
+  - `python -m unittest discover -s tests -t .` -> 723 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 144**: unittest 723 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

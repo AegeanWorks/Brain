@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `184`
-- **Total Classes**: `187`
-- **Total Top-Level Functions**: `541`
-- **Total Class Methods**: `950`
-- **Total Source Lines**: `25665`
+- **Total Python Modules**: `185`
+- **Total Classes**: `188`
+- **Total Top-Level Functions**: `543`
+- **Total Class Methods**: `955`
+- **Total Source Lines**: `25758`
 
 ---
 
@@ -2096,6 +2096,25 @@
 **Functions:**
 - `def _pad(rows)`
 - `def _stats(rows)`
+
+---
+
+### [`tests/test_joint_binning_scale.py`](tests/test_joint_binning_scale.py)
+> *The joint MI must not be the coarsest of the three scalings.*
+
+**Size**: `93` lines (`3747` bytes)
+
+**Classes:**
+- `class TestJointBinningScale`
+  - Method `.test_the_joint_range_is_eight_times_the_column_range()`
+  - Method `.test_a_single_bin_count_cannot_serve_both_scales()`
+  - Method `.test_the_pinned_gap_changes_sign_with_the_bin_count()`
+  - Method `.test_the_shipped_value_is_the_fine_one()`
+  - Method `.test_the_scope_columns_are_the_pair_the_joint_uses()`
+
+**Functions:**
+- `def _rows(task, seed)`
+- `def _codes(trace)`
 
 ---
 
