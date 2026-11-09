@@ -118,6 +118,40 @@ def record_verdict(claim, status, evidence, at=None, ref=None):
                    verdicts=tuple(claim.verdicts) + (verdict,))
 
 
+#: Claim status -> the forecast outcome it resolves to. ``None`` means the
+#: claim was judged but its truth value is undecided, so a scorer must
+#: ignore it rather than guess.
+_STATUS_OUTCOME = {
+    "proposed": None,
+    "supported": 1,
+    "refuted": 0,
+    "inconclusive": None,
+}
+
+
+def claim_forecasts(ledger):
+    """Return one forecast record per judged claim, for calibration scoring.
+
+    A claim's ``confidence`` is a declared probability that the claim holds,
+    the same kind of forecast ``calibration.summary`` scores. A ``proposed``
+    claim has no verdict, so it is excluded; a ``supported`` verdict maps to
+    outcome 1 and ``refuted`` to 0; an ``inconclusive`` verdict is kept with
+    ``outcome=None`` so the scorer ignores it and reports it as uncovered.
+
+    The ledger is read, never mutated.
+    """
+    forecasts = []
+    for claim in ledger.claims():
+        if claim.status == "proposed":
+            continue
+        forecasts.append({
+            "id": claim.id,
+            "probability": claim.confidence,
+            "outcome": _STATUS_OUTCOME[claim.status],
+        })
+    return forecasts
+
+
 class ClaimLedger:
     """Ordered in-memory claims with append-only verdict history."""
 

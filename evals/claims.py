@@ -5,13 +5,19 @@ two refuted and one inconclusive. The claim's declared confidence does
 not decide the verdict; evidence does. Claims are immutable, verdict
 history is ordered and the ledger roundtrips as JSON. The runs remain
 13/6 steps with 1.0 reward.
+
+The declared confidences are also scored as forecasts: ``calibration``
+reports Brier and skill over the judged claims (``supported`` -> 1,
+``refuted`` -> 0, ``inconclusive`` -> unresolved and excluded), so a
+ledger cannot declare confidence and never hear whether it was right.
 """
 
 import argparse
 import json
 
 from agent import Agent
-from claims import ClaimLedger
+from calibration import summary as cal_summary
+from claims import ClaimLedger, claim_forecasts
 
 STAMP = "2026-11-07T00:00:00Z"
 
@@ -58,6 +64,7 @@ def measure():
         "steps": [actual["T3:15"]["steps"], actual["T3:65"]["steps"]],
         "rewards": [actual["T3:15"]["reward"], actual["T3:65"]["reward"]],
         "summary": summary,
+        "calibration": cal_summary(claim_forecasts(ledger), min_resolved=1),
         "claims": [
             {"id": claim.id, "confidence": claim.confidence,
              "status": claim.status,

@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `178`
-- **Total Classes**: `182`
-- **Total Top-Level Functions**: `531`
-- **Total Class Methods**: `919`
-- **Total Source Lines**: `25135`
+- **Total Python Modules**: `179`
+- **Total Classes**: `183`
+- **Total Top-Level Functions**: `533`
+- **Total Class Methods**: `926`
+- **Total Source Lines**: `25259`
 
 ---
 
@@ -163,7 +163,7 @@
 ### [`claims.py`](claims.py)
 > *Immutable claims, kill tests and verdict history (research-engine transfer).*
 
-**Size**: `223` lines (`8267` bytes)
+**Size**: `257` lines (`9394` bytes)
 
 **Classes:**
 - `class Verdict`
@@ -188,6 +188,7 @@
 - `def _validate_confidence(value)`
 - `def _validate_claim(claim)`
 - `def record_verdict(claim, status, evidence, at, ref)` - *Return a new Claim with the verdict appended and status updated.*
+- `def claim_forecasts(ledger)` - *Return one forecast record per judged claim, for calibration scoring.*
 
 ---
 
@@ -429,7 +430,7 @@
 ### [`evals/claims.py`](evals/claims.py)
 > *Claim/verdict battery: kill tests over real T3 run outcomes.*
 
-**Size**: `83` lines (`3000` bytes)
+**Size**: `90` lines (`3420` bytes)
 
 **Functions:**
 - `def measure()`
@@ -1572,6 +1573,26 @@
 
 **Functions:**
 - `def _run(tmp, task, seed, name)`
+
+---
+
+### [`tests/test_claim_forecasts.py`](tests/test_claim_forecasts.py)
+> *A claim's declared confidence must be scoreable, not just stored.*
+
+**Size**: `83` lines (`3488` bytes)
+
+**Classes:**
+- `class TestClaimForecasts`
+  - Method `.test_resolved_claims_become_forecasts()`
+  - Method `.test_a_proposed_claim_is_excluded()`
+  - Method `.test_inconclusive_is_kept_as_unresolved()`
+  - Method `.test_the_score_is_computable()`
+  - Method `.test_an_all_confident_ledger_scores_badly()`
+  - Method `.test_empty_ledger_yields_no_forecasts()`
+  - Method `.test_the_mapping_does_not_change_the_ledger()`
+
+**Functions:**
+- `def _ledger()`
 
 ---
 

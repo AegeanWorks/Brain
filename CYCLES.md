@@ -4753,6 +4753,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 138**: unittest 687 OK; aikit 5/5; `syn_sign` in 17/17 battery slots and in `run_record`; the real T3:65 case reaches the slot as `negative` with `syn_n = -1.0`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 138 - score a claim's declared confidence as a forecast
+
+- **Baseline** (commit 466c042):
+  - canonical gate: 687 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `ClaimLedger.add(..., confidence=...)` validates a probability and stores it; a survey found only validation, the constructor default, the eval's echo and a preservation test — no consumer compared it with an outcome.
+- **Gap**: a declared probability with no calibration readout. The repo scores the self-model's confidence/outcome pairs with Brier and skill; a claim could declare 0.95 on every claim and never be told it was wrong.
+- **Target delta**: judged claims become scorer input, and the claims battery reports Brier/skill plus over-confidence bins over its own claims.
+- **Falsifier**: a proposed claim is scored; an inconclusive verdict is given an outcome; the score is not computable; or the ledger is mutated.
+- **Change**: `claims.py` adds `claim_forecasts(ledger)` (`supported`->1, `refuted`->0, `inconclusive`->`None`, `proposed` excluded); `evals/claims.py` reports a `calibration` block; `tests/test_claim_forecasts.py` adds 7 tests. ADR-132.
+- **After** (same battery):
+  - `counts {total 6, resolved 5, ignored 1, supported 3, refuted 2}`, Brier 0.2605, skill -0.085417, `bin 0.8-1.0 is overconfident by 0.22`.
+  - ablation ledger (0.85 on six claims): Brier 0.3025, skill -0.260417, over-confidence 0.25.
+  - claim/calibration/claim-store suites 50 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `claim_forecasts` the confidence is stored and never scored; with it every judged claim contributes and the over-confidence bin is named.
+- **Verdict**: calibration-coverage extension on the claims layer. The measured delta is a declared probability that is now scored; no verdict, action or pin moves. Boundary: verdicts are the claim's own judgement, so a wrong verdict yields a correctly-scored wrong forecast, not a truth check; `inconclusive` is excluded from Brier.
+- **Gates**: unittest 694/694 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_claim_confidence.py` -> confidence validated/stored/echoed, never scored.
+  - `python -m unittest tests.test_claim_forecasts` -> before: 1 error; after: 7 OK.
+  - `python -m evals.claims` -> calibration counts 6/5/1 at Brier 0.2605.
+  - `python ..\..\scratch\ablate_138.py` -> 0.85-ledger Brier 0.3025, over-confidence named.
+  - `python -m unittest discover -s tests -t .` -> 694 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 139**: unittest 694 OK; aikit 5/5; `claim_forecasts` maps supported/refuted/inconclusive and excludes proposed, ledger unchanged; claims battery calibration 6/5/1 at Brier 0.2605 skill -0.085417 with the 0.8-1.0 over-confidence bin; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
