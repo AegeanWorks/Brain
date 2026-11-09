@@ -4904,6 +4904,35 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 147 - a pair search must refuse collinear columns before scoring
+
+- **Baseline** (commit 4d8f2d0):
+  - canonical gate: 761 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - rung 3 needs to know which module pairs carry joint information; `synergy` alone was the only tool.
+  - measured: `T1_forage:71` pairs `(1,2)`, `(1,3)`, `(1,4)` all report `syn +0.2599` at `p_upper 0.000` — col2 is constant (`[0.0]`), so this is `bins=64` re-binning a 16-code joint.
+  - measured: the dependency matrix over the 9-column block is almost entirely **D** — every column is a deterministic function of every other except col6 vs col7/col8; `col6` is a coarsening of `col0`.
+- **Gap**: a permutation null does not catch re-binning artifacts, and the shipped block is collinear enough that a pair scan reports false interactions.
+- **Target delta**: a per-pair gate that refuses constant, duplicate and functionally dependent pairs before scoring, and separates positive from negative gaps.
+- **Falsifier**: a collinear pair survives the gate; a negative gap is counted as an interaction; or disabling the gate changes nothing.
+- **Change**: `evals/pair_scan.py` adds `_dependent`, `pair_report`, `scan_pairs`, `interactions` (positive only), `anti_interactions`; `tests/test_pair_scan.py` (8 tests). ADR-142.
+- **After** (same traces):
+  - `interactions` returns `[]` on all three shipped traces.
+  - the only pair passing every gate is `cols(6,8)` at `syn −0.0632`, returned by `anti_interactions`.
+  - `(1,2)/(1,3)/(1,4)` refused `constant-scope-column`; `(0,6)` refused `dependent-columns`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: disabling `_dependent` reports 3 false positive interactions on `T3_navigate:15` and fails 2 of 8 tests.
+- **Verdict**: rung-3 prerequisite, and a **negative** result. The measured delta is "a scan that reports false interactions" -> "a scan that returns none". Boundary: the trace carries one variable in nine columns, so no pair can demonstrate an interaction; rung 3 requires the agent to emit genuinely independent module state, which is a substrate change, not a measurement change.
+- **Gates**: unittest 769/769 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_rung3_scale.py` -> XOR distinguishable from n=16, so the estimator can decide at shipped sizes.
+  - `python ..\..\scratch\probe_rung3_pairs.py` -> best pairs mi=0.1646/0.0000 (one column carries everything).
+  - `python ..\..\scratch\probe_rung3_artifact.py` -> col2 constant, `ij` inflation only.
+  - `python ..\..\scratch\probe_dependency.py` -> dependency matrix almost entirely D.
+  - `python ..\..\scratch\ablate_147.py` -> gate disabled: 3 false interactions.
+  - `python -m unittest discover -s tests -t .` -> 769 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 148**: unittest 769 OK; aikit 5/5; `interactions` empty on T3:15/T1:71/T2:3; `anti_interactions` sole entry `cols(6,8)` syn −0.0632; `(1,2)/(1,3)/(1,4)` `constant-scope-column`; `(0,6)` `dependent-columns`; dependency matrix D except col6↔col7/col8; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `syn_null` 17/17 with 3 distinguishable; `syn_sign` 17/17; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 146 - learn the reward probability online, without being told the rule
 
 - **Baseline** (commit b103acd):

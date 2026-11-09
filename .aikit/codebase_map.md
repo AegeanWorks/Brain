@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `194`
-- **Total Classes**: `195`
-- **Total Top-Level Functions**: `556`
-- **Total Class Methods**: `1001`
-- **Total Source Lines**: `26636`
+- **Total Python Modules**: `196`
+- **Total Classes**: `196`
+- **Total Top-Level Functions**: `562`
+- **Total Class Methods**: `1009`
+- **Total Source Lines**: `26874`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`194` module(s))
+- **Indexed**: python (`196` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -688,6 +688,20 @@
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
 - `def main()`
+
+---
+
+### [`evals/pair_scan.py`](evals/pair_scan.py)
+> *Searching for an interacting column pair needs a per-pair validity gate.*
+
+**Size**: `123` lines (`5107` bytes)
+
+**Functions:**
+- `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
+- `def pair_report(rows, target, first, second, trials)` - *Score one column pair, refusing artifacts before scoring.*
+- `def scan_pairs(rows, target, trials)` - *Return every column pair's report, sorted by gap descending.*
+- `def interactions(rows, target, trials)` - *Return only the pairs that pass the gate AND beat their null upward.*
+- `def anti_interactions(rows, target, trials)` - *Return pairs that pass the gate and sit significantly *below* the null.*
 
 ---
 
@@ -2563,6 +2577,27 @@
 - `def _brier(pairs)`
 - `def _episodes()` - *Yield (key, outcome) in a fixed order, with the pre-action key.*
 - `def _prequential_score()`
+
+---
+
+### [`tests/test_pair_scan.py`](tests/test_pair_scan.py)
+> *A pair search must refuse artifacts before it reports a gap.*
+
+**Size**: `115` lines (`4930` bytes)
+
+**Classes:**
+- `class TestPairScan`
+  - Method `.test_a_constant_partner_is_refused()`
+  - Method `.test_the_artifact_has_a_large_gap_and_no_mi()`
+  - Method `.test_identical_partners_give_identical_gaps()`
+  - Method `.test_the_scan_sorts_refused_pairs_last()`
+  - Method `.test_no_shipped_pair_is_a_positive_interaction()`
+  - Method `.test_anti_interactions_are_never_counted_as_interactions()`
+  - Method `.test_functionally_dependent_columns_are_refused()`
+  - Method `.test_an_empty_trace_degrades()`
+
+**Functions:**
+- `def _shipped(task, seed)`
 
 ---
 
