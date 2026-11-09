@@ -83,6 +83,7 @@ brain/
 ├── claims_verify.py          <- read-only verdict-ref check
 ├── episode_verify.py         <- independent episode-digest recomputation
 ├── episode_replay.py         <- replay logged actions through the world
+├── run_verify.py             <- one call over every verifier
 ├── models/                   <- swappable model backends
 ├── memory/                   <- SQLite FTS5 store + layout anchors
 ├── planner/                  <- explicit steps + recover
@@ -241,6 +242,18 @@ world's own, the terminal `done` and the step count, naming
 checks, and `check_verdict=True` rejects a verdict claim the replay
 does not support. It proves the actions fit the named world, not that
 a model produced them.
+
+## 🧩 One Verdict Over Every Layer
+
+`run_verify.verify_run(log_path, ...)` composes the shipped verifiers —
+chain (with anchor, journal and HMAC options), episode digest with the
+policy/workspace/model pins, action replay with the verdict claim and word,
+and result-record pairing — returning `ok`, the union of findings and each
+layer's own result under `chain`/`episode`/`replay`/`results`. A raising
+layer is recorded as `<layer>:<error>`, so one defect does not hide the
+others, and a failing layer is named rather than collapsing to a bare
+false. It reimplements nothing: as strong as its weakest member, and a pin
+must be supplied.
 
 ## 🧷 Terminal Telemetry Anchor
 
@@ -455,10 +468,9 @@ under `.aikit/` or outside the source tree; it is local evidence, not
 committed.
 
 `run_task_logged(..., calibration_path=...)` is the opt-in bridge from a
-real run to the journal. It requires a persistent `SelfModel` (the
-`self_model.model` class) and captures the pre-run `forecast_count()`;
-after the verdict it appends only that run's confidence/outcome pairs,
-with ids prefixed by the run header digest (first 12 hex).
+real run to the journal. It requires a persistent `SelfModel` and
+appends only that run's confidence/outcome pairs, ids prefixed by the
+run header digest.
 `calibration_hmac_key=bytes` appends keyed records through the bridge; it
 requires `calibration_path` and is validated before the run. A default
 run keeps the forecasts in memory and writes no file; the logged run
@@ -469,9 +481,9 @@ is already written when the journal append fails. `python -m
 evals.calibration_bridge` shows every mode.
 
 `rotate_forecast_journal(path, keep_recent=100, archive_path=None)`
-bounds the live journal. Older records move to `.archive`, the newest N
+bounds the live journal: older records move to `.archive`, the newest N
 stay live, the pre-rotation journal is copied to `.bak`, and a
-`.rotation` sidecar records source/archive counts and last checksums.
+`.rotation` sidecar records counts.
 `load_all_forecasts` combines archive+live with disjoint ids and the
 original scores; a short, missing or already-rotated journal is a
 no-op. Id conflicts and corrupt files are refused; rotation holds the
@@ -480,20 +492,14 @@ rotation with identical scores, the backup, a second rotation and the
 conflict/missing/lock cases.
 
 `run_task_logged(..., calibration_keep_recent=10)` applies the same
-rotation automatically after the run's forecast append. `append_forecasts(...,
-keep_recent=N)` now performs the append and the archive rotation under
-one store lock, so no other writer interleaves between them; it reports
-`rotated/live/archived/backup/metadata`, and `keep_recent=None` keeps
-every record live. The manual `rotate_forecast_journal` remains for
-custom archive paths. The bridge passes its threshold through to
-`append_forecasts`. The threshold is validated before the run; a missing
-`calibration_path` or an invalid threshold fails without creating the
-log or store. T3:15 leaves 10 live/3 archived/13 total with the same
-Brier 0.230769; a second run reaches 10/9/19;
-`calibration_keep_recent=None` keeps all 13 live. A rotation failure (for
-example a corrupt archive) raises after the done verdict with all 13
-forecasts still live. `python -m evals.calibration_autoretention` shows the retained,
-invalid, corrupt and parity modes.
+rotation after the run's append. `append_forecasts(..., keep_recent=N)`
+performs the append and the rotation under one store lock;
+`keep_recent=None` keeps every record live. The threshold is validated
+before the run, so a missing path or invalid threshold fails without
+creating the log or store. A rotation failure raises after the done
+verdict with every forecast still live. `python -m
+evals.calibration_autoretention` shows the retained, invalid, corrupt
+and parity modes.
 
 ## 🧾 Claim & Verdict Register
 
@@ -511,12 +517,11 @@ the verdict. `python -m evals.claims` judges six T3 claims (3 supported, 2
 refuted, 1 inconclusive) with unchanged runs.
 
 `claims_store.py` makes the ledger durable. `save_ledger(ledger, path)`
-writes one checksummed snapshot atomically (temp + fsync + replace, five
-retries), keeps the previous snapshot as `.bak`, and holds an
-`O_CREAT|O_EXCL` lock (30 s stale steal, bounded timeout). A successful
-write needs 10 MiB free. `load_ledger` returns an empty ledger when no
-snapshot exists, loads the primary, and on a corrupt primary quarantines
-it as `.corrupt` and falls back to `.bak`; `verify_ledger_file` names
+writes one checksummed snapshot atomically, keeps the previous as `.bak`,
+and holds an `O_CREAT|O_EXCL` lock (30 s stale steal, bounded timeout).
+`load_ledger` returns an empty ledger when no snapshot exists, loads the
+primary, and on a corrupt primary quarantines it as `.corrupt` and falls
+back to `.bak`; `verify_ledger_file` names
 `missing-primary`, `invalid-primary`, schema and checksum defects.
 `save_ledger(..., hmac_key=bytes)` adds an HMAC-SHA256 over the snapshot
 (including its checksum); `load_ledger(..., hmac_key=...)` and
