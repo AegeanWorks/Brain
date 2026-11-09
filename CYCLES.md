@@ -4423,6 +4423,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 125**: unittest 612 OK; aikit 5/5; `calibration` six fixtures at their exact scores, warnings on small/inverted, real run 13 steps / 1.0 / 13 resolved, and its four mutations exit 1; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those seven, uncovered names `estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 125 - cover the vector-audit adapter and make its order observable
+
+- **Baseline** (commit 3029244):
+  - canonical gate: 612 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - a coverage probe over the modules the exit-code audit classed as libraries found one genuinely untested public path: `vector_audit.audit_vectors` (added in cycle 109) had no test.
+  - measured: it works (`audit_vectors == audit_rows` on correctly flattened blocks), but a wrong block order changes the audit's answer (`S0` reported instead of `M0`).
+- **Gap**: an untested adapter whose correctness depends on an unpinned flatten order. Nothing was broken, but the contract it depends on was unenforced, so a future reorder would silently mislabel columns.
+- **Target delta**: the adapter is covered and its block order is observable by a test that fails under a wrong flatten.
+- **Falsifier**: the adapter test passes under a deliberately wrong block order; or the real suite fails.
+- **Change**: `tests/test_vector_audit_adapter.py` adds 7 tests (adapter equals row audit, block order and column count, an `M0`-only fixture making order observable, a degenerate matrix, an independent matrix, the empty case, tuple/list equivalence). No production change. ADR-119.
+- **After** (same code):
+  - 7 tests pass; the suite total rises 612 -> 619.
+  - the honest adapter equals `audit_rows` on every fixture checked.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the first version of the order test passed under an S/P/M/hub flatten (failures=0); after adding the `M0`-only fixture the same wrong order produces 1 failure (`constant == ['S0']` instead of `['M0']`). The test is load-bearing only in its strengthened form, which is recorded rather than implied.
+- **Verdict**: coverage extension on an untested adapter, plus a correction of my own first attempt. No behavior, estimator or pin moves. Boundary: this covers the adapter's contract, not every audit function (they have their own tests); the two remaining "uncovered" modules, `estimators` and `recompute`, are libraries whose public functions `test_estimators`, `test_recompute` and `test_wiring` already exercise — the exit-code audit cannot judge a library.
+- **Gates**: unittest 619/619 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_lib_coverage.py` -> `vector_audit` untested: `['audit_vectors']`.
+  - `python -m unittest tests.test_vector_audit_adapter` -> 7 OK.
+  - `python ..\..\scratch\ablate_125.py` -> first run failures=0 (weak); after strengthening failures=1.
+  - `python -m unittest discover -s tests -t .` -> 619 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 126**: unittest 619 OK; aikit 5/5; `vector_audit.audit_vectors` equals `audit_rows`, order-observable fixture reports `["M0"]`, wrong order fails; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` uncovered names `estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

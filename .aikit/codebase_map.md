@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `165`
-- **Total Classes**: `170`
-- **Total Top-Level Functions**: `521`
-- **Total Class Methods**: `843`
-- **Total Source Lines**: `23868`
+- **Total Python Modules**: `166`
+- **Total Classes**: `171`
+- **Total Top-Level Functions**: `522`
+- **Total Class Methods**: `850`
+- **Total Source Lines**: `23971`
 
 ---
 
@@ -3040,6 +3040,26 @@
 
 **Functions:**
 - `def _rows(vectors)` - *Expand (M, P, S, hub) tuples into flat 9-column rows.*
+
+---
+
+### [`tests/test_vector_audit_adapter.py`](tests/test_vector_audit_adapter.py)
+> *The vector-audit adapter must agree with the row-level audit.*
+
+**Size**: `103` lines (`4104` bytes)
+
+**Classes:**
+- `class TestAuditVectors`
+  - Method `.test_adapter_equals_the_row_audit()`
+  - Method `.test_adapter_flattens_in_block_order()`
+  - Method `.test_block_order_is_observable()`
+  - Method `.test_a_degenerate_matrix_is_reported_through_the_adapter()`
+  - Method `.test_an_independent_matrix_is_sufficient_through_the_adapter()`
+  - Method `.test_empty_degrades_without_raising()`
+  - Method `.test_tuples_and_lists_flatten_identically()`
+
+**Functions:**
+- `def _flat(vectors)`
 
 ---
 
