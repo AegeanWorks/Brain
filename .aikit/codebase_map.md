@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `182`
-- **Total Classes**: `185`
+- **Total Python Modules**: `183`
+- **Total Classes**: `186`
 - **Total Top-Level Functions**: `539`
-- **Total Class Methods**: `938`
-- **Total Source Lines**: `25490`
+- **Total Class Methods**: `945`
+- **Total Source Lines**: `25579`
 
 ---
 
@@ -551,7 +551,7 @@
 ### [`evals/estimators.py`](evals/estimators.py)
 > *Stdlib-only estimators for Brain evals.*
 
-**Size**: `255` lines (`8873` bytes)
+**Size**: `267` lines (`9528` bytes)
 
 **Functions:**
 - `def _discretize(values, bins)`
@@ -3087,6 +3087,23 @@
 
 **Functions:**
 - `def _rows(width, n)`
+
+---
+
+### [`tests/test_synergy_scope_duplicate.py`](tests/test_synergy_scope_duplicate.py)
+> *A duplicated scope pair cannot decide, and the scope must say so.*
+
+**Size**: `77` lines (`3608` bytes)
+
+**Classes:**
+- `class TestDuplicateScopeColumns`
+  - Method `.test_a_duplicated_pair_is_not_sufficient()`
+  - Method `.test_a_duplicated_pair_cannot_produce_a_positive_gap()`
+  - Method `.test_syn_n_of_minus_one_is_the_duplicate_signature()`
+  - Method `.test_an_independent_pair_stays_sufficient()`
+  - Method `.test_a_constant_column_is_still_named_first()`
+  - Method `.test_a_single_column_trace_has_no_duplicate()`
+  - Method `.test_empty_and_mismatched_inputs_still_degrade()`
 
 ---
 

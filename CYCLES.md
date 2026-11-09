@@ -4828,6 +4828,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 141**: unittest 706 OK; aikit 5/5; `phi_ar` floor exactly 0.0, ceiling exactly 1.0 on sin/cos, AR(1) 0.007722962 strictly between; dead-estimator detection verified; `phi_diagnosis` real `predictable True`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 141 - a duplicated scope pair cannot decide, and syn_scope must say so
+
+- **Baseline** (commit a3c9536):
+  - canonical gate: 706 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `synergy_scope` tested only that neither scope column is constant; it never compared the two columns to each other.
+  - measured: 500 random duplicate-column traces -> **0** strictly positive gaps (largest exactly 0.0); `syn_scope([[1,1],[2,2],[3,3]])` -> `sufficient True`; columns 0, 1 and 5 of the shipped 9-column block are **byte-identical** on all six pinned traces.
+- **Gap**: a disclosure defect in my own cycle-106 scope. A duplicated pair makes the joint code a bijection of one column, so `i1 == i2 == ij`, `syn == -ij == -MI` and `syn_n == -1.0` — structurally incapable of showing synergy, yet reported sufficient.
+- **Target delta**: the scope names the duplicate collapse; a duplicate trace is insufficient; an independent pair stays sufficient.
+- **Falsifier**: a duplicate pair is still sufficient; an independent pair becomes insufficient; or a numeric value moves.
+- **Change**: `evals/estimators.py` `synergy_scope` adds a duplicate check after the constant check, reporting `duplicate_columns` and `reason: duplicate-scope-column`; `tests/test_synergy_scope_duplicate.py` adds 7 tests. ADR-135.
+- **After** (same traces):
+  - all six pinned traces flip to `duplicate-scope-column`.
+  - batteries: `coldstart` 4/4 `constant-scope-column`, `dead_pool` 5/5, `escape` 2/2, `trust` 4/4, `manifest_binding` 2/2 `duplicate-scope-column` — 17/17 insufficient, was 17/17 sufficient.
+  - `syn`/`syn_n`/`syn_sign` unchanged; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the cycle-106 scope returns `sufficient True` on every shipped trace; the new one returns `duplicate-scope-column` on every shipped trace, with the numeric fields identical.
+- **Verdict**: disclosure correction, not an estimator change. The measured delta is 17 readouts moving from "this pair could decide" to "this pair could not have". Boundary: it does not change which columns `syn` reads — fixing that would move the pinned `syn` values and needs its own re-baseline.
+- **Gates**: unittest 713/713 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_vec_target.py` -> col 7 carries MI 0.2712, higher than either read column (0.1646).
+  - `python ..\..\scratch\probe_scope_dup.py` -> columns 0, 1, 5 byte-identical on six traces.
+  - `python ..\..\scratch\probe_dup_scope.py` -> 500 duplicate traces, 0 positive gaps.
+  - `python ..\..\scratch\probe_dup_exact.py` -> `syn == -MI`, `syn_n == -1.0`.
+  - `python ..\..\scratch\ablate_141.py` -> before sufficient=True, after duplicate-scope-column.
+  - `python -m unittest discover -s tests -t .` -> 713 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 142**: unittest 713 OK; aikit 5/5; all six pinned traces `duplicate-scope-column`; batteries 17/17 insufficient (`coldstart` constants, four batteries duplicates); duplicate pair `syn == -MI` and `syn_n == -1.0`; independent pair sufficient; constants named before duplicates; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

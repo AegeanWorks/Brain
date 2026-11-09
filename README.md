@@ -211,21 +211,21 @@ first prompt hash.
 
 ## 📏 Synergy Column Scope
 
-`synergy` reads trace columns 0 and 1 only, so `syn` 0.0 cannot separate
+`synergy` reads columns 0 and 1 only, so `syn` 0.0 cannot separate
 "nothing there" from "signal outside them". `SYNERGY_COLUMNS` and
-`synergy_scope(...)` expose the pair, ignored/constant columns and
-sufficiency; `recompute` returns `syn_scope`, and every battery trace slot
-carries it too. Values are unchanged, and
-cold-start cases read `constant-scope-column` instead of a bare `0.0`.
+`synergy_scope(...)` expose the pair, ignored/constant/duplicate columns
+and sufficiency; `recompute` and each battery slot carry `syn_scope`.
+Equal scope columns collapse the joint to one, so the gap cannot be
+positive (`syn_n == -1.0`): `duplicate-scope-column`. A constant column
+reads `constant-scope-column`.
 
 ## 🧪 Lesion Detectability
 
-A lesion test is evidence only when the readout can move for the
-module. `evals.lesion_audit.detectability(rows)` substitutes each block
+`evals.lesion_audit.detectability(rows)` substitutes each block
 (M/P/S/hub) with seeded noise and reports which modules each readout
-separates from noise. On the fixed rig `synergy` detects `M`/`hub` and
-is blind to `P`/`S`, so that invariance is the readout's blindness, not
-a module finding; `phi` is blind to all four. Pinned by
+separates from noise. On the fixed rig `synergy` detects `M`/`hub` and is
+blind to `P`/`S`, so that invariance is the readout's blindness, not a
+module finding; `phi` is blind to all four. Pinned by
 `tests/test_lesion_detectability.py`.
 
 ## 🔁 Action Replay
@@ -412,7 +412,7 @@ with the unchanged 13-step/1.0 T3:15 run.
 ## 🧾 Snapshot Diff
 
 `capture_snapshot(cases)` runs each `(task, seed)` and returns records
-with steps, reward, success, action hash, syn, phi, the synergy
+with steps, reward, success, action hash, syn, `syn_sign`, phi, the synergy
 `syn_scope`, `replay_ok` and `verdict_claimed`, so the diff gate names an
 integrity regression that leaves behavior identical.
 `export_snapshot`/`read_snapshot` write portable JSONL atomically.
