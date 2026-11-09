@@ -4476,6 +4476,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 127**: unittest 627 OK; aikit 5/5; `estimators` edge conventions pinned and three mutations each fail; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` uncovered names `estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 127 - carry the synergy scope into every battery trace slot
+
+- **Baseline** (commit 75afc8d):
+  - canonical gate: 627 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-099 added `syn_scope` to `recompute` and ADR-108 carried it into snapshot records, but `evals.coldstart._trace_slot` still emitted only `syn`/`syn_n`/`phi`/`gain`/`recovery`/`n_records`.
+  - measured: `_trace_slot` dropped a `syn_scope` in its input, so five batteries printed a bare `syn` with no sufficiency qualifier.
+- **Gap**: the misreading ADR-099 exists to prevent was still present in every battery trace readout. Cold-start printed `syn 0.0` with nothing saying the estimator is blind to columns 2-5.
+- **Target delta**: every trace slot carries the scope (`None` when absent); all existing fields unchanged.
+- **Falsifier**: a battery still prints a bare `syn`; an existing trace field changes; or a pinned value moves.
+- **Change**: `evals/coldstart.py` `_trace_slot` adds `syn_scope` (defaulting to `None`) with a docstring naming why; `tests/test_trace_slot_scope.py` adds 5 tests. ADR-121.
+- **After** (same batteries):
+  - `coldstart` 4/4 slots, `dead_pool` 5/5, `escape` 2/2, `trust` 4/4, `manifest_binding` 2/2 — 17 of 17 carry `syn_scope`.
+  - cold-start cases report `{'sufficient': False, 'reason': 'constant-scope-column'}` beside the unchanged `syn` 0.0.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without the field each slot prints a bare `syn`; with it each carries the qualifier, and the numeric fields are byte-identical in both readings, so the delta is the qualifier.
+- **Verdict**: telemetry-honesty extension completing the ADR-099 wiring. The measured delta is five battery readouts that showed a bare `syn` and now show what it measured; no estimate or behavior moves. Boundary: this covers `_trace_slot` only; a battery reporting `syn` elsewhere needs its own change, and the scope still does not widen the estimator.
+- **Gates**: unittest 632/632 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_scope_wiring.py` -> five batteries dropped the scope.
+  - `python -m unittest tests.test_trace_slot_scope` -> before: 3 failures + 1 error; after: 5 OK.
+  - `python ..\..\scratch\ablate_127.py` -> 17/17 slots carry `syn_scope`.
+  - `python -m unittest discover -s tests -t .` -> 632 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 128**: unittest 632 OK; aikit 5/5; every battery trace slot carries `syn_scope` (17/17), cold-start reports `sufficient: false` / `constant-scope-column`, existing slot fields unchanged; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

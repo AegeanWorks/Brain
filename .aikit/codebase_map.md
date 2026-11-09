@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `167`
-- **Total Classes**: `172`
+- **Total Python Modules**: `168`
+- **Total Classes**: `173`
 - **Total Top-Level Functions**: `522`
-- **Total Class Methods**: `858`
-- **Total Source Lines**: `24051`
+- **Total Class Methods**: `863`
+- **Total Source Lines**: `24128`
 
 ---
 
@@ -457,7 +457,7 @@
 ### [`evals/coldstart.py`](evals/coldstart.py)
 > *Cold-start recovery battery: behavior plus trace, before/after.*
 
-**Size**: `317` lines (`12017` bytes)
+**Size**: `324` lines (`12361` bytes)
 
 **Classes:**
 - `class ColdWorld` - *GridWorld whose observations omit the task's goal fields.*
@@ -473,7 +473,7 @@
 - `def _layout_keys(store, task, seed)`
 - `def _probe_summary(steps)`
 - `def _model_summary(backend, seed)`
-- `def _trace_slot(stats)`
+- `def _trace_slot(stats)` - *Build one battery trace slot, including what the ``syn`` measured.*
 - `def measure_case(task, seed, want_steps, want_reward, directory, ablate, capture, max_steps)` - *Run one warm/cold pair and return the recorded slots.*
 - `def measure_cold_first(task, seed, want_steps, want_reward, directory, ablate, capture, max_steps)` - *Cold -> warm -> cold: prove a cold-first run cannot poison the row.*
 - `def run_battery(cases, ablate, capture, max_steps, scenario)` - *Measure every case in one temporary directory.*
@@ -3015,6 +3015,21 @@
 
 **Functions:**
 - `def _steps(task, seed, max_steps)`
+
+---
+
+### [`tests/test_trace_slot_scope.py`](tests/test_trace_slot_scope.py)
+> *Every battery's trace slot must carry the synergy scope.*
+
+**Size**: `70` lines (`2842` bytes)
+
+**Classes:**
+- `class TestTraceSlotScope`
+  - Method `.test_slot_carries_the_scope()`
+  - Method `.test_slot_keeps_every_existing_field()`
+  - Method `.test_missing_scope_is_none_not_absent()`
+  - Method `.test_a_scope_insufficiency_survives_the_slot()`
+  - Method `.test_the_coldstart_battery_reports_the_scope()`
 
 ---
 

@@ -843,6 +843,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Decision**: Add `tests/test_estimator_edges.py` (8 tests) pinning each convention plus one test that no estimator raises on degenerate input. No production change: the code already honoured its docstrings, and the tests pin the contract it satisfied.
 - **Consequences**: 627 tests OK; aikit check 5/5. Ablation with three mutations: making `transfer_gain` raise on a zero baseline produces 2 errors, removing `recovery`'s clip produces 1 failure (`-1.25 != 0.0`), and making `gbi` divide at `pre >= 1` produces 2 errors including the `ZeroDivisionError` the shipped code avoids. Restoring the functions returns 0 failures and 0 errors. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged; no estimate moves. Boundary: this pins the documented neutral conventions, not the optimality of the statistics themselves; a deliberate convention change must update the tests, which is the intent.
 
+### ADR-121: Carry the synergy scope into every battery trace slot
+- **Date**: 2026-11-09
+- **Status**: Accepted
+- **Context**: ADR-099 added `syn_scope` to `recompute` so a reported `syn` of 0.0 could not be read as "no integration" when the estimator is blind to columns 2-5, and ADR-108 carried it into snapshot records. But `evals.coldstart._trace_slot` — the helper five batteries use for their trace readout — still emitted only `syn`/`syn_n`/`phi`/`gain`/`recovery`/`n_records`. Measured: `_trace_slot` with a `syn_scope` in its input dropped it, so `coldstart`, `dead_pool`, `escape`, `trust` and `manifest_binding` each printed a bare `syn` (0.0 on every cold-start case) with no sufficiency qualifier — the exact misreading ADR-099 was written to prevent, still present in five readouts.
+- **Decision**: Add `syn_scope` to `_trace_slot`, defaulting to `None` when the caller supplied no scope so no existing field changes. Add `tests/test_trace_slot_scope.py` (5 tests: the slot carries the scope, every existing field is preserved, a missing scope is `None` rather than absent, an insufficiency survives, and the real cold-start battery reports `sufficient: false`).
+- **Consequences**: 632 tests OK; aikit check 5/5. All five batteries now carry the scope: `coldstart` 4/4 slots, `dead_pool` 5/5, `escape` 2/2, `trust` 4/4, `manifest_binding` 2/2 — 17 of 17. The cold-start cases report `{'sufficient': False, 'reason': 'constant-scope-column'}` beside their unchanged `syn` 0.0. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged; no estimate moves. Ablation: without the field each slot prints a bare `syn`; with it each carries the qualifier, and the numeric fields are byte-identical in both readings. Boundary: this completes the wiring for the trace slot only; a battery that reports `syn` outside `_trace_slot` would need its own change, and the scope still does not widen the estimator.
+
+
 
 
 
