@@ -4904,6 +4904,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 148 - wiring the modules makes them independent, then anti-synchronous
+
+- **Baseline** (commit c4c33de):
+  - canonical gate: 769 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-142 left rung 3 as "requires a substrate whose modules emit genuinely independent state".
+  - measured (defaults): distinct per column `[13,13,1,1,1,13,6,8,2]`, **22 of 36** dependent pairs — five columns are the step index or a constant.
+  - measured (fully wired): `[13,13,13,13,12,13,6,8,2]`, **31 of 36** dependent — every column varies, and dependence *rises*.
+- **Gap**: the cheap question before changing the substrate was never asked: is independent state already reachable with existing wiring?
+- **Target delta**: the wiring, not a new substrate, produces independent pairs — and their gaps are measured.
+- **Falsifier**: wiring does not produce independent pairs; the independent pairs are distinguishable upward; or disabling the wiring changes nothing.
+- **Change**: `tests/test_wiring_independence.py` adds 8 tests pinning the default/wired distinct counts, the dependence increase (22 -> 31), the five independent pairs `(4,5)/(4,7)/(4,8)/(6,7)/(6,8)`, their negative gaps, `interactions == []` under both, and `anti_interactions == {(4,7),(4,8),(6,8)}`. No production change. ADR-143.
+- **After** (same trace):
+  - five independent pairs at `syn −0.1243 / −0.2309 / −0.1243 / −0.0632 / −0.0632`, `p_upper` 0.860 / 0.975 / 1.000 / 0.915 / 1.000.
+  - three significantly below the null — the joint carries less than its marginals.
+  - `interactions` empty under both configurations; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: forcing both configurations to the default fails 5 tests and errors 1, so the wiring produces the independent pairs.
+- **Verdict**: rung-3 prerequisite answered, still negative for interaction. The measured delta is "no independent pairs known" -> "five exist, all anti-synchronous, three significantly". Boundary: anti-synchrony is what monotone counters bounded by episode length produce, so it describes how the vectors are emitted, not module interaction; a positive interaction needs module state that is not a function of elapsed time.
+- **Gates**: unittest 777/777 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_wiring_independence.py` -> distinct counts and dependent-pair totals under both configurations.
+  - `python ..\..\scratch\probe_wired_pairs.py` -> five independent pairs, all negative.
+  - `python ..\..\scratch\ablate_148.py` -> wiring ignored: 5 failures, 1 error.
+  - `python -m unittest discover -s tests -t .` -> 777 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 149**: unittest 777 OK; aikit 5/5; default distinct `[13,13,1,1,1,13,6,8,2]` / 22 dependent of 36; wired distinct `[13,13,13,13,12,13,6,8,2]` / 31 dependent; independent pairs `(4,5)(4,7)(4,8)(6,7)(6,8)`; their syn −0.1243/−0.2309/−0.1243/−0.0632/−0.0632; `anti_interactions` `{(4,7),(4,8),(6,8)}`; `interactions` empty both ways; `(1,2)/(1,3)/(1,4)` `constant-scope-column`; `(0,6)` `dependent-columns`; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `syn_null` 17/17 with 3 distinguishable; `syn_sign` 17/17; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 147 - a pair search must refuse collinear columns before scoring
 
 - **Baseline** (commit 4d8f2d0):

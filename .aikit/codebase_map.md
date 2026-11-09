@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `196`
-- **Total Classes**: `196`
-- **Total Top-Level Functions**: `562`
-- **Total Class Methods**: `1009`
-- **Total Source Lines**: `26874`
+- **Total Python Modules**: `197`
+- **Total Classes**: `197`
+- **Total Top-Level Functions**: `563`
+- **Total Class Methods**: `1017`
+- **Total Source Lines**: `27009`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`196` module(s))
+- **Indexed**: python (`197` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -3660,6 +3660,27 @@
 
 **Functions:**
 - `def _pad(rows)`
+
+---
+
+### [`tests/test_wiring_independence.py`](tests/test_wiring_independence.py)
+> *Wiring the modules makes them independent, and then anti-synchronous.*
+
+**Size**: `135` lines (`5938` bytes)
+
+**Classes:**
+- `class TestWiringIndependence`
+  - Method `.test_the_defaults_leave_columns_constant()`
+  - Method `.test_wiring_makes_every_column_vary()`
+  - Method `.test_wiring_does_not_reduce_dependence()`
+  - Method `.test_wiring_produces_independent_pairs()`
+  - Method `.test_every_independent_pair_is_anti_synchronous()`
+  - Method `.test_the_strong_anti_correlations_are_distinguishable()`
+  - Method `.test_no_interaction_under_either_configuration()`
+  - Method `.test_anti_interactions_are_reported_separately()`
+
+**Functions:**
+- `def _vectors(full_wiring)`
 
 ---
 
