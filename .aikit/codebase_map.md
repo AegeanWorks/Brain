@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `191`
-- **Total Classes**: `192`
-- **Total Top-Level Functions**: `551`
-- **Total Class Methods**: `982`
-- **Total Source Lines**: `26345`
+- **Total Python Modules**: `194`
+- **Total Classes**: `195`
+- **Total Top-Level Functions**: `556`
+- **Total Class Methods**: `1001`
+- **Total Source Lines**: `26636`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`191` module(s))
+- **Indexed**: python (`194` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1588` lines (`65453` bytes)
+**Size**: `1605` lines (`66281` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -63,6 +63,7 @@
   - Method `.hub_write(content)` - *Merge a dict into the shared hub and return a hub copy.*
   - Method `.get_hub()` - *Return a copy of the shared hub mapping.*
   - Method `._reset_episode()`
+  - Method `.online_predictions()` - *Return the outcomes learned online so far, keyed by feature.*
   - Method `._persistent_layout()` - *Return the persisted initial state for this world, or None.*
   - Method `._layout_complete(state)` - *True when a state carries every goal field its task consumes.*
   - Method `._remember_layout(state)` - *Persist the initial state once; never store an incomplete one.*
@@ -1087,6 +1088,26 @@
 
 ---
 
+### [`self_model/online.py`](self_model/online.py)
+> *Learn the reward probability from error, without being told the rule.*
+
+**Size**: `81` lines (`3058` bytes)
+
+**Classes:**
+- `class OnlinePredictor` - *Laplace-smoothed outcome frequencies that improve with every step.*
+  - Method `.__init__()`
+  - Method `.predict(key)` - *Probability of reward for ``key`` from counts so far.*
+  - Method `.observe(key, outcome)` - *Record one outcome for ``key``; returns the updated count.*
+  - Method `.table()` - *Return the learned probabilities, keyed by feature.*
+  - Method `.keys()` - *Return the feature keys seen so far.*
+  - Method `.seen(key)` - *Return how many outcomes have been recorded for ``key``.*
+
+**Functions:**
+- `def distance_bucket(state, task)` - *Pre-action distance to the nearest goal, capped at 3 (``9`` = none).*
+- `def feature_key(task, state, action)` - *The key this predictor learns over: nothing but observable inputs.*
+
+---
+
 ### [`self_model/prediction.py`](self_model/prediction.py)
 > *Rung 1: a pre-outcome self-prediction the agent can be scored on.*
 
@@ -1302,6 +1323,21 @@
   - Method `.test_run_with_injected_world()`
   - Method `.test_hub_shared()`
   - Method `.test_tempdir_trace_roundtrip()`
+
+---
+
+### [`tests/test_agent_online.py`](tests/test_agent_online.py)
+> *The agent learns across episodes, not inside one.*
+
+**Size**: `67` lines (`2656` bytes)
+
+**Classes:**
+- `class TestAgentLearnsOnline`
+  - Method `.test_a_fresh_agent_knows_nothing()`
+  - Method `.test_one_episode_populates_the_table()`
+  - Method `.test_the_table_persists_across_episodes()`
+  - Method `.test_the_learned_rule_matches_the_world()`
+  - Method `.test_actions_are_unchanged_by_learning()`
 
 ---
 
@@ -2505,6 +2541,28 @@
 - `def _visits_from_obs(obs)`
 - `def _oracle_action(obs)`
 - `def _oracle_steps(task, seed, max_steps)`
+
+---
+
+### [`tests/test_online_learning.py`](tests/test_online_learning.py)
+> *A predictor that is never told the reward rule must still learn it.*
+
+**Size**: `126` lines (`5162` bytes)
+
+**Classes:**
+- `class TestOnlineLearning`
+  - Method `.test_the_untold_predictor_learns_positive_skill()`
+  - Method `.test_the_prediction_precedes_the_observation()`
+  - Method `.test_the_learned_table_reconstructs_the_reward_rule()`
+  - Method `.test_an_unseen_key_predicts_the_prior()`
+  - Method `.test_laplace_smoothing_handles_a_single_observation()`
+  - Method `.test_distance_bucket_caps_and_reports_absence()`
+  - Method `.test_the_score_is_not_the_base_rate_in_disguise()`
+
+**Functions:**
+- `def _brier(pairs)`
+- `def _episodes()` - *Yield (key, outcome) in a fixed order, with the pre-action key.*
+- `def _prequential_score()`
 
 ---
 

@@ -22,6 +22,7 @@ from collections import deque
 
 from budget import BudgetExceeded, spend, use_budget
 from identity import input_digest
+from self_model.online import OnlinePredictor, feature_key
 from self_model.prediction import predict_outcome
 from workspace import workspace_digest
 
@@ -1106,6 +1107,9 @@ class Agent:
         self.telemetry_log = telemetry_log
         self._hub = {}
         self._steps_since_reward = 0
+        #: Laplace-smoothed outcome frequencies, learned online from error
+        #: only. Never told the reward rule; scored prequentially.
+        self._online = OnlinePredictor()
         self._substrate_errors = {
             "bind": 0,
             "memory_store": 0,
@@ -1170,6 +1174,15 @@ class Agent:
             reset_trust()
         self._steps_since_reward = 0
         self._hub = {}
+
+    def online_predictions(self):
+        """Return the outcomes learned online so far, keyed by feature.
+
+        This table persists across ``run_task`` calls: it is the agent's
+        accumulated estimate of when a step is rewarded, formed only from
+        outcomes it has observed.
+        """
+        return self._online.table()
 
     def _persistent_layout(self):
         """Return the persisted initial state for this world, or None.
@@ -1372,7 +1385,11 @@ class Agent:
             action = self.planner.plan(state, memories)  # plan
             prediction, prediction_basis = predict_outcome(
                 state, action, getattr(self.world, "task_id", None))
+            _learn_key = feature_key(getattr(self.world, "task_id", None),
+                                     state, action)
+            _learned = self._online.predict(_learn_key)
             new_state, reward, done = self.world.step(action)  # act
+            self._online.observe(_learn_key, float(reward) > 0.0)
             self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
             self.selfmodel.record(new_state, action, reward, done)
             if float(reward) > 0.0:

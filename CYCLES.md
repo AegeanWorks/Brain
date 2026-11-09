@@ -4904,6 +4904,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 146 - learn the reward probability online, without being told the rule
+
+- **Baseline** (commit b103acd):
+  - canonical gate: 749 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-140's boundary: `predict_outcome` encodes the world's reward rule, so it cannot show learning.
+  - measured: the rung-1 predictor is **100% accurate in every basis bucket** — `closing-move` 20/20, `far` 123/123, `collect` 60/60 and 20/20, `other` 248/248 and 140/140 — so prediction error is identically zero.
+- **Gap**: there is no error to learn from when the predictor is given the rule. Learning requires a predictor that is not told.
+- **Target delta**: a predictor told nothing about reward learns the reward rule from outcomes alone, scored prequentially, and beats the base rate.
+- **Falsifier**: the untold predictor scores no better than the base rate; a single-key predictor scores the same; or the learning changes the action trace.
+- **Change**: `self_model/online.py` adds `OnlinePredictor` (Laplace-smoothed, prequential) plus `feature_key`/`distance_bucket`; `Agent.run` predicts before `world.step` and observes after, with the table persisting across `run_task`; `Agent.online_predictions()` exposes it; `tests/test_online_learning.py` (7) and `tests/test_agent_online.py` (5). ADR-141.
+- **After** (611 pooled steps, 20 seeds × 3 tasks):
+  - base rate Brier 0.136880 (skill 0.0000); learned Brier 0.022075 (**skill +0.8387**).
+  - learned table reconstructs the rule: `T1_forage/collect/0` 0.984, `T2_delayed_match/collect/0` 0.955, `T3_navigate/down/1` 0.952, everything else 0.014–0.200.
+  - trained vs fresh `T3_navigate:15` trace byte-identical; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: collapsing the feature space to one key drops skill to −0.011 and fails the learning test, so the skill comes from learning over features, not from the score formula.
+- **Verdict**: rung 2. The measured delta is "error is identically zero" -> "an untold predictor recovers the reward rule at skill +0.8387". Boundary: a conditional frequency table, not state dynamics; it does not feed back into action selection, so this is learning *about* the world, not learning *to act*.
+- **Gates**: unittest 761/761 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_rung2_error.py` -> zero error in every basis bucket.
+  - `python ..\..\scratch\probe_learned_predictor.py` -> skill +0.8387, 24 features.
+  - `python ..\..\scratch\ablate_146.py` -> single-key predictor skill −0.011.
+  - `python -m unittest discover -s tests -t .` -> 761 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 147**: unittest 761 OK; aikit 5/5; online prequential skill +0.8387 (Brier 0.022075 vs base 0.136880); learned table `T1/collect/0` 0.984, `T2/collect/0` 0.955, `T3/down/1` 0.952, others < 0.20; single-key ablation −0.011; trained-vs-fresh trace identical; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `syn_null` 17/17 with 3 distinguishable; `syn_sign` 17/17; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 145 - record self-prediction before the outcome
 
 - **Baseline** (commit 1255fa2):
