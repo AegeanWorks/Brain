@@ -153,16 +153,6 @@ def spend(kind, units=1):
         budget.spend(kind, units)
 
 
-def push_budget(budget):
-    """Install a budget and return the context token; pair with pop_budget."""
-    return _current.set(budget)
-
-
-def pop_budget(token):
-    """Restore the previous context budget."""
-    _current.reset(token)
-
-
 def budget_from_limits(limits=None):
     """Build an ExecutionBudget from a partial limit mapping."""
     return ExecutionBudget(limits=limits or {})

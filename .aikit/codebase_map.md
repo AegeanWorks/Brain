@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `171`
-- **Total Classes**: `175`
-- **Total Top-Level Functions**: `529`
-- **Total Class Methods**: `875`
-- **Total Source Lines**: `24485`
+- **Total Python Modules**: `172`
+- **Total Classes**: `176`
+- **Total Top-Level Functions**: `527`
+- **Total Class Methods**: `881`
+- **Total Source Lines**: `24556`
 
 ---
 
@@ -89,7 +89,7 @@
 ### [`budget.py`](budget.py)
 > *Per-run execution budget: steps, LLM calls, tokens and wall time.*
 
-**Size**: `168` lines (`6074` bytes)
+**Size**: `158` lines (`5838` bytes)
 
 **Classes:**
 - `class BudgetExceeded` - *Raised when one dimension of the run budget is exhausted.*
@@ -108,8 +108,6 @@
 - `def current_budget()` - *The active budget for this context, or None.*
 - `def use_budget(budget)` - *Install a budget for the current task; nested runs inherit it.*
 - `def spend(kind, units)` - *Spend from the active budget when one is installed; else no-op.*
-- `def push_budget(budget)` - *Install a budget and return the context token; pair with pop_budget.*
-- `def pop_budget(token)` - *Restore the previous context budget.*
 - `def budget_from_limits(limits)` - *Build an ExecutionBudget from a partial limit mapping.*
 
 ---
@@ -1345,6 +1343,22 @@
   - Method `.test_llm_call_budget_stops_before_next_call()`
   - Method `.test_token_budget_spends_prompt_stats()`
   - Method `.test_elapsed_and_remaining()`
+
+---
+
+### [`tests/test_budget_surface.py`](tests/test_budget_surface.py)
+> *Shipped public API must be reachable or it is dead weight.*
+
+**Size**: `81` lines (`3364` bytes)
+
+**Classes:**
+- `class TestBudgetSurface`
+  - Method `.test_push_and_pop_are_gone()`
+  - Method `.test_use_budget_is_the_supported_installer()`
+  - Method `.test_use_budget_nests_and_restores()`
+  - Method `.test_use_budget_restores_on_exception()`
+  - Method `.test_no_module_in_the_tree_references_the_removed_names()`
+  - Method `.test_budget_module_still_parses_and_exports_its_contract()`
 
 ---
 

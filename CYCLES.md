@@ -4554,6 +4554,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 130**: unittest 644 OK; aikit 5/5; `run_verify` CLI clean 0, wrong model 1 (`episode FAIL`, `model-mismatch`), truncated 1 (`replay FAIL`, `missing-verdict`), missing/bare 2; `verify_run` four layers; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 130 - remove the unreachable budget push/pop pair
+
+- **Baseline** (commit 47f1b3d):
+  - canonical gate: 644 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - a dead-code sweep over production modules found `budget.push_budget` with one occurrence (its own `def`) and `pop_budget` with one non-def occurrence inside the other's docstring; no module, test or README line used either.
+  - measured: both behaved correctly (nest like a stack, interleave with `use_budget`, `spend` charges the pushed budget) — the defect was an unreachable public name, not a wrong one.
+- **Gap**: shipped API with no caller and no test. A reader must guess whether it is supported, and a refactor can break it silently because nothing exercises it. It also duplicates `use_budget`'s two lines exactly.
+- **Target delta**: the dead pair is removed; `use_budget` nesting and exception restoration become pinned where they were untested.
+- **Falsifier**: a tree module still references the removed names; `use_budget` stops nesting or restoring; or a pinned value moves.
+- **Change**: `budget.py` deletes `push_budget`/`pop_budget`; `tests/test_budget_surface.py` adds 6 tests (names gone, `use_budget` present, nests and restores, restores on exception, no tree reference, module contract intact). ADR-124.
+- **After** (same tree):
+  - 6 surface tests pass; suite total rises 644 -> 650.
+  - `use_budget` nests outer/inner and restores after `RuntimeError`; `current_budget()` is `None` outside.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: restoring the two functions makes `test_push_and_pop_are_gone` fail (`True is not false`); deleting them makes it pass, so the test is the load-bearing guard rather than a restatement.
+- **Verdict**: dead-code removal plus coverage of the surviving installer. The measured delta is an unreachable public pair gone and `use_budget` behavior now pinned; no budget, behavior or estimate moves. Boundary: a downstream import of `push_budget` outside this repo would break — acceptable for an undocumented pair with no in-tree caller, and recorded rather than assumed.
+- **Gates**: unittest 650/650 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_dead2.py` -> `push_budget` refs=0, `pop_budget` only a docstring.
+  - `python ..\..\scratch\probe_budget_stack.py` -> both behave correctly before removal.
+  - `python -m unittest tests.test_budget_surface` -> before: 2 failures; after: 6 OK.
+  - `python ..\..\scratch\ablate_130.py` -> restore fails the test, removal passes.
+  - `python -m unittest discover -s tests -t .` -> 650 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 131**: unittest 650 OK; aikit 5/5; `push_budget`/`pop_budget` absent and unreferenced; `use_budget` nests and restores on exception; `run_verify` CLI 0/1/2; `verify_run` four layers; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
