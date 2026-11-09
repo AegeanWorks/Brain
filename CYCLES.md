@@ -4803,6 +4803,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 140**: unittest 701 OK; aikit 5/5; `phi_diagnosis` real trace `phi 0.0` / `predictable True` / `unique [13,13,1,1,1,13,6,8,2]`; constant trace `all_constant True` / `predictable False`; `probe_scale()` 0.007722962; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 140 - pin what the phi clip produces, not the clip itself
+
+- **Baseline** (commit d3a8701):
+  - canonical gate: 701 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `phi_ar` ends in `max(0.0, ...)`, so it is non-negative by construction; two shipped tests asserted only `phi >= 0.0`.
+  - measured: 3000 random shapes -> 0 negatives, 1399 zeros, 1601 positives.
+- **Gap**: the `>= 0.0` assertion cannot fail (EVID-009). A dead estimator returning constant `0.0` passes it — verified: the old assertions PASS against that stub.
+- **Target delta**: the assertions pin the two ends the clip produces (exact floor, exact ceiling) and a strictly-between value, so a dead estimator is caught.
+- **Falsifier**: a constant-`0.0` estimator still passes; the floor or ceiling is not exact; or a pinned value moves.
+- **Change**: `tests/test_estimators.py` renames `test_phi_nonnegative` -> `test_phi_clip_and_signal` and asserts `> 0.0` plus exact `0.0`; `tests/test_estimator_edges.py` keeps the exact floor values with a comment; `tests/test_phi_clip.py` adds 5 tests. ADR-134.
+- **After** (same estimator):
+  - floor cases exactly `0.0`; `sin`/`cos` pair exactly `1.0`; two-column AR(1) 0.007722962 in (0, 1).
+  - estimator/edge/clip suites 20 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: a dead estimator returning constant `0.0` satisfies every old `>= 0.0` assertion (PASS) and fails 4 of 5 new tests — `0.0 not greater than 0.0`, `0.0 != 1.0` twice, `0.0 == 0.0`.
+- **Verdict**: test-strength extension replacing an unfalsifiable pin. The measured delta is a dead estimator becoming detectable; no estimate, action or pin value moves. Boundary: this pins the estimator's range; the shipped-trace `phi == 0.0` vacuity is ADR-133's subject and the two are complementary.
+- **Gates**: unittest 706/706 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_phi_only_tests.py` -> two tests assert only phi.
+  - `python ..\..\scratch\probe_phi_nonneg.py` -> 0 negatives in 3000 shapes; source clip present.
+  - `python ..\..\scratch\probe_phi_positive.py` -> sin/cos gives exactly 1.0.
+  - `python ..\..\scratch\ablate_140.py` -> dead estimator passes old pins, fails 4 new.
+  - `python -m unittest discover -s tests -t .` -> 706 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 141**: unittest 706 OK; aikit 5/5; `phi_ar` floor exactly 0.0, ceiling exactly 1.0 on sin/cos, AR(1) 0.007722962 strictly between; dead-estimator detection verified; `phi_diagnosis` real `predictable True`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

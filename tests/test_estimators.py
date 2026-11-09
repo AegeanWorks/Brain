@@ -32,14 +32,16 @@ class TestEstimators(unittest.TestCase):
         syn, syn_n = synergy(trace, target)
         self.assertGreaterEqual(syn, 0.0)
 
-    def test_phi_nonnegative(self):
+    def test_phi_clip_and_signal(self):
+        # The estimator clips at 0, so ">= 0" alone cannot fail. Pin the two
+        # ends the clip produces instead: an exact floor and a saturated 1.0.
         rng = random.Random(2)
         trace = [[0.0, 0.0]]
         for _ in range(100):
             p = trace[-1]
             trace.append([0.9 * p[0] + rng.gauss(0, 0.1), rng.gauss(0, 1)])
-        self.assertGreaterEqual(phi_ar(trace), 0.0)
-        self.assertGreaterEqual(phi_ar([[1.0], [1.0], [1.0], [1.0]]), 0.0)
+        self.assertGreater(phi_ar(trace), 0.0)
+        self.assertEqual(phi_ar([[1.0], [1.0], [1.0], [1.0]]), 0.0)
 
     def test_gbi_formula(self):
         self.assertAlmostEqual(gbi(0.2, 0.8), (0.8 - 0.2) / (1.0 - 0.2))

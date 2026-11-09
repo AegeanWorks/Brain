@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `181`
-- **Total Classes**: `184`
-- **Total Top-Level Functions**: `537`
-- **Total Class Methods**: `933`
-- **Total Source Lines**: `25408`
+- **Total Python Modules**: `182`
+- **Total Classes**: `185`
+- **Total Top-Level Functions**: `539`
+- **Total Class Methods**: `938`
+- **Total Source Lines**: `25490`
 
 ---
 
@@ -1891,7 +1891,7 @@
 ### [`tests/test_estimator_edges.py`](tests/test_estimator_edges.py)
 > *Pin the estimator edge cases their docstrings promise.*
 
-**Size**: `80` lines (`2996` bytes)
+**Size**: `81` lines (`3067` bytes)
 
 **Classes:**
 - `class TestEstimatorEdges`
@@ -1909,13 +1909,13 @@
 ### [`tests/test_estimators.py`](tests/test_estimators.py)
 > *Estimator unit checks: stdlib only.*
 
-**Size**: `73` lines (`2448` bytes)
+**Size**: `75` lines (`2595` bytes)
 
 **Classes:**
 - `class TestEstimators`
   - Method `.test_mi_nonnegative_correlated()`
   - Method `.test_syn_nonnegative_xor()`
-  - Method `.test_phi_nonnegative()`
+  - Method `.test_phi_clip_and_signal()`
   - Method `.test_gbi_formula()`
   - Method `.test_transfer_recovery_formulas()`
   - Method `.test_logistic_k_r2_range()`
@@ -2477,6 +2477,25 @@
 
 **Functions:**
 - `def _hidden_t1_steps(seed, max_steps, planner)`
+
+---
+
+### [`tests/test_phi_clip.py`](tests/test_phi_clip.py)
+> *A non-negativity assertion must test the clip, not restate it.*
+
+**Size**: `79` lines (`3056` bytes)
+
+**Classes:**
+- `class TestPhiClipIsWhatIsPinned`
+  - Method `.test_the_clip_floor_is_exactly_zero()`
+  - Method `.test_the_clip_ceiling_is_reached_by_an_unmodellable_partition()`
+  - Method `.test_a_partially_predictable_trace_sits_between_the_ends()`
+  - Method `.test_the_floor_and_the_signal_are_distinguishable()`
+  - Method `.test_no_shape_returns_a_negative()`
+
+**Functions:**
+- `def _sin_cos(rows)`
+- `def _ar1(rows, seed)`
 
 ---
 

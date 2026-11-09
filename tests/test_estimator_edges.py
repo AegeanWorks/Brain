@@ -35,6 +35,7 @@ class TestEstimatorEdges(unittest.TestCase):
         self.assertEqual(recovery(0, 0), 0.0)
 
     def test_phi_neutral_below_three_rows_and_on_constant_input(self):
+        # Exact floor values, which the clip produces and can fail to.
         self.assertEqual(phi_ar([]), 0.0)
         self.assertEqual(phi_ar([[1.0], [2.0]]), 0.0)
         self.assertEqual(phi_ar([[1.0], [1.0], [1.0], [1.0]]), 0.0)
