@@ -14,6 +14,7 @@ import json
 import tempfile
 
 from agent import Agent, Planner
+from evals.battery_check import exit_code_for, format_findings
 from models.backend import ModelBackend
 from models.llamacpp import build_prompt, estimate_tokens, prompt_stats
 from models.manifest import manifest_for
@@ -105,13 +106,60 @@ def run_battery(modes=MODES):
             "cases": [measure_case(mode=mode) for mode in modes]}
 
 
+def checks(report):
+    """Return the claims this battery's own output contradicts.
+
+    The battery's contract is that a prompt cap trims tokens without
+    altering behavior. These findings enforce that, plus the parity the
+    docstring states (identical steps and reward in every mode) and the
+    fact that the cap actually trimmed something.
+    """
+    findings = []
+    by_mode = {case.get("mode"): case for case in report.get("cases", [])}
+    for mode in MODES:
+        if mode not in by_mode:
+            findings.append("missing-mode:%s" % mode)
+    if findings:
+        return findings
+    for mode in MODES:
+        case = by_mode[mode]
+        if not case.get("actions_match_rule"):
+            findings.append("actions-differ-from-rule:%s" % mode)
+        if case.get("reward", 0.0) <= 0.0:
+            findings.append("reward:%s:%s" % (mode, case.get("reward")))
+    steps = {by_mode[m].get("steps") for m in MODES}
+    if len(steps) > 1:
+        findings.append("steps-varies:%s" % sorted(steps))
+    rewards = {by_mode[m].get("reward") for m in MODES}
+    if len(rewards) > 1:
+        findings.append("reward-varies:%s" % sorted(rewards))
+    uncapped, budgeted = by_mode["uncapped"], by_mode["budgeted"]
+    if budgeted.get("prompt_max_tokens", 0) >= uncapped.get(
+            "prompt_max_tokens", 0):
+        findings.append("cap-did-not-trim:%s>=%s"
+                        % (budgeted.get("prompt_max_tokens"),
+                           uncapped.get("prompt_max_tokens")))
+    if uncapped.get("prompt_omitted_total") != 0:
+        findings.append("uncapped-omitted:%s!=0"
+                        % uncapped.get("prompt_omitted_total"))
+    if budgeted.get("prompt_omitted_total", 0) <= 0:
+        findings.append("budgeted-omitted:%s"
+                        % budgeted.get("prompt_omitted_total"))
+    return findings
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", action="append", choices=MODES, default=[],
                         help="repeatable (default: all modes)")
     args = parser.parse_args()
     modes = tuple(args.mode) if args.mode else MODES
-    print(json.dumps(run_battery(modes), indent=2, sort_keys=True))
+    report = run_battery(modes)
+    print(json.dumps(report, indent=2, sort_keys=True))
+    findings = checks(report)
+    if findings:
+        print(format_findings("prompt_budget", findings), end="")
+    raise SystemExit(exit_code_for(findings))
 
 
 if __name__ == "__main__":

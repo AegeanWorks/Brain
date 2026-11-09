@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `161`
-- **Total Classes**: `166`
-- **Total Top-Level Functions**: `513`
-- **Total Class Methods**: `801`
-- **Total Source Lines**: `23242`
+- **Total Python Modules**: `162`
+- **Total Classes**: `167`
+- **Total Top-Level Functions**: `515`
+- **Total Class Methods**: `811`
+- **Total Source Lines**: `23384`
 
 ---
 
@@ -706,7 +706,7 @@
 ### [`evals/prompt_budget.py`](evals/prompt_budget.py)
 > *Prompt-budget battery: capped model prompts, unchanged rule actions.*
 
-**Size**: `118` lines (`4173` bytes)
+**Size**: `166` lines (`6260` bytes)
 
 **Classes:**
 - `class PromptBackend` - *Record the rendered prompt/manifest, then decline to the rule.*
@@ -717,6 +717,7 @@
 - `def _synthetic(mode)`
 - `def measure_case(mode)`
 - `def run_battery(modes)`
+- `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -1270,7 +1271,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `109` lines (`4460` bytes)
+**Size**: `110` lines (`4515` bytes)
 
 **Classes:**
 - `class TestBatteryContract`
@@ -2462,6 +2463,29 @@
   - Method `.test_default_budget_is_uncapped()`
   - Method `.test_llamacpp_backend_applies_prompt_budget()`
   - Method `.test_invalid_prompt_budget_rejected()`
+
+---
+
+### [`tests/test_prompt_budget_checks.py`](tests/test_prompt_budget_checks.py)
+> *The prompt-budget battery must check that the cap changes no behavior.*
+
+**Size**: `93` lines (`3691` bytes)
+
+**Classes:**
+- `class TestPromptBudgetChecks`
+  - Method `.setUpClass()`
+  - Method `.test_a_real_run_has_no_findings()`
+  - Method `.test_actions_match_the_rule_in_every_mode()`
+  - Method `.test_steps_and_reward_are_identical_across_modes()`
+  - Method `.test_the_cap_actually_trimmed()`
+  - Method `.test_a_changed_action_is_named()`
+  - Method `.test_a_changed_step_count_is_named()`
+  - Method `.test_a_cap_that_trims_nothing_is_named()`
+  - Method `.test_a_missing_mode_is_named()`
+  - Method `.test_lost_reward_is_named()`
+
+**Functions:**
+- `def _mode(report, name)`
 
 ---
 

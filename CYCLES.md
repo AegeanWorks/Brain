@@ -4323,6 +4323,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 121**: unittest 574 OK; aikit 5/5; `header_reader` real run clean/exit 0, ratio > 10, and its three mutations exit 1; `progress_guard` five mutations exit 1; `telemetry_lock` contract; `audit_batteries` covered includes `telemetry_lock`/`progress_guard`/`header_reader`, uncovered still names `calibration`/`estimators`/`recompute`/`execution_budget`/`prompt_budget`/`resume_identity`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 121 - enforce the prompt-budget "no behavior change" claim
+
+- **Baseline** (commit 9559f48):
+  - canonical gate: 574 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals/prompt_budget.py` already computed `actions_match_rule` and printed it, exiting 0 either way.
+  - re-measured: uncapped 63 tokens / 0 omitted, budgeted 52 / 13 omitted, both 13 steps / 1.0 reward, matching the README.
+- **Gap**: the battery's load-bearing claim — a prompt cap is behavior-preserving — was computed and discarded. A cap that changed one action would print `actions_match_rule: false` and exit 0, so no gate could see it.
+- **Target delta**: the claim is enforced every run, along with step/reward parity and the fact that the cap trimmed something; each regression is named.
+- **Falsifier**: the real run reports a finding; a behavior-changing cap exits 0; or a pinned value moves.
+- **Change**: `evals/prompt_budget.py` adds `checks(report)` naming `missing-mode:`, `actions-differ-from-rule:`, `reward:`, `steps-varies:`, `reward-varies:`, `cap-did-not-trim:`, `uncapped-omitted:` and `budgeted-omitted:`, and exits through the ADR-112 contract; `tests/test_prompt_budget_checks.py` adds 9 tests. ADR-115. The audit test now expects `prompt_budget` among the covered batteries.
+- **After** (same battery):
+  - real run: findings `[]`, exit 0; uncapped 63/0, budgeted 52/13, both 13 steps / 1.0, actions match.
+  - cap changes an action: `actions-differ-from-rule:budgeted`, exit 1; changes step count: `steps-varies:[13, 99]`, exit 1; trims nothing: `cap-did-not-trim:63>=63`, exit 1; reward lost: `reward:budgeted:0.0`, exit 1.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `checks` a behavior-changing cap exits 0; with it the same payload exits 1, and the JSON is identical in both readings, so the delta is the check.
+- **Verdict**: harness-honesty extension on the model-seam release valve. The measured delta is a behavior-parity claim that was true and discarded, now enforced. No behavior, estimator or pin moves. Boundary: the claim is checked on one case (T3:15), not every task or size; five batteries remain uncovered.
+- **Gates**: unittest 583/583 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_prompt_budget_checks` -> before: 1 error (`checks` absent); after: 9 OK.
+  - `python -m evals.prompt_budget` -> exit 0 with findings `[]`.
+  - `python ..\..\scratch\ablate_121.py` -> real clean; four mutations each exit 1.
+  - `python -m unittest discover -s tests -t .` -> 583 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 122**: unittest 583 OK; aikit 5/5; `prompt_budget` real clean/exit 0 with `actions_match_rule True` in both modes, 63/52 tokens, 0/13 omitted, 13 steps / 1.0 reward, and its four mutations exit 1; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those four, uncovered names `calibration`/`estimators`/`recompute`/`execution_budget`/`resume_identity`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
