@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `174`
-- **Total Classes**: `178`
-- **Total Top-Level Functions**: `528`
-- **Total Class Methods**: `895`
-- **Total Source Lines**: `24765`
+- **Total Python Modules**: `175`
+- **Total Classes**: `179`
+- **Total Top-Level Functions**: `530`
+- **Total Class Methods**: `900`
+- **Total Source Lines**: `24880`
 
 ---
 
@@ -2901,6 +2901,25 @@
   - Method `.test_list_json_and_representative_transitions()`
   - Method `.test_misuse_and_unknown_names_exit_two()`
   - Method `.test_live_vocabularies_match_declared_states()`
+
+---
+
+### [`tests/test_store_capability_use.py`](tests/test_store_capability_use.py)
+> *The agent must declare whether its store writes are consumed.*
+
+**Size**: `115` lines (`4784` bytes)
+
+**Classes:**
+- `class TestStoreCapabilityUse`
+  - Method `.test_the_agent_writes_content_every_step()`
+  - Method `.test_recall_has_no_production_caller()`
+  - Method `.test_the_measured_capabilities_are_the_documented_ones()`
+  - Method `.test_the_index_is_populated_and_queryable_even_though_unread()`
+  - Method `.test_the_tokeniser_is_the_documented_one()`
+
+**Functions:**
+- `def _production_sources()`
+- `def store_capability_use()` - *Report which MemoryStore read paths production code calls.*
 
 ---
 

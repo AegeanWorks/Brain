@@ -4656,6 +4656,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 134**: unittest 663 OK; aikit 5/5; `recall_terms` unicode-aware (`Türkçe`, `日本語` whole; ASCII unchanged); non-ASCII queries find their rows through FTS and fallback; `verify_run` isolation; `push_budget`/`pop_budget` absent; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 134 - record which store capabilities production reads
+
+- **Baseline** (commit 589e9a5):
+  - canonical gate: 663 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the agent writes 13 JSON rows per episode into `memories` plus a 13-entry FTS5 index; `recall` is the only path that reads that content.
+  - measured: `recall` has **zero** production callers; only `count` and `get_layout` are read.
+- **Gap**: an unstated integration fact. A reader of the telemetry could not tell whether a store-backed run exercised recall or merely paid for the writes, and two wrong versions of my own probe (counting `self.memory.recall(` as a store call, missing `getattr(store, "get_layout")`) showed the measurement needed to be code.
+- **Target delta**: the measured capability set is a test; adding or removing a store read path is caught.
+- **Falsifier**: the probe misses a real caller; a non-caller is counted; or the recorded set drifts silently.
+- **Change**: `tests/test_store_capability_use.py` adds `store_capability_use()` plus 5 tests (13 rows with 13 FTS entries, `recall` uncalled, `count`/`get_layout` present, the index still queryable, tokeniser matches ADR-127). No production change. ADR-128.
+- **After** (same tree):
+  - probe reports `count`/`get_layout`/`layout_fingerprint` in `agent.py` and no `recall`; `recall("T3_navigate")` still returns 13, so the capability works but is unwired.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: injecting a synthetic `store.recall(...)` line makes `test_recall_has_no_production_caller` fail naming `agent.py`; removing it passes, so the recorded fact cannot go stale silently.
+- **Verdict**: integration-fact recording, not a behavior change. The measured delta is an undocumented write-only capability made explicit and guarded. Boundary: wiring recall into the loop would change the policy digest and every action pin — a separate decision with its own re-baseline; the probe is syntactic, so an aliased call would go unrecorded.
+- **Gates**: unittest 668/668 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_content_read.py` -> `recall` has no production caller.
+  - `python ..\..\scratch\probe_store_api.py` -> only `count`/`save`/`get_layout`/`close` called.
+  - `python -m unittest tests.test_store_capability_use` -> before: 1 failure (detector conflated the in-memory ring); after: 5 OK.
+  - `python ..\..\scratch\ablate_134.py` -> injected caller detected.
+  - `python -m unittest discover -s tests -t .` -> 668 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 135**: unittest 668 OK; aikit 5/5; `store_capability_use` reports no `recall` caller and does report `count`/`get_layout`; 13 rows + 13 FTS entries per episode; index queryable; `recall_terms` unicode-aware; `verify_run` isolation; `push_budget`/`pop_budget` absent; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
