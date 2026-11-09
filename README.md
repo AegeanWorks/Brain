@@ -214,7 +214,8 @@ first prompt hash.
 `synergy` reads trace columns 0 and 1 only, so `syn` 0.0 cannot separate
 "nothing there" from "signal outside them". `SYNERGY_COLUMNS` and
 `synergy_scope(...)` expose the pair, ignored/constant columns and
-sufficiency; `recompute` returns `syn_scope`. Values are unchanged, and
+sufficiency; `recompute` returns `syn_scope`, and every battery trace slot
+carries it too. Values are unchanged, and
 cold-start cases read `constant-scope-column` instead of a bare `0.0`.
 
 ## 🧪 Lesion Detectability
