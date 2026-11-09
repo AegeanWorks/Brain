@@ -4247,6 +4247,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 118**: unittest 546 OK; aikit 5/5; `expected_model` matching True, wrong `model-mismatch`, missing `missing-model`, omitted unchanged, invalid raises; claim-ref pin refuses a relabelled log; `expected_verdict_word`; `verify_result_records` 13/13; snapshot evidence; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 118 - give the batteries one exit-code contract
+
+- **Baseline** (commit 71a57a4):
+  - canonical gate: 546 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - a static survey of `evals/*.py` found ten batteries with no `assert`, no `raise` and no non-zero exit: `calibration`, `estimators`, `execution_budget`, `header_reader`, `progress_guard`, `prompt_budget`, `recompute`, `resume_identity`, `telemetry_lock`, `vector_audit`.
+  - measured: `python -m evals.telemetry_lock` exited 0 intact and 0 with `--ablate` (the deliberately broken case), so a scripted gate could not tell a pass from a regression.
+- **Gap**: ten batteries could regress silently. The repo's evidence discipline assumed a human reads each JSON payload; no gate consumed the batteries' own verdicts, and the audit that could name the gap did not exist.
+- **Target delta**: one shared exit-code contract, adopted in the battery proved silent, plus an audit that keeps naming the rest.
+- **Falsifier**: an intact run exits non-zero; a regressed run exits 0; or a pinned value moves.
+- **Change**: `evals/battery_check.py` adds `EXIT_OK`/`EXIT_FINDING`, `exit_code_for`, `battery_result`, `format_findings` and `audit_batteries`; `evals/telemetry_lock.py` adds `checks(report)` naming `worker-errors`, `record-count:<n>!=<m>`, `chain-broken:<findings>` and `ablation-did-not-break-the-chain`, and exits through the contract; `tests/test_battery_contract.py` adds 9 tests. ADR-112.
+- **After** (same battery):
+  - intact: exit 0; `--ablate`: exit 0 (the chain is broken as designed, and a *clean* chain under the cut is now the failure).
+  - forced regressions: broken chain, short count, worker error and vacuous ablation each return exit 1 with a named finding.
+  - audit: `telemetry_lock` moves to `with_contract`; the remaining nine are still listed in `without_contract`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: with `checks`, a broken chain or a vacuous ablation exits 1; without it the same payload exits 0, and the JSON output is byte-identical in both readings, so the delta is the exit code.
+- **Verdict**: harness-honesty extension. The measured delta is a battery that printed a broken chain and exited 0, now exiting 1, plus a standing audit of the nine batteries still uncovered. No behavior, estimator or pin moves. Boundary: the contract is established and adopted in one battery; the other nine still only print, and the audit's coverage test is syntactic (a name reference or a `raise`), not proof that a battery's assertions are correct.
+- **Gates**: unittest 556/556 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_battery_contract` -> before: 1 error (`evals.battery_check` absent); after: 9 OK.
+  - `python -m evals.telemetry_lock` -> exit 0; `--ablate` -> exit 0; forced regressions -> exit 1 each.
+  - `python ..\..\scratch\ablate_118.py` -> good 0, broken-chain 1, short 1, worker-error 1, vacuous-ablation 1.
+  - `python -m unittest discover -s tests -t .` -> 556 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 119**: unittest 556 OK; aikit 5/5; `exit_code_for` 0/1 rules; `telemetry_lock` intact 0, ablate 0, forced regressions 1; `audit_batteries` lists `telemetry_lock` as covered and names `calibration`/`estimators`/`recompute` as uncovered; `expected_model` pin; `expected_verdict_word`; `verify_result_records` 13/13; snapshot evidence; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

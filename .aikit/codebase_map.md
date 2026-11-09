@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `157`
-- **Total Classes**: `162`
-- **Total Top-Level Functions**: `501`
-- **Total Class Methods**: `771`
-- **Total Source Lines**: `22687`
+- **Total Python Modules**: `159`
+- **Total Classes**: `164`
+- **Total Top-Level Functions**: `509`
+- **Total Class Methods**: `781`
+- **Total Source Lines**: `22927`
 
 ---
 
@@ -291,6 +291,22 @@
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
 - `def main()`
+
+---
+
+### [`evals/battery_check.py`](evals/battery_check.py)
+> *One exit-code contract for the eval batteries.*
+
+**Size**: `110` lines (`3950` bytes)
+
+**Functions:**
+- `def exit_code_for(findings)` - *Return the process exit code for one battery's findings.*
+- `def battery_result(name, findings, payload)` - *Build one battery's report: name, ok flag, findings and payload.*
+- `def format_findings(name, findings)` - *Render findings as one attributable line each, for stderr.*
+- `def _adopts_contract(source)` - *True when a module's source references the contract by name.*
+- `def _refuses_by_raising(tree)` - *True when the module contains an explicit ``raise`` statement.*
+- `def audit_batteries(root)` - *Report which eval modules adopt the exit-code contract.*
+- `def main()` - *Print the audit; exit 1 when any battery lacks a self-check.*
 
 ---
 
@@ -779,11 +795,12 @@
 ### [`evals/telemetry_lock.py`](evals/telemetry_lock.py)
 > *Concurrent telemetry battery: serialized append vs lock-off ablation.*
 
-**Size**: `90` lines (`3202` bytes)
+**Size**: `114` lines (`4247` bytes)
 
 **Functions:**
 - `def _no_lock(_path, timeout_seconds)`
 - `def run_battery(writers, records, ablate)` - *Run concurrent writers and return the chain verdict.*
+- `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -1245,6 +1262,27 @@
 **Functions:**
 - `def _log(path, records)`
 - `def _truncate(path, keep)`
+
+---
+
+### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
+> *A battery must fail loudly, not merely print.*
+
+**Size**: `106` lines (`4292` bytes)
+
+**Classes:**
+- `class TestBatteryContract`
+  - Method `.test_no_findings_is_success()`
+  - Method `.test_any_finding_is_failure()`
+  - Method `.test_result_carries_ok_and_findings()`
+  - Method `.test_result_without_findings_is_ok()`
+  - Method `.test_format_findings_is_one_line_each()`
+  - Method `.test_a_battery_exits_non_zero_when_it_reports_a_finding()`
+- `class TestBatteryAudit`
+  - Method `.test_audit_reports_the_shipped_batteries()`
+  - Method `.test_audit_still_names_the_uncovered_batteries()`
+  - Method `.test_audit_finds_both_populations()`
+  - Method `.test_audit_of_a_missing_directory_degrades()`
 
 ---
 

@@ -16,6 +16,7 @@ import threading
 import time
 from unittest import mock
 
+from evals.battery_check import exit_code_for, format_findings
 from telemetry.log import Telemetry, verify_chain
 
 
@@ -75,6 +76,25 @@ def run_battery(writers=2, records=2, ablate=False):
         }
 
 
+def checks(report):
+    """Return the claims this battery's own output contradicts."""
+    findings = []
+    if report["worker_errors"]:
+        findings.append("worker-errors: %d" % len(report["worker_errors"]))
+    if report["ablate"]:
+        # The cut must break the chain; a clean chain means the ablation
+        # stopped exercising the lock and the control is now vacuous.
+        if report["chain_ok"]:
+            findings.append("ablation-did-not-break-the-chain")
+        return findings
+    if report["chain_records"] != report["expected_records"]:
+        findings.append("record-count:%d!=%d"
+                        % (report["chain_records"], report["expected_records"]))
+    if not report["chain_ok"]:
+        findings.append("chain-broken:%s" % ", ".join(report["chain_findings"]))
+    return findings
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--writers", type=int, default=2)
@@ -82,8 +102,12 @@ def main():
     parser.add_argument("--ablate", action="store_true",
                         help="remove the advisory lock (pre-fix behavior)")
     args = parser.parse_args()
-    print(json.dumps(run_battery(args.writers, args.records, args.ablate),
-                     indent=2, sort_keys=True))
+    report = run_battery(args.writers, args.records, args.ablate)
+    print(json.dumps(report, indent=2, sort_keys=True))
+    findings = checks(report)
+    if findings:
+        print(format_findings("telemetry_lock", findings), end="")
+    raise SystemExit(exit_code_for(findings))
 
 
 if __name__ == "__main__":
