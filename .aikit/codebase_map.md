@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `183`
-- **Total Classes**: `186`
-- **Total Top-Level Functions**: `539`
-- **Total Class Methods**: `945`
-- **Total Source Lines**: `25579`
+- **Total Python Modules**: `184`
+- **Total Classes**: `187`
+- **Total Top-Level Functions**: `541`
+- **Total Class Methods**: `950`
+- **Total Source Lines**: `25665`
 
 ---
 
@@ -551,7 +551,7 @@
 ### [`evals/estimators.py`](evals/estimators.py)
 > *Stdlib-only estimators for Brain evals.*
 
-**Size**: `267` lines (`9528` bytes)
+**Size**: `270` lines (`9743` bytes)
 
 **Functions:**
 - `def _discretize(values, bins)`
@@ -3070,6 +3070,25 @@
 
 ---
 
+### [`tests/test_synergy_duplicate_mechanism.py`](tests/test_synergy_duplicate_mechanism.py)
+> *Equal scope columns: state the real mechanism, not the wrong one.*
+
+**Size**: `84` lines (`3325` bytes)
+
+**Classes:**
+- `class TestEqualColumnsMechanism`
+  - Method `.test_the_joint_code_is_injective_in_the_column()`
+  - Method `.test_coarse_joint_binning_inflates_the_joint()`
+  - Method `.test_a_positive_gap_is_an_artifact_not_integration()`
+  - Method `.test_a_small_range_gives_the_exact_minus_mi_result()`
+  - Method `.test_both_regimes_exist_so_the_claim_must_be_about_independence()`
+
+**Functions:**
+- `def _fixture_15()`
+- `def _fixture_4()`
+
+---
+
 ### [`tests/test_synergy_scope.py`](tests/test_synergy_scope.py)
 > *Synergy scope: the criterion must report which trace columns it reads.*
 
@@ -3093,13 +3112,13 @@
 ### [`tests/test_synergy_scope_duplicate.py`](tests/test_synergy_scope_duplicate.py)
 > *A duplicated scope pair cannot decide, and the scope must say so.*
 
-**Size**: `77` lines (`3608` bytes)
+**Size**: `76` lines (`3672` bytes)
 
 **Classes:**
 - `class TestDuplicateScopeColumns`
   - Method `.test_a_duplicated_pair_is_not_sufficient()`
-  - Method `.test_a_duplicated_pair_cannot_produce_a_positive_gap()`
-  - Method `.test_syn_n_of_minus_one_is_the_duplicate_signature()`
+  - Method `.test_a_small_range_duplicate_gives_the_exact_minus_mi_result()`
+  - Method `.test_syn_n_of_minus_one_marks_the_exact_collapse()`
   - Method `.test_an_independent_pair_stays_sufficient()`
   - Method `.test_a_constant_column_is_still_named_first()`
   - Method `.test_a_single_column_trace_has_no_duplicate()`

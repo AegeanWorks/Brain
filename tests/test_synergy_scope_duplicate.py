@@ -1,18 +1,17 @@
 """A duplicated scope pair cannot decide, and the scope must say so.
 
 ``syn_scope`` marks the scope sufficient when neither of its two columns is
-constant. It never checks whether the two columns are *the same column*.
-When they are, the joint code ``c0 * 8 + bins(c1)`` is a bijection of one
-column, so ``I(joint) == I(c0) == I(c1)`` and the gap is exactly 0.0 — the
-same structural collapse as a constant column.
+constant. It never checked whether the two columns are *the same column*.
+When they are, there is no independent second signal, so the pair cannot
+support a claim about interaction.
 
-Measured:
-  * 500 random traces with ``col0 == col1`` -> 0 strictly positive gaps,
-    largest gap exactly 0.0;
-  * ``syn_scope([[1,1],[2,2],[3,3]], ...)`` -> ``sufficient True``;
-  * the shipped traces have exactly this shape: columns 0, 1 and 5 are all
-    the step index (verified byte-identical for six pinned cases), so every
-    reported ``syn`` on them is a structural 0.0 the scope does not name.
+The arithmetic is not uniform (cycle 142 corrected an earlier overclaim):
+``tj = c0 * 8 + bins(c1)`` is injective, but ``mutual_info_discrete(tj, ...,
+bins=64)`` re-bins a range of 8..127. Over ``c0 == c1`` on 1..15 the gap is
+therefore **+0.054115** (``ij`` 0.50040 > ``i1`` 0.22314) — an artifact of
+coarse joint binning, not integration. Over a 4-value column the codes stay
+inside the 64 bins and the gap is exactly ``-MI``, with ``syn_n == -1.0``.
+Both are pinned in ``test_synergy_duplicate_mechanism.py``.
 
 This is a defect in the cycle-106 disclosure, not in ``synergy`` itself.
 """
@@ -30,19 +29,19 @@ class TestDuplicateScopeColumns(unittest.TestCase):
         self.assertEqual(scope["reason"], "duplicate-scope-column")
         self.assertEqual(scope["duplicate_columns"], [0, 1])
 
-    def test_a_duplicated_pair_cannot_produce_a_positive_gap(self):
-        # With c1 == c0 the joint code is a bijection of c0, so i1 == i2 == ij
-        # and syn == ij - ij - ij == -ij == -MI. It is never positive.
+    def test_a_small_range_duplicate_gives_the_exact_minus_mi_result(self):
+        # On a 4-value column the joint codes stay inside the 64 bins, so the
+        # pair collapses exactly: syn == -MI and syn_n == -1.0. (A wider
+        # column does NOT collapse this way -- see the mechanism tests.)
         trace = [[float(i % 4), float(i % 4)] for i in range(40)]
         target = [float((i * 7) % 2) for i in range(40)]
         syn, syn_n = synergy(trace, target)
-        self.assertEqual(syn, -mutual_info_discrete(
-            [row[0] for row in trace], target))
-        self.assertLessEqual(syn, 0.0)
+        self.assertAlmostEqual(syn, -mutual_info_discrete(
+            [row[0] for row in trace], target), places=12)
 
-    def test_syn_n_of_minus_one_is_the_duplicate_signature(self):
-        # syn_n == -1.0 exactly when i1 == i2 == ij, which is the duplicate
-        # (or constant-collapse) case: the pair could not have shown synergy.
+    def test_syn_n_of_minus_one_marks_the_exact_collapse(self):
+        # syn_n == -1.0 exactly when i1 == i2 == ij: the pair carried no
+        # information the joint did not already have, twice over.
         trace = [[float(i % 4), float(i % 4)] for i in range(40)]
         target = [float((i * 7) % 2) for i in range(40)]
         _, syn_n = synergy(trace, target)

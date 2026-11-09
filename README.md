@@ -215,9 +215,9 @@ first prompt hash.
 "nothing there" from "signal outside them". `SYNERGY_COLUMNS` and
 `synergy_scope(...)` expose the pair, ignored/constant/duplicate columns
 and sufficiency; `recompute` and each battery slot carry `syn_scope`.
-Equal scope columns collapse the joint to one, so the gap cannot be
-positive (`syn_n == -1.0`): `duplicate-scope-column`. A constant column
-reads `constant-scope-column`.
+Equal scope columns mean no independent second signal, so an interaction
+claim is unsupported: `duplicate-scope-column`; a constant column reads
+`constant-scope-column`.
 
 ## 🧪 Lesion Detectability
 

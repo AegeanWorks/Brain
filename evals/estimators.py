@@ -153,11 +153,14 @@ def synergy_scope(trace, target):
     if constant:
         base["reason"] = "constant-scope-column"
         return base
-    # If the two scope columns carry the same values the joint code is a
-    # bijection of one column for the same reason, and the gap is again
-    # structurally 0.0 — measured: 500 random duplicate-column traces gave
-    # no strictly positive gap. The shipped traces hit this: columns 0, 1
-    # and 5 are all the step index.
+    # If the two scope columns carry the same values there is no independent
+    # second signal: the pair cannot support a claim about interaction, and
+    # any positive gap it reports comes from re-binning the joint code, not
+    # from two variables. Measured both ways: with c0 == c1 over 1..15 the
+    # gap is +0.054115 (ij 0.50040 > i1 0.22314, because bins=64 over a
+    # 8..127 range merges codes), while over a 4-value column it is exactly
+    # -MI. Sufficiency is about independence, so a duplicate is insufficient
+    # either way.
     low, high = SYNERGY_COLUMNS
     if [row[low] for row in trace] == [row[high] for row in trace]:
         base["duplicate_columns"] = [low, high]

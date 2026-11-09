@@ -4855,6 +4855,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 142**: unittest 713 OK; aikit 5/5; all six pinned traces `duplicate-scope-column`; batteries 17/17 insufficient (`coldstart` constants, four batteries duplicates); duplicate pair `syn == -MI` and `syn_n == -1.0`; independent pair sufficient; constants named before duplicates; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 142 - correct ADR-135's mechanism: duplicates fail independence, not arithmetic
+
+- **Baseline** (commit c4d2983):
+  - canonical gate: 713 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-135 claimed a duplicated scope pair makes the joint a bijection of one column, so `i1 == i2 == ij`, `syn == -MI` and `syn_n == -1.0`.
+- **Gap**: that claim is **false**, and I did not check it against the pinned fixture before writing it. Measured on `T1_forage:7` (15 steps, `c0 == c1 == 1..15`): `i1 = 0.22314355131420976`, `ij = 0.5004024235381878`, so `syn = +0.05411532090976823` — positive, not `-MI`. Cause: `tj = c0*8 + bins(c1)` is injective, but `mutual_info_discrete(tj, ..., bins=64)` re-bins a range of 8..127 and merges codes. A 4-value column stays inside the 64 bins, which is why the first probe agreed and the generalisation failed.
+- **Target delta**: the verdict (duplicate => insufficient) stands; the stated reason becomes independence, and both arithmetic regimes are pinned.
+- **Falsifier**: the pinned fixture does not give `+0.054115`; the 4-value fixture does not give `-MI`; or the scope verdict changes.
+- **Change**: `evals/estimators.py` duplicate-check comment rewritten; `tests/test_synergy_scope_duplicate.py` docstring and the false test renamed/corrected; `tests/test_synergy_duplicate_mechanism.py` adds 5 tests; README scope paragraph corrected; ADR-136 supersedes ADR-135's mechanism and ADR-135 carries a correction note.
+- **After** (same fixtures):
+  - `T1_forage:7` duplicate: `syn +0.05411532090976823` (artifact of coarse joint binning); 4-value duplicate: `syn == -MI`, `syn_n == -1.0`.
+  - scope verdict unchanged: every shipped trace `duplicate-scope-column`; batteries 17/17 insufficient.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the ad-hoc 4-value fixture reproduces `-MI` and would keep the wrong claim alive; only the pinned fixture exposes `+0.054115`.
+- **Verdict**: self-correction of a wrong mechanism recorded one cycle earlier. The measured delta is a false exact-arithmetic claim replaced by the independence claim it should have been, with both regimes pinned. No `syn` value, verdict, action or pin moves.
+- **Gates**: unittest 718/718 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_pinned_syn.py` -> `syn = 0.05411532090976823`, scope `duplicate-scope-column`.
+  - `python ..\..\scratch\probe_dup_contradiction.py` -> `i1 0.22314`, `ij 0.50040`, `syn +0.054115`.
+  - `python ..\..\scratch\probe_dup_mechanism.py` -> `ij(bins=64) 0.673` vs `ij(default) 0.2109`.
+  - `python -m unittest discover -s tests -t .` -> 718 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 143**: unittest 718 OK; aikit 5/5; duplicate `T1_forage:7` -> `syn +0.05411532090976823` with `ij 0.5004024235381878 > i1 0.22314355131420976`; 4-value duplicate -> `syn == -MI`, `syn_n == -1.0`; joint codes injective; scope unchanged (17/17 insufficient); `syn_sign` 17/17 negative-or-positive per case; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
