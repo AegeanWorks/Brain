@@ -4729,6 +4729,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 137**: unittest 681 OK; aikit 5/5; `syn_sign` positive for T1:71, negative for T2:3/T3:15/T3:65/T3:74/T3:479; `syn_n = -1.0` labelled negative; `prompt_stats` honesty fields; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 137 - carry the synergy sign into the batteries and the snapshot
+
+- **Baseline** (commit fa0e9c6):
+  - canonical gate: 681 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `syn_sign` existed in `recompute`, but `evals/coldstart._trace_slot` (six batteries) and `snapshot.run_record` (the diff gate) still dropped it.
+  - measured: both emitted `syn`/`syn_n` with no `syn_sign`, so `syn -0.450561 syn_n -1.000000` gave a reader no direction.
+- **Gap**: the same wiring gap ADR-121 fixed for `syn_scope`, one field later. Every battery readout still presented a maximal negative ratio as an unlabelled number.
+- **Target delta**: both reported shapes carry `syn_sign` (`None` when absent); no existing field changes.
+- **Falsifier**: a battery still prints a bare negative `syn`; an existing field moves; or a pinned value changes.
+- **Change**: `evals/coldstart.py` `_trace_slot` and `snapshot.py` `run_record` add `syn_sign` defaulting to `None`; `tests/test_synergy_sign_wiring.py` adds 6 tests. ADR-131.
+- **After** (same batteries):
+  - `coldstart` 4/4, `dead_pool` 5/5, `escape` 2/2, `trust` 4/4, `manifest_binding` 2/2 — 17/17 slots carry `syn_sign` (was 0/17).
+  - trace-slot/snapshot/digest/cold-start-recovery/wiring suites 33 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without the wiring every battery and the snapshot record show a bare negative `syn`; with it 17/17 slots carry the sign, and the numeric fields are byte-identical in both readings.
+- **Verdict**: telemetry-honesty extension completing ADR-130. The measured delta is 17 readouts gaining a direction; no value, action or pin moves. Boundary: the sign says nothing about magnitude, and a negative gap stays negative.
+- **Gates**: unittest 687/687 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_sign_wiring.py` -> neither shape carried `syn_sign`.
+  - `python -m unittest tests.test_synergy_sign_wiring` -> before: 2 failures + 3 errors; after: 6 OK.
+  - `python ..\..\scratch\ablate_137.py` -> 17/17 slots carry the sign.
+  - `python -m unittest discover -s tests -t .` -> 687 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 138**: unittest 687 OK; aikit 5/5; `syn_sign` in 17/17 battery slots and in `run_record`; the real T3:65 case reaches the slot as `negative` with `syn_n = -1.0`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

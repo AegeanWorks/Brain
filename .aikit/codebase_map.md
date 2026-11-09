@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `177`
-- **Total Classes**: `181`
+- **Total Python Modules**: `178`
+- **Total Classes**: `182`
 - **Total Top-Level Functions**: `531`
-- **Total Class Methods**: `913`
-- **Total Source Lines**: `25059`
+- **Total Class Methods**: `919`
+- **Total Source Lines**: `25135`
 
 ---
 
@@ -455,7 +455,7 @@
 ### [`evals/coldstart.py`](evals/coldstart.py)
 > *Cold-start recovery battery: behavior plus trace, before/after.*
 
-**Size**: `324` lines (`12361` bytes)
+**Size**: `327` lines (`12525` bytes)
 
 **Classes:**
 - `class ColdWorld` - *GridWorld whose observations omit the task's goal fields.*
@@ -1061,7 +1061,7 @@
 ### [`snapshot.py`](snapshot.py)
 > *Deterministic run snapshots and record-set diffing (lattice transfer).*
 
-**Size**: `272` lines (`9512` bytes)
+**Size**: `273` lines (`9555` bytes)
 
 **Functions:**
 - `def run_record(task, seed, trace, stats)` - *Build one snapshot record from a task/seed trace and trace stats.*
@@ -3031,6 +3031,22 @@
   - Method `.test_zero_is_reported_zero()`
   - Method `.test_the_classification_uses_the_gap_not_the_ratio()`
   - Method `.test_the_estimator_keeps_its_values()`
+
+---
+
+### [`tests/test_synergy_sign_wiring.py`](tests/test_synergy_sign_wiring.py)
+> *The synergy sign must reach every place ``syn`` is reported.*
+
+**Size**: `72` lines (`2770` bytes)
+
+**Classes:**
+- `class TestSynergySignWiring`
+  - Method `.test_trace_slot_carries_the_sign()`
+  - Method `.test_trace_slot_defaults_to_none()`
+  - Method `.test_trace_slot_keeps_every_existing_field()`
+  - Method `.test_run_record_carries_the_sign()`
+  - Method `.test_run_record_defaults_to_none()`
+  - Method `.test_the_real_negative_case_reaches_the_slot()`
 
 ---
 

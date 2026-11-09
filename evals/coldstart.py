@@ -157,12 +157,15 @@ def _trace_slot(stats):
     """Build one battery trace slot, including what the ``syn`` measured.
 
     ``syn`` is a two-column statistic, so a bare 0.0 cannot be read as
-    "no integration". ``recompute`` reports ``syn_scope`` beside it; this
-    slot carries that report so every battery using it stays readable.
+    "no integration". ``recompute`` reports ``syn_scope`` and ``syn_sign``
+    beside it; this slot carries both so every battery using it stays
+    readable: the scope says whether the pair could decide, and the sign
+    says which direction a negative ratio runs.
     """
     return {
         "syn": stats["syn"],
         "syn_n": stats["syn_n"],
+        "syn_sign": stats.get("syn_sign"),
         "syn_scope": stats.get("syn_scope"),
         "phi": stats["phi"],
         "gain": stats["gain"],
