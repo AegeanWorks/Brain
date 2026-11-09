@@ -4778,6 +4778,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 139**: unittest 694 OK; aikit 5/5; `claim_forecasts` maps supported/refuted/inconclusive and excludes proposed, ledger unchanged; claims battery calibration 6/5/1 at Brier 0.2605 skill -0.085417 with the 0.8-1.0 over-confidence bin; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 139 - record why phi is 0.0 instead of pinning a number that cannot fail
+
+- **Baseline** (commit 025e773):
+  - canonical gate: 694 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - every cycle baseline pins `phi == 0.0`.
+  - measured: `phi_ar` is exactly 0.0 on all **120** real runs (seeds 0-39 × T1/T2/T3) and only 0.007722962 on a synthetic strong AR(1) series.
+- **Gap**: the `phi == 0.0` pin cannot fail for trace reasons — an assertion that cannot fail is not evidence (EVID-009, the repo's own doctrine). A reader also could not distinguish "these traces are not linearly self-predictive" from "the estimator is dead".
+- **Target delta**: the `0.0` carries its own scope — constant columns (structurally cannot move) versus varying columns (could have moved and did not) — plus proof the estimator is responsive.
+- **Falsifier**: a constant trace is reported `predictable`; the real trace is reported `all_constant`; `probe_scale()` returns 0.
+- **Change**: `evals/phi_diagnosis.py` adds `phi_diagnosis(rows)` (`phi`, `n_rows`, `n_columns`, `unique_per_column`, `all_constant`, `predictable`) and `probe_scale()`; `tests/test_phi_diagnosis.py` adds 7 tests. ADR-133.
+- **After** (same traces):
+  - real T3:15: `phi 0.0`, `predictable True`, `unique_per_column [13,13,1,1,1,13,6,8,2]`.
+  - constant trace: `phi 0.0`, `all_constant True`, `predictable False`, `unique [1,1,1]`.
+  - `probe_scale()` 0.007722962; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: both traces report `phi = 0.0` and are indistinguishable without the diagnosis; with it the real one is `predictable` and the constant one `all_constant`, and the AR(1) value shows the estimator can move.
+- **Verdict**: evidence-honesty extension on a pin that could not fail. The measured delta is a vacuous assertion replaced by a scoped one; no estimate, action or pin value moves. Boundary: this explains the `0.0` and shows the estimator is alive — it does not give `phi` power on these traces, which are genuinely not linearly self-predictive.
+- **Gates**: unittest 701/701 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_phi_vacuity.py` -> 0 of 120 real runs non-zero; AR(1) 0.00772296.
+  - `python -m unittest tests.test_phi_diagnosis` -> 7 OK.
+  - `python ..\..\scratch\ablate_139.py` -> real `predictable True`, constant `all_constant True`.
+  - `python -m unittest discover -s tests -t .` -> 701 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 140**: unittest 701 OK; aikit 5/5; `phi_diagnosis` real trace `phi 0.0` / `predictable True` / `unique [13,13,1,1,1,13,6,8,2]`; constant trace `all_constant True` / `predictable False`; `probe_scale()` 0.007722962; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign` 17/17; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

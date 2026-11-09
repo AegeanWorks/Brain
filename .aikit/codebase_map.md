@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `179`
-- **Total Classes**: `183`
-- **Total Top-Level Functions**: `533`
-- **Total Class Methods**: `926`
-- **Total Source Lines**: `25259`
+- **Total Python Modules**: `181`
+- **Total Classes**: `184`
+- **Total Top-Level Functions**: `537`
+- **Total Class Methods**: `933`
+- **Total Source Lines**: `25408`
 
 ---
 
@@ -683,6 +683,18 @@
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
 - `def main()`
+
+---
+
+### [`evals/phi_diagnosis.py`](evals/phi_diagnosis.py)
+> *A pinned 0.0 must say whether the estimator *could* have moved.*
+
+**Size**: `64` lines (`2281` bytes)
+
+**Functions:**
+- `def _columns(rows)`
+- `def phi_diagnosis(rows)` - *Explain a ``phi_ar`` result as data.*
+- `def probe_scale()` - *Return the smallest synthetic series that moves ``phi_ar`` off 0.0.*
 
 ---
 
@@ -2465,6 +2477,26 @@
 
 **Functions:**
 - `def _hidden_t1_steps(seed, max_steps, planner)`
+
+---
+
+### [`tests/test_phi_diagnosis.py`](tests/test_phi_diagnosis.py)
+> *The phi == 0.0 pin must carry its own scope, like the synergy one.*
+
+**Size**: `85` lines (`3413` bytes)
+
+**Classes:**
+- `class TestPhiDiagnosis`
+  - Method `.test_a_real_trace_reports_zero_and_names_why()`
+  - Method `.test_a_constant_trace_is_named()`
+  - Method `.test_a_varying_trace_is_not_reported_constant()`
+  - Method `.test_the_estimator_can_move()`
+  - Method `.test_the_diagnosis_reads_every_column()`
+  - Method `.test_empty_input_degrades()`
+  - Method `.test_short_input_below_three_rows_is_not_predictable_by_phi()`
+
+**Functions:**
+- `def _real_rows(task, seed)`
 
 ---
 
