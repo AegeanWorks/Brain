@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `199`
-- **Total Classes**: `199`
-- **Total Top-Level Functions**: `566`
-- **Total Class Methods**: `1030`
-- **Total Source Lines**: `27206`
+- **Total Python Modules**: `200`
+- **Total Classes**: `200`
+- **Total Top-Level Functions**: `568`
+- **Total Class Methods**: `1037`
+- **Total Source Lines**: `27330`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`199` module(s))
+- **Indexed**: python (`200` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -2618,10 +2618,31 @@
 
 ---
 
+### [`tests/test_pair_conclusions.py`](tests/test_pair_conclusions.py)
+> *Pair-level conclusions must be re-derived at one observation per step.*
+
+**Size**: `125` lines (`5610` bytes)
+
+**Classes:**
+- `class TestPairConclusionsAtCorrectN`
+  - Method `.test_uniform_duplication_leaves_syn_unchanged()`
+  - Method `.test_the_artifact_gate_verdicts_survive_dedupe()`
+  - Method `.test_the_independent_pairs_are_the_same_at_correct_n()`
+  - Method `.test_the_gaps_are_unchanged_by_dedupe()`
+  - Method `.test_no_pair_is_distinguishable_at_correct_n()`
+  - Method `.test_anti_interactions_are_empty_at_correct_n()`
+  - Method `.test_interactions_remain_empty()`
+
+**Functions:**
+- `def _raw(task, seed, wired)`
+- `def _split(rows)`
+
+---
+
 ### [`tests/test_pair_scan.py`](tests/test_pair_scan.py)
 > *A pair search must refuse artifacts before it reports a gap.*
 
-**Size**: `115` lines (`4930` bytes)
+**Size**: `116` lines (`4971` bytes)
 
 **Classes:**
 - `class TestPairScan`
@@ -3704,7 +3725,7 @@
 ### [`tests/test_wiring_independence.py`](tests/test_wiring_independence.py)
 > *Wiring the modules makes them independent, and then anti-synchronous.*
 
-**Size**: `135` lines (`5938` bytes)
+**Size**: `133` lines (`5915` bytes)
 
 **Classes:**
 - `class TestWiringIndependence`
@@ -3713,9 +3734,9 @@
   - Method `.test_wiring_does_not_reduce_dependence()`
   - Method `.test_wiring_produces_independent_pairs()`
   - Method `.test_every_independent_pair_is_anti_synchronous()`
-  - Method `.test_the_strong_anti_correlations_are_distinguishable()`
+  - Method `.test_no_anti_correlation_is_distinguishable_at_correct_n()`
   - Method `.test_no_interaction_under_either_configuration()`
-  - Method `.test_anti_interactions_are_reported_separately()`
+  - Method `.test_anti_interactions_are_empty_at_correct_n()`
 
 **Functions:**
 - `def _vectors(full_wiring)`

@@ -26,7 +26,7 @@ import unittest
 from agent import Agent
 from evals.pair_scan import (anti_interactions, interactions, pair_report,
                              scan_pairs)
-from evals.recompute import _vec_row
+from evals.recompute import _vec_row, dedupe_rows
 from evals.estimators import mutual_info_discrete
 
 
@@ -35,8 +35,9 @@ def _shipped(task, seed):
         log = os.path.join(d, "run.jsonl")
         Agent().run_task_logged(task, seed, max_steps=200, log_path=log)
         with open(log, encoding="utf-8") as handle:
-            vec = [r for r in (_vec_row(json.loads(line))
-                               for line in handle) if r]
+            vec = dedupe_rows(
+                [r for r in (_vec_row(json.loads(line))
+                             for line in handle) if r])
     width = max(len(r) for r in vec)
     padded = [r + [0.0] * (width - len(r)) for r in vec]
     return padded, [r[-1] for r in padded]

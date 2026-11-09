@@ -10,17 +10,17 @@ Tested: they can, but only when the modules are actually supplied.
 The wired counters advance with the step, so more columns vary while *more*
 pairs are dependent (22 -> 31). The five pairs that are not dependent are:
 
-    cols(4,5) syn -0.1243  p_upper 0.860  not distinguishable
-    cols(4,7) syn -0.2309  p_upper 0.975  distinguishable
-    cols(4,8) syn -0.1243  p_upper 1.000  distinguishable
-    cols(6,7) syn -0.0632  p_upper 0.915  not distinguishable
-    cols(6,8) syn -0.0632  p_upper 1.000  distinguishable
+    cols(4,5) syn -0.1243  p_upper 0.610  not distinguishable
+    cols(4,7) syn -0.2309  p_upper 0.890  not distinguishable
+    cols(4,8) syn -0.1243  p_upper 1.000  not distinguishable
+    cols(6,7) syn -0.0632  p_upper 0.640  not distinguishable
+    cols(6,8) syn -0.0632  p_upper 1.000  not distinguishable
 
-Every one is **negative**, and three are significantly below their null: the
-joint carries *less* than its marginals. `interactions` returns nothing on
-either configuration. So the honest rung-3 answer is not "no data" — it is
-"independent modules exist and they are anti-synchronous", which is itself a
-measurement of the substrate.
+Every one is **negative**, so the joint carries *less* than its marginals —
+but at one observation per step *none* is distinguishable from its null.
+The earlier "three significantly below" reading (cycle 148) was computed
+on duplicated rows; see cycle 150. `interactions` and
+`anti_interactions` both return nothing on either configuration.
 """
 
 import json
@@ -31,7 +31,7 @@ import unittest
 from agent import Agent
 from evals.pair_scan import (_dependent, anti_interactions, interactions,
                              pair_report)
-from evals.recompute import _vec_row
+from evals.recompute import _vec_row, dedupe_rows
 from memory.store import MemoryStore
 from planner.plan import Planner as TrackerPlanner
 from self_model.model import SelfModel as PersistentSelfModel
@@ -56,8 +56,9 @@ def _vectors(full_wiring):
             finally:
                 store.close()
         with open(log, encoding="utf-8") as handle:
-            vec = [r for r in (_vec_row(json.loads(line))
-                               for line in handle) if r]
+            vec = dedupe_rows(
+                [r for r in (_vec_row(json.loads(line))
+                             for line in handle) if r])
     width = max(len(r) for r in vec)
     padded = [r + [0.0] * (width - len(r)) for r in vec]
     return padded, [r[-1] for r in padded]
@@ -105,14 +106,14 @@ class TestWiringIndependence(unittest.TestCase):
             self.assertLess(report["syn"], 0.0,
                             "cols(%d,%d)" % (first, second))
 
-    def test_the_strong_anti_correlations_are_distinguishable(self):
+    def test_no_anti_correlation_is_distinguishable_at_correct_n(self):
+        # Cycle 148 reported three of these as significant; at one
+        # observation per step none is. The gaps are unchanged.
         padded, target = _vectors(True)
-        strong = {(4, 7), (4, 8), (6, 8)}
-        for first, second in strong:
+        for first, second in ((4, 5), (4, 7), (4, 8), (6, 7), (6, 8)):
             report = pair_report(padded, target, first, second, trials=200)
-            self.assertTrue(report["null"]["distinguishable"],
-                            "cols(%d,%d)" % (first, second))
-            self.assertGreater(report["null"]["p_upper"], 0.9)
+            self.assertFalse(report["null"]["distinguishable"],
+                             "cols(%d,%d)" % (first, second))
 
     def test_no_interaction_under_either_configuration(self):
         for wired in (False, True):
@@ -120,15 +121,12 @@ class TestWiringIndependence(unittest.TestCase):
             self.assertEqual(interactions(padded, target, trials=150), [],
                              "wired=%s" % wired)
 
-    def test_anti_interactions_are_reported_separately(self):
-        # Five independent pairs exist; three are distinguishable below the
-        # null and are the ones anti_interactions returns.
+    def test_anti_interactions_are_empty_at_correct_n(self):
+        # Every independent pair is negative, but none clears its null, so
+        # anti_interactions returns nothing. The negative gaps are real;
+        # the significance was not.
         padded, target = _vectors(True)
-        anti = anti_interactions(padded, target, trials=150)
-        self.assertEqual(len(anti), 3)
-        self.assertTrue(all(r["syn"] < 0.0 for r in anti))
-        self.assertEqual({tuple(r["columns"]) for r in anti},
-                         {(4, 7), (4, 8), (6, 8)})
+        self.assertEqual(anti_interactions(padded, target, trials=150), [])
 
 
 if __name__ == "__main__":
