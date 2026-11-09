@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `159`
-- **Total Classes**: `164`
-- **Total Top-Level Functions**: `509`
-- **Total Class Methods**: `781`
-- **Total Source Lines**: `22927`
+- **Total Python Modules**: `160`
+- **Total Classes**: `165`
+- **Total Top-Level Functions**: `511`
+- **Total Class Methods**: `791`
+- **Total Source Lines**: `23109`
 
 ---
 
@@ -686,7 +686,7 @@
 ### [`evals/progress_guard.py`](evals/progress_guard.py)
 > *Progress-guard battery: wrong-way moves, the guard, and the skip.*
 
-**Size**: `129` lines (`4874` bytes)
+**Size**: `204` lines (`8282` bytes)
 
 **Classes:**
 - `class WrongWayBackend` - *Legal free-cell movement away from the fixed target.*
@@ -697,6 +697,7 @@
 **Functions:**
 - `def measure_case(mode, task, seed)`
 - `def run_battery(modes)`
+- `def checks(report)` - *Compare a battery report with the pre-registered expectations.*
 - `def main()`
 
 ---
@@ -1268,7 +1269,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `106` lines (`4292` bytes)
+**Size**: `108` lines (`4415` bytes)
 
 **Classes:**
 - `class TestBatteryContract`
@@ -2391,6 +2392,29 @@
   - Method `.test_declares_detour_pooling()`
   - Method `.test_digest_differs_from_pre_pool_legacy()`
   - Method `.test_pooling_value_sensitive()`
+
+---
+
+### [`tests/test_progress_guard_checks.py`](tests/test_progress_guard_checks.py)
+> *The progress-guard battery must check its own documented claims.*
+
+**Size**: `105` lines (`4564` bytes)
+
+**Classes:**
+- `class TestProgressGuardChecks`
+  - Method `.setUpClass()`
+  - Method `.test_a_real_run_has_no_findings()`
+  - Method `.test_every_documented_number_is_pinned()`
+  - Method `.test_call_counts_are_pinned()`
+  - Method `.test_rewards_are_identical_across_modes()`
+  - Method `.test_a_changed_step_count_is_named()`
+  - Method `.test_a_changed_call_count_is_named()`
+  - Method `.test_a_lost_reward_is_named()`
+  - Method `.test_a_vanished_guard_is_named()`
+  - Method `.test_missing_case_is_named()`
+
+**Functions:**
+- `def _case(report, mode, task, seed)`
 
 ---
 

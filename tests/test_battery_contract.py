@@ -75,8 +75,9 @@ class TestBatteryContract(unittest.TestCase):
 class TestBatteryAudit(unittest.TestCase):
     def test_audit_reports_the_shipped_batteries(self):
         report = audit_batteries(BRAIN)
-        # telemetry_lock adopted the contract this cycle: it now fails loudly.
+        # telemetry_lock and progress_guard adopted the contract.
         self.assertIn("telemetry_lock", report["with_contract"])
+        self.assertIn("progress_guard", report["with_contract"])
         self.assertIn("contract", report)
         self.assertGreater(report["total"], 20)
 
@@ -86,6 +87,7 @@ class TestBatteryAudit(unittest.TestCase):
         self.assertTrue(report["without_contract"])
         for name in ("calibration", "estimators", "recompute"):
             self.assertIn(name, report["without_contract"])
+        self.assertNotIn("progress_guard", report["without_contract"])
 
     def test_audit_finds_both_populations(self):
         report = audit_batteries(BRAIN)

@@ -4273,6 +4273,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 119**: unittest 556 OK; aikit 5/5; `exit_code_for` 0/1 rules; `telemetry_lock` intact 0, ablate 0, forced regressions 1; `audit_batteries` lists `telemetry_lock` as covered and names `calibration`/`estimators`/`recompute` as uncovered; `expected_model` pin; `expected_verdict_word`; `verify_result_records` 13/13; snapshot evidence; `confidence_is_outcome`; `parse_verdict_reason`; `vector_audit` default `[P0,P1,S0]`; `SelfModel.size()` O(1); recall cost n=200 x60 ~0.002 s; standing 89 steps / 11.0 reward; T1 0-99 1581; holdout 500-599 738 (min 1, max 14); cold-start 16/8/13/6 with 3/1/1/1; `detectability` `[M, hub]` / `[P, S]`; `syn` 0.054115320909768228 `syn_n` 0.10814360275702875 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 119 - make the progress-guard battery check its own numbers
+
+- **Baseline** (commit fda470b):
+  - canonical gate: 556 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals/progress_guard.py` printed its numbers and exited 0; its docstring states twelve exact claims (guard cuts T3:15 33→13, T3:65 26→6, T2:3 34→8; calls 21→13/6/8 and 4/4/3 under skip; T1 36/22).
+  - re-measured: all twelve numbers match the docstring exactly, so the claims were true but unenforced.
+- **Gap**: the battery's own documented claims were not checked. A planner regression that changed any of the twelve numbers would only change the printed JSON; the exit code stayed 0, so no scripted gate could see it.
+- **Target delta**: the twelve claims are pre-registered in code and compared on every run; each disagreement is named and exits 1.
+- **Falsifier**: the real run reports a finding; a mutated claim still exits 0; or a pinned value moves.
+- **Change**: `evals/progress_guard.py` adds `EXPECTED` (all 12 `(mode, task, seed) -> (steps, calls)` pairs), `checks(report)` naming `steps:`, `calls:`, `reward:`, `missing-case:`, `reward-varies:`, `guard-inert:` and `guard-no-saving:`, and exits through the ADR-112 contract; `tests/test_progress_guard_checks.py` adds 9 tests. ADR-113. The audit test now expects `progress_guard` among the covered batteries.
+- **After** (same battery):
+  - real run: findings `[]`, exit 0.
+  - guard stops rejecting: 3 findings, exit 1; guard loses its saving: 2, exit 1; skip stops saving calls: 1, exit 1; a reward disappears: 2, exit 1; a case vanishes: 1, exit 1.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `checks` the same report exits 0 whichever number moved; with it each mutation is named, and the JSON payload is unchanged in both readings, so the delta is the check.
+- **Verdict**: harness-honesty extension on the planner's own battery. The measured delta is twelve documented planner claims that were true and unchecked, now enforced per run. No behavior, estimator or pin moves. Boundary: the table locks current behavior rather than proving it optimal; a deliberate planner change must update `EXPECTED` (a reviewed diff, which is the intent), and eight batteries remain uncovered.
+- **Gates**: unittest 565/565 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_progress_guard_checks` -> before: 1 error (`checks` absent); after: 9 OK.
+  - `python -m evals.progress_guard` -> exit 0 with findings `[]`.
+  - `python ..\..\scratch\ablate_119.py` -> five mutations, each exit 1 with named findings.
+  - `python -m unittest discover -s tests -t .` -> 565 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 120**: unittest 565 OK; aikit 5/5; `progress_guard` real run clean/exit 0 and each of the five mutations exit 1; `EXPECTED` 12 pairs; `telemetry_lock` contract; `audit_batteries` covered includes `telemetry_lock` and `progress_guard`, uncovered still names `calibration`/`estimators`/`recompute`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `vector_audit`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `detectability`; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
