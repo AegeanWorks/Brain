@@ -4904,6 +4904,36 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 149 - every observation was counted twice
+
+- **Baseline** (commit 6b9f594):
+  - canonical gate: 777 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - cycle 148 left "the vectors are monotone counters bounded by episode length" as the diagnosis.
+  - measured: every value appears exactly **twice** because each step writes an `action` record and a paired `result` record carrying the **same** 9-column vector; a 13-step episode yields 26 rows.
+- **Gap**: every estimator saw each observation twice, so every reported `n`, every contingency count and every permutation-null tail was computed at `n = 2T`.
+- **Target delta**: one observation per step, and the corrected distinguishability counts recorded.
+- **Falsifier**: dedupe changes no verdict; the dependent-pair count moves; or `syn` itself moves.
+- **Change**: `evals/recompute.py` adds `dedupe_rows` (adjacent-only) and applies it to `vec_rows`; `tests/test_duplicate_rows.py` (8) and `tests/test_corrected_counts.py` (5) added; `test_synergy_null_wiring` re-baselined. ADR-144.
+- **After** (same traces):
+  - pinned traces distinguishable: **0 of 6** (cycle 144 reported 2 of 6).
+  - battery slots distinguishable: **0 of 17** (cycle 144 reported 3 of 17).
+  - `T3_navigate:65` null has zero spread at `n=6` (`null_min == null_max`); it spanned `−0.4506…−0.2195` at `n=12`.
+  - `syn` unchanged (`−0.05791331748493783` on T3:15); `syn_scope.n_rows` 26 -> 13.
+  - dependent-pair counts unchanged (22 defaults, 31 wired) — the collinearity is real, not an artifact.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: disabling `dedupe_rows` makes T3:65 "distinguishable" again and reports `n_rows` 26, failing 3 of 5 corrected tests.
+- **Verdict**: sample-size correction that invalidates three earlier "significant" verdicts. The honest headline is now stronger: **no shipped trace and no battery slot carries a synergy distinguishable from chance.** Boundary: fixes `n`, not the substrate — the vectors remain collinear and anti-synchronous.
+- **Gates**: unittest 790/790 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_double_rows.py` -> 13 steps, 28 records, 26 vec rows, action/result pairs identical.
+  - `python ..\..\scratch\probe_dedupe_dependence.py` -> dependent counts unchanged (22/31) after dedupe.
+  - `python ..\..\scratch\probe_recount_144.py` -> 0 of 6 distinguishable.
+  - `python ..\..\scratch\probe_battery_recount.py` -> 0 of 17 distinguishable.
+  - `python ..\..\scratch\ablate_149.py` -> dedupe disabled: 3 failures.
+  - `python -m unittest discover -s tests -t .` -> 790 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 150**: unittest 790 OK; aikit 5/5; **0 of 6** pinned traces distinguishable; **0 of 17** battery slots distinguishable; T3:65 null zero-spread at n=6; `syn` −0.05791331748493783 on T3:15; `n_rows` 13; dependent pairs 22/31 unchanged; independent pairs `(4,5)(4,7)(4,8)(6,7)(6,8)`; `interactions` empty both ways; `(1,2)/(1,3)/(1,4)` `constant-scope-column`; `(0,6)` `dependent-columns`; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 148 - wiring the modules makes them independent, then anti-synchronous
 
 - **Baseline** (commit c4c33de):
@@ -4921,6 +4951,7 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `interactions` empty under both configurations; standing 89/11.0 and `policy_digest` unchanged.
 - **Ablation**: forcing both configurations to the default fails 5 tests and errors 1, so the wiring produces the independent pairs.
 - **Verdict**: rung-3 prerequisite answered, still negative for interaction. The measured delta is "no independent pairs known" -> "five exist, all anti-synchronous, three significantly". Boundary: anti-synchrony is what monotone counters bounded by episode length produce, so it describes how the vectors are emitted, not module interaction; a positive interaction needs module state that is not a function of elapsed time.
+- **Correction (cycle 149)**: the `p_upper` values and "three significantly below the null" were computed on duplicated rows (n = 2T). At the correct n the significance does not hold; the negative gaps and the independence structure do. See cycle 149.
 - **Gates**: unittest 777/777 OK; aikit check brain 5/5 PASS.
 - **Commands run**:
   - `python ..\..\scratch\probe_wiring_independence.py` -> distinct counts and dependent-pair totals under both configurations.
@@ -5033,6 +5064,7 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `syn`/`syn_n`/`syn_sign`/`syn_scope` unchanged; standing 89/11.0 and `policy_digest` unchanged.
 - **Ablation**: with a bare `syn` the six numbers read as "integration" or "none" by sign, but 4 of 6 are the null's own default and the one positive value sits inside the null — the sign misleads in both directions. With the null, 14 of 17 slots are `distinguishable=False`.
 - **Verdict**: interpretability fix on the integration readout. The measured delta is a number without a verdict becoming a number with one; no estimate, action or pin moves. Boundary: 200 trials resolves tails to about 0.005, and the null permutes the target only — a serial/autocorrelated alternative is untested.
+- **Correction (cycle 149)**: the distinguishability counts reported here — 2 of 6 pinned traces and 3 of 17 battery slots — were computed on duplicated rows (n = 2T). At the correct n the counts are **0 of 6** and **0 of 17**; see cycle 149.
 - **Gates**: unittest 736/736 OK; aikit check brain 5/5 PASS.
 - **Commands run**:
   - `python ..\..\scratch\probe_syn_null.py` -> per-trace null intervals and p-values.

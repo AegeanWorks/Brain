@@ -55,6 +55,12 @@ class TestSynergyNullWiring(unittest.TestCase):
         self.assertIsNone(record["syn_null"])
 
     def test_the_real_run_reaches_the_slot_with_a_verdict(self):
+        # Re-baselined in ADR-144. With duplicated rows (n=12) this trace's
+        # permutation null had spread and the gap looked distinguishable.
+        # At the correct n=6 every shuffle of the target gives the identical
+        # gap, so the null is degenerate and the verdict is not
+        # distinguishable — the earlier positive was an artifact of counting
+        # each observation twice.
         from agent import Agent
         from evals.recompute import recompute
 
@@ -66,7 +72,8 @@ class TestSynergyNullWiring(unittest.TestCase):
         slot = _trace_slot(stats)
         self.assertEqual(slot["syn_null"]["trials"], 200)
         self.assertEqual(slot["syn_null"]["observed"], stats["syn"])
-        self.assertTrue(slot["syn_null"]["distinguishable"])
+        self.assertFalse(slot["syn_null"]["distinguishable"])
+        self.assertEqual(stats["syn_scope"]["n_rows"], 6)
 
 
 if __name__ == "__main__":

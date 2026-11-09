@@ -77,6 +77,22 @@ def _handle_eval_payload(args, acc):
         acc["recs"].append(recovery(args["time_outside"], args["window"]))
 
 
+def dedupe_rows(rows):
+    """Collapse adjacent identical rows to one.
+
+    Every step writes both an ``action`` record and its paired ``result``
+    record, and both carry the same 9-column vector. Feeding both to an
+    estimator doubles ``n`` and counts each observation twice in every
+    contingency table. Only *adjacent* duplicates are collapsed, because two
+    different steps may legitimately share a vector.
+    """
+    out = []
+    for row in rows:
+        if not out or out[-1] != row:
+            out.append(row)
+    return out
+
+
 def recompute(log_path):
     """Read JSONL log and return dict with syn, phi, gbi, gain, recovery."""
     acc = {"phi_rows": [], "syn_rows": [], "syn_targets": [], "pres": [],
@@ -108,6 +124,9 @@ def recompute(log_path):
             row = _vec_row(rec)
             if row:
                 vec_rows.append(row)
+    # Each step writes an action record and a paired result record carrying
+    # the same vector, so the raw list holds every observation twice.
+    vec_rows = dedupe_rows(vec_rows)
     phi_rows = acc["phi_rows"] or vec_rows
     width = max((len(r) for r in phi_rows), default=0)
     if phi_rows and any(len(r) != width for r in phi_rows):

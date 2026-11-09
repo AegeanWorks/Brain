@@ -220,9 +220,10 @@ absence from "signal outside them". `synergy_scope(...)` and
 `synergy_null.synergy_verdict(...)` expose what the pair can decide
 (ignored/constant/duplicate columns, sufficiency) and whether it beats
 a permutation null (`p_upper`/`p_lower`, `distinguishable`);
-`recompute` and each battery slot carry both. Equal scope columns mean
+`recompute` and each battery slot carry both; `dedupe_rows` collapses the
+paired action/result record so `n` counts steps. Equal scope columns mean
 no independent second signal: `duplicate-scope-column`; a constant reads
-`constant-scope-column`.
+`constant-scope-column`. Nothing shipped beats its null.
 
 ## 🧪 Lesion Detectability
 
@@ -503,11 +504,11 @@ and parity modes.
 ## 🧾 Claim & Verdict Register
 
 `ClaimLedger.add(text, kill_test, confidence)` creates a proposed claim.
-`record(id, status, evidence, at=...)` appends a `supports`, `refutes`
-or `inconclusive` verdict and returns a new immutable claim; the previous
+`record(id, status, evidence, at=...)` appends a `supports` or `refutes`
+verdict and returns a new immutable claim; the previous
 record is never mutated. Statuses are `proposed/supported/refuted/
 inconclusive`, `summary()` counts claims/verdicts, and `to_dict`/
-`from_dict` roundtrip as JSON. A claim's status is derived from its
+`from_dict` roundtrip as JSON. A claim's status derives from its
 verdict history (`proposed` with none, otherwise the last verdict's
 status); a claim or snapshot whose status contradicts that history is
 rejected, even when its checksum was recomputed. Verdict evidence and
@@ -517,29 +518,28 @@ refuted, 1 inconclusive) with unchanged runs.
 
 `claims_store.py` makes the ledger durable. `save_ledger(ledger, path)`
 writes one checksummed snapshot atomically, keeps the previous as `.bak`,
-and holds an `O_CREAT|O_EXCL` lock (30 s stale steal, bounded timeout).
+and holds an `O_CREAT|O_EXCL` lock (30 s stale steal, bounded wait).
 `load_ledger` returns an empty ledger when no snapshot exists, loads the
-primary, and on a corrupt primary quarantines it as `.corrupt` and falls
-back to `.bak`; `verify_ledger_file` names
-`missing-primary`, `invalid-primary`, schema and checksum defects.
+primary, and on corruption quarantines it as `.corrupt`, falling back to
+`.bak`; `verify_ledger_file` names `missing-primary`,
+`invalid-primary`, schema and checksum defects.
 `save_ledger(..., hmac_key=bytes)` adds an HMAC-SHA256 over the snapshot
 (including its checksum); `load_ledger(..., hmac_key=...)` and
-`verify_ledger_file(..., hmac_key=...)` require and verify it. A missing
-or wrong MAC fails without quarantining the valid primary, so a caller’s
-key mistake never destroys evidence. `python -m evals.claims_store` shows the in-memory
+`verify_ledger_file(..., hmac_key=...)` require and verify it. A missing or
+wrong MAC fails without quarantining the valid primary, so a key mistake
+never destroys evidence. `python -m evals.claims_store` shows the in-memory
 file-before/after ablation, corrupt-primary recovery, checksum
 tamper, lock modes and the keyed modes. Keep the snapshot under `.aikit/`
-or outside the source tree; it is local evidence, not committed. The
+or outside the source tree; it is local, not committed. The
 checksum detects accidental edits; the HMAC also detects a rewritten
 checksum when the key stays outside the store. An unkeyed save over a
 keyed snapshot is refused, so authenticated evidence cannot be
-downgraded silently.
+downgraded.
 
-`ClaimLedger.record(..., ref=...)` accepts an optional non-empty verdict
-ref, for example the `episode_sha256` from a logged run header. The ref
-is stored on the frozen `Verdict`, preserved through `to_dict`/
-`from_dict` and the claim store, and old verdicts without a ref load as
-`None`. `python -m evals.claim_evidence` logs T3:15, records a supports
+`ClaimLedger.record(..., ref=...)` accepts an optional verdict ref, e.g.
+the `episode_sha256` from a run header. It is stored on the frozen
+`Verdict`, preserved through `to_dict`/`from_dict` and the store, and
+old verdicts without one load as `None`. `python -m evals.claim_evidence` logs T3:15, records a supports
 verdict with the header episode digest, saves/loads the claim and checks
 that the ref matches; two runs keep distinct refs; a legacy payload
 loads with `None`; an invalid ref leaves the history unchanged.

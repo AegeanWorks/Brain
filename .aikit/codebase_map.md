@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `197`
-- **Total Classes**: `197`
-- **Total Top-Level Functions**: `563`
-- **Total Class Methods**: `1017`
-- **Total Source Lines**: `27009`
+- **Total Python Modules**: `199`
+- **Total Classes**: `199`
+- **Total Top-Level Functions**: `566`
+- **Total Class Methods**: `1030`
+- **Total Source Lines**: `27206`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`197` module(s))
+- **Indexed**: python (`199` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -758,13 +758,14 @@
 ### [`evals/recompute.py`](evals/recompute.py)
 > *Recompute eval statistics from a JSONL log without trusting self-reports.*
 
-**Size**: `152` lines (`5932` bytes)
+**Size**: `171` lines (`6659` bytes)
 
 **Functions:**
 - `def _mean(xs)`
 - `def _numbers(value)`
 - `def _vec_row(rec)`
 - `def _handle_eval_payload(args, acc)`
+- `def dedupe_rows(rows)` - *Collapse adjacent identical rows to one.*
 - `def recompute(log_path)` - *Read JSONL log and return dict with syn, phi, gbi, gain, recovery.*
 - `def main()`
 
@@ -1841,6 +1842,21 @@
 
 ---
 
+### [`tests/test_corrected_counts.py`](tests/test_corrected_counts.py)
+> *The corrected distinguishability counts, at one observation per step.*
+
+**Size**: `77` lines (`3297` bytes)
+
+**Classes:**
+- `class TestCorrectedDistinguishability`
+  - Method `.test_no_pinned_trace_is_distinguishable()`
+  - Method `.test_the_scope_reports_one_row_per_step()`
+  - Method `.test_the_syn_value_is_unchanged_by_dedupe()`
+  - Method `.test_a_degenerate_null_reports_no_spread()`
+  - Method `.test_dedupe_is_idempotent()`
+
+---
+
 ### [`tests/test_cycle_escape.py`](tests/test_cycle_escape.py)
 > *Repeated-position cycle escape: memory drives a BFS exit from a loop.*
 
@@ -1908,6 +1924,28 @@
 **Functions:**
 - `def _pairs(rows)`
 - `def _flagged(result)`
+
+---
+
+### [`tests/test_duplicate_rows.py`](tests/test_duplicate_rows.py)
+> *Every step emits two identical vector rows, so every statistic is over n=2T.*
+
+**Size**: `94` lines (`3534` bytes)
+
+**Classes:**
+- `class TestDuplicateVectorRows`
+  - Method `.test_every_step_emits_two_identical_rows()`
+  - Method `.test_the_pair_is_byte_identical()`
+  - Method `.test_dedupe_halves_the_row_count()`
+  - Method `.test_dedupe_changes_no_header_record()`
+  - Method `.test_the_collinearity_survives_dedupe()`
+  - Method `.test_dedupe_is_order_preserving()`
+  - Method `.test_dedupe_keeps_non_adjacent_repeats()`
+  - Method `.test_dedupe_degrades_on_empty_input()`
+
+**Functions:**
+- `def _episode(task, seed)`
+- `def _dependent_count(rows)`
 
 ---
 
@@ -3289,7 +3327,7 @@
 ### [`tests/test_synergy_null_wiring.py`](tests/test_synergy_null_wiring.py)
 > *The synergy null must reach every place ``syn`` is reported.*
 
-**Size**: `73` lines (`2858` bytes)
+**Size**: `80` lines (`3321` bytes)
 
 **Classes:**
 - `class TestSynergyNullWiring`
