@@ -12,6 +12,7 @@ import json
 
 from agent import Agent
 from calibration import summary
+from evals.battery_check import exit_code_for, format_findings
 from self_model.model import SelfModel
 
 
@@ -88,11 +89,69 @@ def run_battery():
     }
 
 
+#: Exact ``(brier, skill)`` each fixture must produce. Five fixtures are
+#: built by construction (a perfect forecaster scores 0 and skill 1, an
+#: inverted one scores 1 and skill -3); the sixth is the real T3:15
+#: self-model readout. Pinning them makes a scorer change fail the battery.
+EXPECTED = {
+    "perfect": (0.0, 1.0),
+    "calibrated": (0.166, 0.308333),
+    "inverted": (1.0, -3.0),
+    "small": (0.0, None),
+    "ignored": (0.04, 0.84),
+    "run-T3-15": (0.230769, -2.25),
+}
+
+
+def checks(report):
+    """Return the claims this battery's own output contradicts.
+
+    The fixtures are exact by construction, so a moved score is a scorer
+    regression, not noise.
+    """
+    findings = []
+    by_mode = {case.get("mode"): case for case in report.get("cases", [])}
+    for mode, (brier, skill) in EXPECTED.items():
+        case = by_mode.get(mode)
+        if case is None:
+            findings.append("missing-mode:%s" % mode)
+            continue
+        stats = case.get("stats") or {}
+        got_brier = stats.get("brier")
+        if got_brier is None or abs(float(got_brier) - brier) > 1e-6:
+            findings.append("brier:%s:%s!=%s" % (mode, got_brier, brier))
+        got_skill = stats.get("skill")
+        if skill is None:
+            if got_skill is not None:
+                findings.append("skill:%s:%s!=None" % (mode, got_skill))
+        elif got_skill is None or abs(float(got_skill) - skill) > 1e-6:
+            findings.append("skill:%s:%s!=%s" % (mode, got_skill, skill))
+    for mode in ("small", "inverted"):
+        case = by_mode.get(mode)
+        if case is not None and not (case.get("stats") or {}).get("warnings"):
+            findings.append("no-warning:%s" % mode)
+    run = by_mode.get("run-T3-15")
+    if run is not None:
+        if run.get("steps") != 13:
+            findings.append("run-steps:%s!=13" % run.get("steps"))
+        if run.get("reward") != 1.0:
+            findings.append("run-reward:%s!=1.0" % run.get("reward"))
+        resolved = (run.get("stats") or {}).get("counts", {}).get("resolved")
+        if resolved != 13:
+            findings.append("run-resolved:%s!=13" % resolved)
+    return findings
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", action="store_true", default=True)
     parser.parse_args()
-    print(json.dumps(run_battery(), indent=2, sort_keys=True))
+    report = run_battery()
+    print(json.dumps(report, indent=2, sort_keys=True))
+    findings = checks(report)
+    if findings:
+        print(format_findings("calibration", findings), end="")
+    raise SystemExit(exit_code_for(findings))
 
 
 if __name__ == "__main__":

@@ -4398,6 +4398,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 124**: unittest 603 OK; aikit 5/5; `execution_budget` five modes name their own dimension, generous 13/1.0 matches the rule, and its five mutations exit 1; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those six, uncovered names `calibration`/`estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 124 - pin the calibration battery's exact fixture scores
+
+- **Baseline** (commit 95d9387):
+  - canonical gate: 603 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals/calibration.py` ran six cases with exact-by-construction scores and exited 0 either way.
+  - re-measured: perfect 0.0/1.0, calibrated 0.166/0.308333, inverted 1.0/-3.0, small 0.0/None, ignored 0.04/0.84, run 0.230769/-2.25.
+- **Gap**: the scorer's known-answer fixtures were unenforced. A formula change that moved Brier or skill only altered the printed JSON, so the battery's whole point — that the scores are correct — was not checked.
+- **Target delta**: every fixture score is pinned within float-format tolerance, warnings are required on the small and inverted cases, and the real run keeps 13 steps / 1.0 / 13 resolved.
+- **Falsifier**: the real run reports a finding; a moved score exits 0; or a pinned value moves.
+- **Change**: `evals/calibration.py` adds `EXPECTED` and `checks(report)` naming `missing-mode:`, `brier:`, `skill:`, `no-warning:`, `run-steps:`, `run-reward:` and `run-resolved:`, and exits through the ADR-112 contract; `tests/test_calibration_checks.py` adds 9 tests. ADR-118.
+- **After** (same battery):
+  - real run: findings `[]`, exit 0; all six fixtures score as documented.
+  - perfect Brier moves: `brier:perfect:0.5!=0.0`; inverted skill moves: `skill:inverted:0.0!=-3.0`; small sample looks resolved: `skill:small:1.0!=None`; real-run Brier moves: `brier:run-T3-15:0.1!=0.230769` — all exit 1.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `checks` each scorer regression prints and exits 0; with it each is named, and the payload is identical in both readings.
+- **Verdict**: harness-honesty extension on the scorer's known-answer fixtures. The measured delta is six exact scores that were true and unchecked, now pinned. No behavior, estimator or pin moves. Boundary: this pins the scorer against the current fixtures, so a deliberate formula change must update `EXPECTED`; the real-run score is pinned too, so a planner change that altered T3:15 would surface here; the remaining uncovered modules (`estimators`, `recompute`, `vector_audit`) are pure libraries with unit tests rather than batteries.
+- **Gates**: unittest 612/612 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_calibration_checks` -> before: 1 error (`checks` absent); after: 9 OK.
+  - `python -m evals.calibration` -> exit 0 with findings `[]`.
+  - `python ..\..\scratch\ablate_124.py` -> real clean; four mutations each exit 1.
+  - `python -m unittest discover -s tests -t .` -> 612 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 125**: unittest 612 OK; aikit 5/5; `calibration` six fixtures at their exact scores, warnings on small/inverted, real run 13 steps / 1.0 / 13 resolved, and its four mutations exit 1; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those seven, uncovered names `estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

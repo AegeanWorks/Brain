@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `164`
-- **Total Classes**: `169`
-- **Total Top-Level Functions**: `519`
-- **Total Class Methods**: `833`
-- **Total Source Lines**: `23706`
+- **Total Python Modules**: `165`
+- **Total Classes**: `170`
+- **Total Top-Level Functions**: `521`
+- **Total Class Methods**: `843`
+- **Total Source Lines**: `23868`
 
 ---
 
@@ -313,7 +313,7 @@
 ### [`evals/calibration.py`](evals/calibration.py)
 > *Calibration battery: proper scores over fixtures and a real run.*
 
-**Size**: `99` lines (`2919` bytes)
+**Size**: `158` lines (`5323` bytes)
 
 **Functions:**
 - `def _forecast(identifier, probability, outcome)`
@@ -324,6 +324,7 @@
 - `def _fixture_case(name, forecasts, min_resolved)`
 - `def measure_run()`
 - `def run_battery()`
+- `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -1273,7 +1274,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `110` lines (`4554` bytes)
+**Size**: `112` lines (`4647` bytes)
 
 **Classes:**
 - `class TestBatteryContract`
@@ -1399,6 +1400,29 @@
 
 **Functions:**
 - `def _run(tmp, task, seed, calibration_path, agent, log_name)`
+
+---
+
+### [`tests/test_calibration_checks.py`](tests/test_calibration_checks.py)
+> *The calibration battery must check its own fixtures.*
+
+**Size**: `101` lines (`3847` bytes)
+
+**Classes:**
+- `class TestCalibrationChecks`
+  - Method `.setUpClass()`
+  - Method `.test_a_real_run_has_no_findings()`
+  - Method `.test_every_fixture_scores_as_documented()`
+  - Method `.test_perfect_beats_inverted()`
+  - Method `.test_small_sample_warns_and_inverted_warns()`
+  - Method `.test_the_real_run_keeps_its_pinned_score()`
+  - Method `.test_a_moved_brier_is_named()`
+  - Method `.test_a_moved_skill_is_named()`
+  - Method `.test_a_suddenly_resolved_small_sample_is_named()`
+  - Method `.test_a_missing_mode_is_named()`
+
+**Functions:**
+- `def _case(report, mode)`
 
 ---
 
