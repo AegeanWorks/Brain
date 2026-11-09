@@ -4348,6 +4348,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 122**: unittest 583 OK; aikit 5/5; `prompt_budget` real clean/exit 0 with `actions_match_rule True` in both modes, 63/52 tokens, 0/13 omitted, 13 steps / 1.0 reward, and its four mutations exit 1; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those four, uncovered names `calibration`/`estimators`/`recompute`/`execution_budget`/`resume_identity`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 122 - enforce the resume-identity battery's decisions
+
+- **Baseline** (commit 35fed00):
+  - canonical gate: 583 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals/resume_identity.py` computed six identity claims and printed them, exiting 0 either way.
+  - re-measured: same resume/True, changed-seed new/False, changed-target new/False, volatile resume/True, legacy ask/False, policy-any resume/False; reruns share an episode digest and actions; seed 65 differs at 6 steps vs 13.
+- **Gap**: identity decisions were computed and discarded. A change that made a changed seed resume, or a volatile key alter the digest, only altered the printed JSON.
+- **Target delta**: each mode's decision and same/different digest is enforced, plus volatile immunity, header agreement and rerun reproduction.
+- **Falsifier**: the real run reports a finding; an identity regression exits 0; or a pinned value moves.
+- **Change**: `evals/resume_identity.py` adds `EXPECTED_DECISIONS` (six `(decision, same_digest)` pairs) and `checks(report)` naming `missing-mode:`, `decision:`, `same-digest:`, `volatile-changed-the-digest`, `digest-unchanged:`, `header-mismatch:`, `rerun-differs:`, `rerun-actions-differ:` and `seed65-steps-equal:`, and exits through the ADR-112 contract; `tests/test_resume_identity_checks.py` adds 10 tests. ADR-116.
+- **After** (same battery):
+  - real run: findings `[]`, exit 0, six decisions as documented.
+  - changed seed resumes: `decision:changed-seed:resume!=new`, exit 1; volatile key moves the digest: `volatile-changed-the-digest`, exit 1; header disagrees: `header-mismatch:same`, exit 1; legacy resumes: two findings, exit 1.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `checks` each identity regression prints and exits 0; with it each is named, and the payload is identical in both readings.
+- **Verdict**: harness-honesty extension on the identity layer. The measured delta is six documented resume decisions that were true and unenforced, now checked per run. No behavior, estimator or pin moves. Boundary: the table pins the current identity policy rather than proving it correct; a deliberate policy change must update `EXPECTED_DECISIONS`, and four batteries remain uncovered.
+- **Gates**: unittest 593/593 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_resume_identity_checks` -> before: 1 error (`checks` absent); after: 10 OK.
+  - `python -m evals.resume_identity` -> exit 0 with findings `[]`.
+  - `python ..\..\scratch\ablate_122.py` -> real clean; four mutations each exit 1.
+  - `python -m unittest discover -s tests -t .` -> 593 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 123**: unittest 593 OK; aikit 5/5; `resume_identity` six decisions as documented and its four mutations exit 1; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those five, uncovered names `calibration`/`estimators`/`recompute`/`execution_budget`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

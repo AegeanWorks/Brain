@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `162`
-- **Total Classes**: `167`
-- **Total Top-Level Functions**: `515`
-- **Total Class Methods**: `811`
-- **Total Source Lines**: `23384`
+- **Total Python Modules**: `163`
+- **Total Classes**: `168`
+- **Total Top-Level Functions**: `517`
+- **Total Class Methods**: `822`
+- **Total Source Lines**: `23553`
 
 ---
 
@@ -740,13 +740,14 @@
 ### [`evals/resume_identity.py`](evals/resume_identity.py)
 > *Episode-identity battery: canonical digests, resume decisions, headers.*
 
-**Size**: `112` lines (`4281` bytes)
+**Size**: `177` lines (`7058` bytes)
 
 **Functions:**
 - `def _config(seed)`
 - `def _logged(seed, directory, name)`
 - `def _measure(mode, directory)`
 - `def run_battery(modes)`
+- `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -1271,7 +1272,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `110` lines (`4515` bytes)
+**Size**: `110` lines (`4534` bytes)
 
 **Classes:**
 - `class TestBatteryContract`
@@ -2603,6 +2604,30 @@
 **Functions:**
 - `def _write_log(directory, name, task, seed)`
 - `def _rewrite_results(log_path, out_path, ok, output, cost)`
+
+---
+
+### [`tests/test_resume_identity_checks.py`](tests/test_resume_identity_checks.py)
+> *The resume-identity battery must enforce its own identity claims.*
+
+**Size**: `104` lines (`4187` bytes)
+
+**Classes:**
+- `class TestResumeIdentityChecks`
+  - Method `.setUpClass()`
+  - Method `.test_a_real_run_has_no_findings()`
+  - Method `.test_every_mode_produces_its_documented_decision()`
+  - Method `.test_volatile_keys_do_not_change_the_digest()`
+  - Method `.test_a_changed_seed_changes_the_digest()`
+  - Method `.test_a_changed_target_changes_the_digest()`
+  - Method `.test_header_matches_the_digest_and_reruns_agree()`
+  - Method `.test_a_changed_seed_that_resumes_is_named()`
+  - Method `.test_a_volatile_key_that_moves_the_digest_is_named()`
+  - Method `.test_a_header_that_disagrees_is_named()`
+  - Method `.test_a_missing_mode_is_named()`
+
+**Functions:**
+- `def _case(report, mode)`
 
 ---
 
