@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `168`
-- **Total Classes**: `173`
-- **Total Top-Level Functions**: `522`
-- **Total Class Methods**: `863`
-- **Total Source Lines**: `24128`
+- **Total Python Modules**: `170`
+- **Total Classes**: `174`
+- **Total Top-Level Functions**: `525`
+- **Total Class Methods**: `869`
+- **Total Source Lines**: `24331`
 
 ---
 
@@ -1017,6 +1017,16 @@
   - Method `.mark_fail()` - *Mark the current step failed. Cursor holds for recover().*
   - Method `.recover()` - *Skip failed entries and return the next viable step or None.*
   - Method `.state()` - *Return cursor plus per-step status list.*
+
+---
+
+### [`run_verify.py`](run_verify.py)
+> *One call that runs every shipped verifier over a finished log.*
+
+**Size**: `68` lines (`2933` bytes)
+
+**Functions:**
+- `def verify_run(log_path, expected_policy_sha256, expected_workspace_sha256, expected_model, hmac_key, anchor_path, journal_path)` - *Run every shipped verifier over one log; return the union.*
 
 ---
 
@@ -3151,6 +3161,26 @@
 **Functions:**
 - `def _write_log(directory, name, task, seed, max_steps)`
 - `def _rewrite_verdict(log_path, out_path, verdict, reason)`
+
+---
+
+### [`tests/test_verify_run.py`](tests/test_verify_run.py)
+> *One aggregate verifier must compose every shipped check.*
+
+**Size**: `135` lines (`5792` bytes)
+
+**Classes:**
+- `class TestVerifyRun`
+  - Method `.test_honest_log_passes_every_layer()`
+  - Method `.test_a_forged_action_is_rejected_by_the_aggregate()`
+  - Method `.test_a_rewritten_result_is_rejected_by_the_results_layer()`
+  - Method `.test_a_wrong_model_pin_is_rejected_by_the_episode_layer()`
+  - Method `.test_a_raising_layer_does_not_hide_the_others()`
+  - Method `.test_a_missing_log_is_reported_not_raised()`
+
+**Functions:**
+- `def _write_log(directory, name, task, seed)`
+- `def _rewrite(log_path, out_path, transform)` - *Re-emit a log through Telemetry, letting ``transform`` edit records.*
 
 ---
 

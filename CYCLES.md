@@ -4501,6 +4501,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 128**: unittest 632 OK; aikit 5/5; every battery trace slot carries `syn_scope` (17/17), cold-start reports `sufficient: false` / `constant-scope-column`, existing slot fields unchanged; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 128 - compose every verifier into one aggregate
+
+- **Baseline** (commit 8668e31):
+  - canonical gate: 632 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - cycles 110-117 produced six independent verifiers; a survey of the public `verify_*` names showed no aggregate entry point.
+- **Gap**: nothing composed the verifiers, so a consumer had to know to call each one, and a forgotten check silently weakened the verdict — the same failure mode the individual cycles were fixing one layer at a time.
+- **Target delta**: one call runs every layer and returns the union of findings with each layer's own result, reimplementing nothing.
+- **Falsifier**: the honest log fails a layer; a forgery that defeats one layer passes the aggregate; or a raising layer hides the others.
+- **Change**: `run_verify.py` adds `verify_run(...)` composing `verify_chain`, `verify_episode_header`, `verify_action_replay(check_verdict=True)` and `verify_result_records`, catching a raising layer as `<layer>:<error>`; `tests/test_verify_run.py` adds 6 tests. ADR-122.
+- **After** (same logs):
+  - honest log with the model pin: `ok True`, all four layers pass.
+  - forged actions: `chain True`, `episode True`, `replay False`, `results False`, aggregate `False`.
+  - forged results: same shape — the aggregate names which layer spoke.
+  - malformed policy pin: `episode:<error>` recorded while `chain` and `replay` still report.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: removing any single layer would accept that layer's forgery (`replay` for actions, `results` for costs); the aggregate reports both because it runs both.
+- **Verdict**: composition, not a new check. The measured delta is a single verdict that covers all four evidence layers and names the failing one; no verifier's behavior changes. Boundary: the aggregate is only as strong as its weakest member — replay still cannot catch a consistently rewritten trajectory — and a pin must still be supplied by the caller.
+- **Gates**: unittest 638/638 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_aggregate.py` -> six verifiers, no aggregate.
+  - `python -m unittest tests.test_verify_run` -> 6 OK.
+  - `python ..\..\scratch\ablate_128.py` -> per-layer isolation on two forgeries.
+  - `python -m unittest discover -s tests -t .` -> 638 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 129**: unittest 638 OK; aikit 5/5; `verify_run` honest True with four layers and each forgery rejected by its own layer; `syn_scope` in 17/17 trace slots; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
