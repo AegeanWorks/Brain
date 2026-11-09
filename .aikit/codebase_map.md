@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `160`
-- **Total Classes**: `165`
-- **Total Top-Level Functions**: `511`
-- **Total Class Methods**: `791`
-- **Total Source Lines**: `23109`
+- **Total Python Modules**: `161`
+- **Total Classes**: `166`
+- **Total Top-Level Functions**: `513`
+- **Total Class Methods**: `801`
+- **Total Source Lines**: `23242`
 
 ---
 
@@ -591,12 +591,13 @@
 ### [`evals/header_reader.py`](evals/header_reader.py)
 > *Header-reader battery: streaming headers vs decoding every record.*
 
-**Size**: `80` lines (`2545` bytes)
+**Size**: `125` lines (`4546` bytes)
 
 **Functions:**
 - `def _write_log(path)`
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
+- `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -1269,7 +1270,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `108` lines (`4415` bytes)
+**Size**: `109` lines (`4460` bytes)
 
 **Classes:**
 - `class TestBatteryContract`
@@ -1862,6 +1863,29 @@
 
 **Functions:**
 - `def _fingerprint(trace)`
+
+---
+
+### [`tests/test_header_reader_checks.py`](tests/test_header_reader_checks.py)
+> *The header-reader battery must check its own memory claim.*
+
+**Size**: `87` lines (`3466` bytes)
+
+**Classes:**
+- `class TestHeaderReaderChecks`
+  - Method `.setUpClass()`
+  - Method `.test_a_real_run_has_no_findings()`
+  - Method `.test_header_mode_returns_only_headers()`
+  - Method `.test_all_mode_retains_every_record()`
+  - Method `.test_header_mode_retains_far_less()`
+  - Method `.test_both_modes_see_the_same_headers()`
+  - Method `.test_a_header_reader_that_retains_everything_is_named()`
+  - Method `.test_a_header_reader_that_returns_everything_is_named()`
+  - Method `.test_a_lost_header_is_named()`
+  - Method `.test_a_missing_mode_is_named()`
+
+**Functions:**
+- `def _mode(report, name)`
 
 ---
 

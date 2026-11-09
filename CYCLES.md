@@ -4298,6 +4298,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 120**: unittest 565 OK; aikit 5/5; `progress_guard` real run clean/exit 0 and each of the five mutations exit 1; `EXPECTED` 12 pairs; `telemetry_lock` contract; `audit_batteries` covered includes `telemetry_lock` and `progress_guard`, uncovered still names `calibration`/`estimators`/`recompute`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `vector_audit`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `detectability`; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 120 - check the header-reader battery's memory property
+
+- **Baseline** (commit 3ff466a):
+  - canonical gate: 565 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals/header_reader.py` printed its two memory figures and exited 0 either way; its whole purpose is one claim — headers-only reading costs far less peak memory than retaining every record.
+  - re-measured: all 124.2 MB, headers 0.1 MB, ratio 863.8x, matching the README exactly.
+- **Gap**: the battery's single property was unenforced. A change making `read_headers` accumulate would only alter the printed JSON; the exit code stayed 0.
+- **Target delta**: the two modes are compared on the property every run; a reader that retains or returns everything, or loses the header, is named and exits 1.
+- **Falsifier**: the real run reports a finding; a regression exits 0; or a pinned value moves.
+- **Change**: `evals/header_reader.py` adds `MIN_MEMORY_RATIO = 10.0` and `checks(report)` naming `headers-returned:`, `all-returned:`, `headers-count:`, `heads-disagree:`, `missing-mode:` and `memory-ratio:`, and exits through the ADR-112 contract; `tests/test_header_reader_checks.py` adds 9 tests. ADR-114. The audit test now expects `header_reader` among the covered batteries.
+- **After** (same battery):
+  - real run: findings `[]`, exit 0; all 124.2 MB / 100001 returned, headers 0.1 MB / 1 returned, ratio 863.8x.
+  - retains everything: `memory-ratio:1.0<10.0`, exit 1; returns everything: `headers-returned:100001!=1`, exit 1; loses the header: `headers-count:0!=1` + disagreement, exit 1.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `checks` all three regressions print and exit 0; with it each is named, and the payload is identical in both readings, so the delta is the check.
+- **Verdict**: harness-honesty extension on a quantitative battery. The measured delta is a memory property that was true and unchecked, now enforced per run with a noise-robust ratio floor. No behavior, estimator or pin moves. Boundary: the floor tolerates a slow leak below 10x; the property is proved at one size (100k), not at every size; six batteries remain uncovered.
+- **Gates**: unittest 574/574 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_header_reader_checks` -> before: 1 error (`checks` absent); after: 9 OK.
+  - `python -m evals.header_reader` -> exit 0 with findings `[]`.
+  - `python ..\..\scratch\ablate_120.py` -> real clean 863.8x; three mutations each exit 1.
+  - `python -m unittest discover -s tests -t .` -> 574 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 121**: unittest 574 OK; aikit 5/5; `header_reader` real run clean/exit 0, ratio > 10, and its three mutations exit 1; `progress_guard` five mutations exit 1; `telemetry_lock` contract; `audit_batteries` covered includes `telemetry_lock`/`progress_guard`/`header_reader`, uncovered still names `calibration`/`estimators`/`recompute`/`execution_budget`/`prompt_budget`/`resume_identity`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

@@ -13,10 +13,16 @@ import tempfile
 import time
 import tracemalloc
 
+from evals.battery_check import exit_code_for, format_findings
 from telemetry.log import Telemetry
 
 MODES = ("all", "headers")
 RECORDS = 100_000
+
+#: The header reader must retain at least this many times less peak memory
+#: than the full reader. A floor rather than an exact number: allocator
+#: noise moves the absolute bytes, but not the order of magnitude.
+MIN_MEMORY_RATIO = 10.0
 
 
 def _write_log(path):
@@ -67,13 +73,52 @@ def run_battery(modes=MODES):
                 "cases": [measure_case(mode, directory) for mode in modes]}
 
 
+def checks(report):
+    """Return the claims this battery's own output contradicts.
+
+    The battery exists to prove that reading only headers costs far less
+    memory than retaining every record. These findings check that property
+    rather than exact byte counts, so allocator noise cannot move them.
+    """
+    findings = []
+    by_mode = {case.get("mode"): case for case in report.get("cases", [])}
+    for mode in MODES:
+        if mode not in by_mode:
+            findings.append("missing-mode:%s" % mode)
+    if findings:
+        return findings
+    everything, headers = by_mode["all"], by_mode["headers"]
+    # The header reader must return one record whatever the log length, and
+    # the full reader must return every line the run reports.
+    if headers.get("returned") != 1:
+        findings.append("headers-returned:%s!=1" % headers.get("returned"))
+    total = everything.get("returned")
+    if total is not None and total < 2:
+        findings.append("all-returned:%s<2" % total)
+    if headers.get("headers") != 1:
+        findings.append("headers-count:%s!=1" % headers.get("headers"))
+    if everything.get("headers") != headers.get("headers"):
+        findings.append("heads-disagree:%s!=%s"
+                        % (everything.get("headers"), headers.get("headers")))
+    ratio = everything.get("peak_bytes", 0) / max(
+        headers.get("peak_bytes", 1), 1)
+    if ratio < MIN_MEMORY_RATIO:
+        findings.append("memory-ratio:%.1f<%.1f" % (ratio, MIN_MEMORY_RATIO))
+    return findings
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", action="append", choices=MODES, default=[],
                         help="repeatable (default: all modes)")
     args = parser.parse_args()
     modes = tuple(args.mode) if args.mode else MODES
-    print(json.dumps(run_battery(modes), indent=2, sort_keys=True))
+    report = run_battery(modes)
+    print(json.dumps(report, indent=2, sort_keys=True))
+    findings = checks(report)
+    if findings:
+        print(format_findings("header_reader", findings), end="")
+    raise SystemExit(exit_code_for(findings))
 
 
 if __name__ == "__main__":
