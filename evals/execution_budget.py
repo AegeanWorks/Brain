@@ -12,9 +12,21 @@ import json
 
 from agent import Agent, Planner
 from budget import BudgetExceeded, budget_from_limits
+from evals.battery_check import exit_code_for, format_findings
 from models.backend import ModelBackend
 
 MODES = ("generous", "step", "llm", "token", "time")
+
+#: The dimension each mode must name when it raises; ``None`` means the
+#: mode must complete. A budget that stops enforcing, or enforces the wrong
+#: dimension, is caught by comparing against this table.
+EXPECTED_KIND = {
+    "generous": None,
+    "step": "steps",
+    "llm": "llm_calls",
+    "token": "tokens",
+    "time": "seconds",
+}
 
 
 class WaitingBackend(ModelBackend):
@@ -100,13 +112,58 @@ def run_battery(modes=MODES):
             "cases": [_measure(mode) for mode in modes]}
 
 
+def checks(report):
+    """Return the claims this battery's own output contradicts.
+
+    A budget either enforces its own dimension or it does not. These
+    findings check that each capped mode names the right kind, that its
+    usage exceeded its limit, that a capped run is not a success, and that
+    a generous budget left the rule run byte-identical.
+    """
+    findings = []
+    by_mode = {case.get("mode"): case for case in report.get("cases", [])}
+    for mode, kind in EXPECTED_KIND.items():
+        case = by_mode.get(mode)
+        if case is None:
+            findings.append("missing-mode:%s" % mode)
+            continue
+        if case.get("kind") != kind:
+            findings.append("kind:%s:%s!=%s" % (mode, case.get("kind"), kind))
+        if kind is None:
+            if not case.get("actions_match_rule"):
+                findings.append("generous-changed-actions:%s"
+                                % case.get("actions_match_rule"))
+            if not case.get("success"):
+                findings.append("generous-not-success")
+            if case.get("steps") != 13:
+                findings.append("generous-steps:%s!=13" % case.get("steps"))
+            if case.get("reward") != 1.0:
+                findings.append("generous-reward:%s!=1.0"
+                                % case.get("reward"))
+            continue
+        if case.get("success"):
+            findings.append("capped-reported-success:%s" % mode)
+        limit, used = case.get("limit"), case.get("used")
+        if kind != "seconds":
+            if limit is None or used is None:
+                findings.append("missing-usage:%s" % mode)
+            elif not float(used) > float(limit):
+                findings.append("not-exceeded:%s:%s<=%s" % (mode, used, limit))
+    return findings
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", action="append", choices=MODES, default=[],
                         help="repeatable (default: all modes)")
     args = parser.parse_args()
     modes = tuple(args.mode) if args.mode else MODES
-    print(json.dumps(run_battery(modes), indent=2, sort_keys=True))
+    report = run_battery(modes)
+    print(json.dumps(report, indent=2, sort_keys=True))
+    findings = checks(report)
+    if findings:
+        print(format_findings("execution_budget", findings), end="")
+    raise SystemExit(exit_code_for(findings))
 
 
 if __name__ == "__main__":

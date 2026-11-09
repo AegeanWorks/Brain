@@ -4373,6 +4373,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 123**: unittest 593 OK; aikit 5/5; `resume_identity` six decisions as documented and its four mutations exit 1; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those five, uncovered names `calibration`/`estimators`/`recompute`/`execution_budget`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 123 - enforce the execution-budget battery's enforcement claims
+
+- **Baseline** (commit 41610b0):
+  - canonical gate: 593 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals/execution_budget.py` printed five modes and exited 0 either way.
+  - re-measured: generous 13 steps / 1.0 / actions match; step `steps` 4>3 at 3 steps; llm `llm_calls` 3>2 after 2 calls; token `tokens` 10>8; time `seconds`.
+- **Gap**: budget enforcement was computed and discarded. A budget that stopped enforcing, or enforced the wrong dimension, only altered the printed JSON.
+- **Target delta**: each mode must name its own dimension, a capped run must not be a success, its usage must exceed its limit, and the generous run must match the rule.
+- **Falsifier**: the real run reports a finding; an enforcement regression exits 0; or a pinned value moves.
+- **Change**: `evals/execution_budget.py` adds `EXPECTED_KIND` and `checks(report)` naming `missing-mode:`, `kind:`, `generous-changed-actions:`, `generous-not-success`, `generous-steps:`, `generous-reward:`, `capped-reported-success:`, `missing-usage:` and `not-exceeded:`, and exits through the ADR-112 contract; `tests/test_execution_budget_checks.py` adds 10 tests. ADR-117.
+- **After** (same battery):
+  - real run: findings `[]`, exit 0; step/llm/token/time name their own dimension; generous matches the rule at 13 steps / 1.0.
+  - step stops enforcing: `kind:step:None!=steps`; wrong dimension: `kind:llm:steps!=llm_calls`; usage below limit: `not-exceeded:token:1.0<=8.0`; changed generous run: `generous-changed-actions:False`; capped run claims success: `capped-reported-success:step` — all exit 1.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `checks` each enforcement regression prints and exits 0; with it each is named, and the payload is identical in both readings.
+- **Verdict**: harness-honesty extension on the budget layer. The measured delta is five enforcement claims that were true and unenforced, now checked per run. No behavior, estimator or pin moves. Boundary: the time mode is checked only for its dimension name (the wall clock is nondeterministic), and three batteries remain uncovered.
+- **Gates**: unittest 603/603 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_execution_budget_checks` -> before: 1 error (`checks` absent); after: 10 OK.
+  - `python -m evals.execution_budget` -> exit 0 with findings `[]`.
+  - `python ..\..\scratch\ablate_123.py` -> real clean; five mutations each exit 1.
+  - `python -m unittest discover -s tests -t .` -> 603 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 124**: unittest 603 OK; aikit 5/5; `execution_budget` five modes name their own dimension, generous 13/1.0 matches the rule, and its five mutations exit 1; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` covered includes those six, uncovered names `calibration`/`estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

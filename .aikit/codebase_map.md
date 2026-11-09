@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `163`
-- **Total Classes**: `168`
-- **Total Top-Level Functions**: `517`
-- **Total Class Methods**: `822`
-- **Total Source Lines**: `23553`
+- **Total Python Modules**: `164`
+- **Total Classes**: `169`
+- **Total Top-Level Functions**: `519`
+- **Total Class Methods**: `833`
+- **Total Source Lines**: `23706`
 
 ---
 
@@ -571,7 +571,7 @@
 ### [`evals/execution_budget.py`](evals/execution_budget.py)
 > *Execution-budget battery: generous, step, LLM, token and time caps.*
 
-**Size**: `113` lines (`3540` bytes)
+**Size**: `170` lines (`5909` bytes)
 
 **Classes:**
 - `class WaitingBackend`
@@ -584,6 +584,7 @@
 **Functions:**
 - `def _measure(mode)`
 - `def run_battery(modes)`
+- `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -1272,7 +1273,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `110` lines (`4534` bytes)
+**Size**: `110` lines (`4554` bytes)
 
 **Classes:**
 - `class TestBatteryContract`
@@ -1814,6 +1815,30 @@
   - Method `.test_transfer_recovery_formulas()`
   - Method `.test_logistic_k_r2_range()`
   - Method `.test_permutation_null_deterministic()`
+
+---
+
+### [`tests/test_execution_budget_checks.py`](tests/test_execution_budget_checks.py)
+> *The execution-budget battery must enforce its own caps.*
+
+**Size**: `96` lines (`3643` bytes)
+
+**Classes:**
+- `class TestExecutionBudgetChecks`
+  - Method `.setUpClass()`
+  - Method `.test_a_real_run_has_no_findings()`
+  - Method `.test_each_mode_names_its_own_dimension()`
+  - Method `.test_a_capped_run_exceeds_its_limit()`
+  - Method `.test_generous_budget_preserves_the_rule_run()`
+  - Method `.test_a_capped_run_is_not_a_success()`
+  - Method `.test_a_budget_that_stops_enforcing_is_named()`
+  - Method `.test_a_wrong_dimension_is_named()`
+  - Method `.test_a_cap_above_its_limit_is_named()`
+  - Method `.test_a_changed_generous_run_is_named()`
+  - Method `.test_a_missing_mode_is_named()`
+
+**Functions:**
+- `def _case(report, mode)`
 
 ---
 

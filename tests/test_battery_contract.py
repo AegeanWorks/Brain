@@ -75,9 +75,9 @@ class TestBatteryContract(unittest.TestCase):
 class TestBatteryAudit(unittest.TestCase):
     def test_audit_reports_the_shipped_batteries(self):
         report = audit_batteries(BRAIN)
-        # These adopted the contract across cycles 118-122.
+        # These adopted the contract across cycles 118-123.
         for name in ("telemetry_lock", "progress_guard", "header_reader",
-                     "prompt_budget", "resume_identity"):
+                     "prompt_budget", "resume_identity", "execution_budget"):
             self.assertIn(name, report["with_contract"])
         self.assertIn("contract", report)
         self.assertGreater(report["total"], 20)
