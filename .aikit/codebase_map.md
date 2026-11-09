@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `175`
-- **Total Classes**: `179`
+- **Total Python Modules**: `176`
+- **Total Classes**: `180`
 - **Total Top-Level Functions**: `530`
-- **Total Class Methods**: `900`
-- **Total Source Lines**: `24880`
+- **Total Class Methods**: `907`
+- **Total Source Lines**: `24971`
 
 ---
 
@@ -962,7 +962,7 @@
 ### [`models/llamacpp.py`](models/llamacpp.py)
 > *llama.cpp backend: llama-server subprocess plus completion client.*
 
-**Size**: `246` lines (`9414` bytes)
+**Size**: `257` lines (`9967` bytes)
 
 **Classes:**
 - `class LlamaCppBackend` - *Drive a local llama-server for action proposals.*
@@ -2583,6 +2583,23 @@
 
 **Functions:**
 - `def _mode(report, name)`
+
+---
+
+### [`tests/test_prompt_budget_honesty.py`](tests/test_prompt_budget_honesty.py)
+> *A prompt budget must be reportable as honoured or exceeded.*
+
+**Size**: `80` lines (`3188` bytes)
+
+**Classes:**
+- `class TestPromptBudgetHonesty`
+  - Method `.test_uncapped_reports_no_budget_constraint()`
+  - Method `.test_a_generous_budget_is_within()`
+  - Method `.test_a_budget_that_drops_a_line_is_within()`
+  - Method `.test_a_budget_below_the_anchor_is_reported_as_exceeded()`
+  - Method `.test_the_breach_is_attributable_to_the_kept_anchor()`
+  - Method `.test_pack_still_returns_the_same_triple()`
+  - Method `.test_the_rendered_prompt_is_unchanged()`
 
 ---
 

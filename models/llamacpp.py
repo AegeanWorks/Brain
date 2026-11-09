@@ -103,18 +103,29 @@ def build_prompt(observation, max_tokens=None):
 
 
 def prompt_stats(observation, max_tokens=None):
-    """Return token/omission statistics for one rendered prompt."""
+    """Return token/omission statistics for one rendered prompt.
+
+    ``within_budget`` reports whether the rendered prompt actually fits the
+    requested budget, and ``over_by`` how far it overran. ``pack`` always
+    keeps the anchor line, so a budget below the anchor's own cost cannot be
+    met; without these fields a caller had no way to tell a met budget from
+    an overrun. Both are ``None``/0 when no budget was requested.
+    """
     lines = _prompt_lines(observation)
     if max_tokens is None:
         prompt = " ".join(lines)
         return {"tokens": estimate_tokens(prompt), "omitted": 0,
-                "used": 0, "lines": len(lines)}
+                "used": 0, "lines": len(lines),
+                "within_budget": None, "over_by": 0}
     kept, omitted, used = pack(lines, max_tokens)
     prompt = " ".join(kept)
     if omitted:
         prompt += " OMITTED:%d" % omitted
-    return {"tokens": estimate_tokens(prompt), "omitted": omitted,
-            "used": used, "lines": len(lines)}
+    tokens = estimate_tokens(prompt)
+    over_by = max(0, tokens - max_tokens)
+    return {"tokens": tokens, "omitted": omitted,
+            "used": used, "lines": len(lines),
+            "within_budget": over_by == 0, "over_by": over_by}
 
 
 def parse_action(text):

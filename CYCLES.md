@@ -4681,6 +4681,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 135**: unittest 668 OK; aikit 5/5; `store_capability_use` reports no `recall` caller and does report `count`/`get_layout`; 13 rows + 13 FTS entries per episode; index queryable; `recall_terms` unicode-aware; `verify_run` isolation; `push_budget`/`pop_budget` absent; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 135 - report whether a prompt budget was honoured
+
+- **Baseline** (commit 85b8167):
+  - canonical gate: 668 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `pack` keeps the anchor line unconditionally; `prompt_stats` reported `tokens`/`omitted` but not whether the prompt fit the budget.
+  - measured on T3 (uncapped 62 tokens): budget 60 -> 50/omitted 1/within; budget 40 -> 50 and **10 over**; budget 9 -> 50 and **41 over**.
+- **Gap**: a caller or telemetry reader could not distinguish a met budget from an overrun — the same `tokens`/`omitted` shape for both.
+- **Target delta**: the stats report `within_budget` and `over_by`; the kept lines and rendered prompt are unchanged.
+- **Falsifier**: the real run reports a wrong flag; the prompt text moves; or `pack`'s triple changes.
+- **Change**: `models/llamacpp.py` `prompt_stats` adds `within_budget` (`None` when uncapped) and `over_by = max(0, tokens - max_tokens)`; `tests/test_prompt_budget_honesty.py` adds 7 tests. ADR-129.
+- **After** (same observation):
+  - budget 120/60: `within_budget True`, `over_by 0`; budget 40: `False`, `over_by 10`; budget 9: `False`, `over_by 41`; uncapped: `None`.
+  - prompt text and `pack` triple byte-identical; prompt/llamacpp/battery-check suites 20 tests OK; standing 89/11.0 unchanged.
+- **Ablation**: without the two fields a 40-token budget returns a 50-token prompt and the stats dict is indistinguishable from the within-budget case; with them the overrun is named.
+- **Verdict**: telemetry-honesty extension on the prompt path. The measured delta is a budget breach made visible; no prompt, action or pin moves. Boundary: it reports the breach, it does not prevent it — truncating the anchor would drop the legal-action list.
+- **Gates**: unittest 675/675 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_pack.py` -> budget 40/30/20/9 all over budget with no flag.
+  - `python -m unittest tests.test_prompt_budget_honesty` -> before: 5 errors; after: 7 OK.
+  - `python ..\..\scratch\ablate_135.py` -> shipped names the breach; ablated silent.
+  - `python -m unittest discover -s tests -t .` -> 675 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 136**: unittest 675 OK; aikit 5/5; `prompt_stats` reports `within_budget`/`over_by` (120/60 True/0, 40 False/10, 9 False/41, uncapped None/0) and the prompt text is unchanged; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `push_budget`/`pop_budget` absent; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
