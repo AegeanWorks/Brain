@@ -11,6 +11,7 @@ Operational notes:
 Stdlib only: sqlite3, os, time.
 """
 import os
+import re
 import sqlite3
 import time
 
@@ -52,6 +53,23 @@ _TRIGGERS = (
     "INSERT INTO memories_fts(rowid, key, content) "
     "VALUES (new.id, new.key, new.content); END",
 )
+
+
+def recall_terms(query):
+    """Return the ordinary search terms in ``query``, FTS operators removed.
+
+    ``recall`` falls back to ``LIKE`` when the FTS ``MATCH`` raises. Feeding
+    the raw expression to ``LIKE`` turns ``"T3_navigate AND ("`` into a
+    literal substring search that matches nothing, so the fallback runs on
+    the query's tokens instead. Terms shorter than two characters and the
+    FTS operators/keywords (``AND``/``OR``/``NOT``/``NEAR``) are dropped.
+    """
+    if not isinstance(query, str):
+        return []
+    words = re.findall(r"[A-Za-z0-9_]+", query)
+    keywords = {"and", "or", "not", "near"}
+    return [word for word in words
+            if len(word) >= 2 and word.lower() not in keywords]
 
 
 class MemoryStore:
@@ -250,8 +268,11 @@ class MemoryStore:
     def recall(self, query, limit=5):
         """Return up to limit records matching query, ordered by id ASC.
 
-        Primary path uses FTS5 MATCH; on syntax error or zero hits
-        the lookup falls back to LIKE over key and content.
+        Primary path uses FTS5 MATCH; on syntax error or zero hits the
+        lookup falls back to LIKE. The fallback searches the query's
+        ordinary terms (see :func:`recall_terms`) rather than the raw
+        expression, because an FTS expression used verbatim as a LIKE
+        pattern is a literal substring that matches nothing.
         """
         n = max(1, int(limit))
         q = "" if query is None else str(query)
@@ -267,12 +288,20 @@ class MemoryStore:
             except sqlite3.OperationalError:
                 rows = []
         if not rows:
-            like = "%" + q + "%"
+            terms = recall_terms(q)
+            if not terms:
+                return []
+            clauses = " OR ".join("key LIKE ? OR content LIKE ?"
+                                  for _ in terms)
+            params = []
+            for term in terms:
+                pattern = "%" + term + "%"
+                params.extend((pattern, pattern))
+            params.append(n)
             rows = self._conn.execute(
                 "SELECT id, key, content, conf, ts FROM memories "
-                "WHERE key LIKE ? OR content LIKE ? "
-                "ORDER BY id ASC LIMIT ?",
-                (like, like, n),
+                "WHERE " + clauses + " ORDER BY id ASC LIMIT ?",
+                params,
             ).fetchall()
         return [
             {"id": r[0], "key": r[1], "content": r[2], "conf": r[3], "ts": r[4]}

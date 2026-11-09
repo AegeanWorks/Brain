@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `172`
-- **Total Classes**: `176`
-- **Total Top-Level Functions**: `527`
-- **Total Class Methods**: `881`
-- **Total Source Lines**: `24563`
+- **Total Python Modules**: `173`
+- **Total Classes**: `177`
+- **Total Top-Level Functions**: `528`
+- **Total Class Methods**: `888`
+- **Total Source Lines**: `24682`
 
 ---
 
@@ -912,7 +912,7 @@
 ### [`memory/store.py`](memory/store.py)
 > *SQLite-backed store with FTS5 index and LIKE fallback.*
 
-**Size**: `310` lines (`12184` bytes)
+**Size**: `339` lines (`13443` bytes)
 
 **Classes:**
 - `class MemoryStore` - *Persisted key/content map with full-text lookup.*
@@ -932,6 +932,9 @@
   - Method `.close()` - *Flush and close the underlying connection.*
   - Method `.__enter__()`
   - Method `.__exit__(exc_type, exc, tb)`
+
+**Functions:**
+- `def recall_terms(query)` - *Return the ordinary search terms in ``query``, FTS operators removed.*
 
 ---
 
@@ -2648,6 +2651,23 @@
 
 **Functions:**
 - `def _persistent_hidden_steps(task, seed, window, max_steps)`
+
+---
+
+### [`tests/test_recall_fallback.py`](tests/test_recall_fallback.py)
+> *A malformed FTS query must not make the fallback find nothing.*
+
+**Size**: `90` lines (`3296` bytes)
+
+**Classes:**
+- `class TestRecallFallback`
+  - Method `._store_with_rows(tmp)`
+  - Method `.test_recall_terms_strips_fts_operators()`
+  - Method `.test_a_malformed_query_still_finds_the_rows()`
+  - Method `.test_a_well_formed_query_is_unchanged()`
+  - Method `.test_a_query_with_no_terms_returns_nothing()`
+  - Method `.test_the_fallback_preserves_limit_and_ordering()`
+  - Method `.test_no_match_is_still_no_match()`
 
 ---
 

@@ -4605,6 +4605,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 132**: unittest 650 OK; aikit 5/5; `verify_run` per-layer isolation asserted in both directions (forged layer fails, uninvolved layers stay ok); `push_budget`/`pop_budget` absent; `use_budget` nests/restores; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 132 - the LIKE fallback searches the query's terms
+
+- **Baseline** (commit b38c573):
+  - canonical gate: 650 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `MemoryStore.recall` tries FTS5 `MATCH`, falls back to `LIKE` on `OperationalError`, and used the query verbatim as the LIKE pattern.
+  - measured against 13 real agent-written rows: `recall("T3_navigate")` -> 13 (FTS), `recall("T3_navigate AND (")` -> **0** (fallback searched the literal expression).
+- **Gap**: a caller passing text containing FTS syntax got silence instead of the rows it asked for, and the existing test only asserted "does not raise", so the empty result passed.
+- **Target delta**: the fallback searches the query's ordinary terms; a malformed query finds its rows; a genuine miss is still a miss.
+- **Falsifier**: the malformed query still returns 0; a genuine miss starts matching; limit/ordering changes; or a pinned value moves.
+- **Change**: `memory/store.py` adds `recall_terms(query)` (word runs, no keywords, min length 2) and builds a parameterised LIKE disjunction per term in the fallback, keeping `ORDER BY id ASC LIMIT ?`; an empty term list returns `[]`. `tests/test_recall_fallback.py` adds 6 tests against agent-written rows. ADR-126.
+- **After** (same rows):
+  - `recall("T3_navigate AND (")` -> 13; `recall("((( ")` -> 0; `recall("zzzz AND (")` -> 0; limit 3 -> the first three keys in id order.
+  - memory/store-recovery/store-schema suites 16 tests OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: with the raw-expression fallback the malformed query returns 0; with the term fallback it returns 13, and the other three queries are identical in both readings.
+- **Verdict**: correctness fix in the memory recovery path. The measured delta is a silent empty result replaced by the 13 matching rows; no step, reward or pin moves. Boundary: this fixes term extraction, not query semantics — a multi-term query is a disjunction, and punctuation inside a term is still split.
+- **Gates**: unittest 656/656 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_fts_use.py` -> the FTS query is called only from a test.
+  - `python ..\..\scratch\probe_recall_real.py` -> malformed query returned 0 of 13.
+  - `python -m unittest tests.test_recall_fallback` -> before: 1 error; after: 6 OK.
+  - `python ..\..\scratch\ablate_132.py` -> 13 vs 0 on the malformed query.
+  - `python -m unittest discover -s tests -t .` -> 656 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 133**: unittest 656 OK; aikit 5/5; `recall_terms` strips operators and keywords; malformed query finds 13, genuine misses find 0, limit/order preserved; `verify_run` isolation; `push_budget`/`pop_budget` absent; `use_budget` nests; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 
