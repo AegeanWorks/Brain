@@ -17,6 +17,7 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```
 - **Cold-Start Recovery Battery**: `python -m evals.coldstart --capture`
 - **Model-Trust Battery**: `python -m evals.trust`
+- **Backend-Conformance Battery**: `python -m evals.backend_conformance`
 - **Progress-Guard Battery**: `python -m evals.progress_guard`
 - **Rule-Confidence Battery**: `python -m evals.rule_confidence`
 - **Telemetry Lock Battery**: `python -m evals.telemetry_lock`
@@ -108,39 +109,44 @@ observation. Cutting the source with `Planner.bind_recall_source(None)`
 restores the store-blind behavior; cutting the completeness gate restores
 cold-first poisoning. Property and trace share one ablation per scenario.
 
+## 🔌 Pluggable Model Backends
+
+`ModelBackend` is `generate(observation)` plus `identity()`, which run
+headers pin. Providers register by name in `models.registry` (`stub`,
+`llamacpp`); `build` raises `KeyError` listing the choices and never
+defaults. `models.conformance.check_backend(...)` names:
+`identity-from-class-name`, `non-deterministic`, `non-string`,
+`no-proposal`, `illegal-token`, `raises` (reported, not a violation).
+`python -m evals.backend_conformance` runs four controls, exits 1 on
+drift, needs no network.
+
 ## 🤝 Model-Seam Trust Contract
 
 A legal backend proposal is trusted while fewer than 20 consecutive steps
-have passed without reward. Once that stall window is reached, a proposal
-that differs from the rule action is rejected (counted in `fallbacks`) and
-the backend stays match-only for the rest of the episode. Match-only is
-also call-free: the planner stops calling the backend because only the
-rule action can be accepted. Independently, a no-op proposal (`wait`,
-`collect` before a collectable, or a direction blocked by the
-boundary/obstacle) is rejected immediately whenever the rule has a
-productive action; `noop_guard=False` removes that guard. A legal
-free-cell movement that strictly increases the BFS distance to a fixed
-target is also rejected immediately as `no-progress` when no items
-remain (T2/T3); `progress_guard=False` restores accept-until-stall, and
-T1 item tours or no-target states are untouched. Each rejection is
-counted in `progress_rejections` and the decision carries
-`progress_guard` plus `progress: {proposed, rule}`. After
-`progress_skip_after=3` consecutive progress rejections (the streak
-resets on any non-progress outcome), calls stop for the rest of the
-episode with `reason=skipped-progress` and `progress_distrusted=True`;
-`progress_skip_after=None` keeps them for the guard-only ablation, and the
+pass without reward. Past that window a proposal differing from the rule
+action is rejected (counted in `fallbacks`) and the backend stays
+match-only, which is also call-free. A no-op proposal (`wait`, `collect`
+before a collectable, a blocked direction) is rejected whenever the rule
+has a productive action; `noop_guard=False` removes that guard. A legal
+free-cell move that strictly increases BFS distance to a fixed target is
+rejected as `no-progress` when no items remain (T2/T3);
+`progress_guard=False` restores accept-until-stall, and T1 tours or
+no-target states are untouched. Rejections count in
+`progress_rejections` and the decision carries `progress_guard` plus
+`progress: {proposed, rule}`. After `progress_skip_after=3` consecutive
+rejections (reset by any non-progress outcome) calls stop for the episode
+with `reason=skipped-progress` and `progress_distrusted=True`;
+`progress_skip_after=None` keeps them for the guard-only ablation. The
 policy key is `backend_progress_skip: streak>=3->match-only`. `python -m
 evals.progress_guard` shows T3:15 33 -> 13 steps, T3:65 26 -> 6, T2:3
-34 -> 8; calls 21 -> 13/6/8 with the guard alone and 4/4/3 with the
-skip (one equal-distance move resets the streak in T3), while T1 stays
-36/22.
-`skip_after_distrust=False` (battery `--no-skip`) restores the redundant
-calls for the cost ablation. `trust_window=None` plus `noop_guard=False`
-and `progress_guard=False` is the raw control. Each action record carries
+34 -> 8; calls 21 -> 13/6/8 with the guard alone and 4/4/3 with the skip,
+while T1 stays 36/22. `skip_after_distrust=False` (`--no-skip`) restores
+the redundant calls for the cost ablation; `trust_window=None` with both
+guards off is the raw control. Each action record carries
 `proposed/rule/steps_since_reward/distrusted/accepted/reason/skipped`;
-`reason` is `stall` only on the triggering step, then `distrusted` (call
-kept) or `skipped` (call omitted). Rule-only runs and good-backend
-replays keep their exact actions and zero fallbacks.
+`reason` is `stall` only on the triggering step, then `distrusted` or
+`skipped`. Rule-only runs and good-backend replays keep their exact
+actions and zero fallbacks.
 
 ## 🧭 Rule Confidence Readout
 
@@ -378,11 +384,10 @@ new, legacy ask, policy-any resume, and the 13/6-step header traces.
 
 `run_task_logged` writes `seed` into the header alongside task, budget,
 policy digest, episode digest and workspace. `verify_episode_header(path)`
-rebuilds `GridWorld(task, seed)` and recomputes `input_digest`; `ok` means
-the digest is independently reproducible. Policy and workspace digests
-must be 64-hex (`invalid-policy`/`invalid-workspace`). An optional
-`expected_policy_sha256=` pin reports `policy-mismatch` even when the
-digest is self-consistent (a forged policy with a matching digest);
+rebuilds `GridWorld(task, seed)` and recomputes `input_digest`. Digests
+must be 64-hex (`invalid-policy`/`invalid-workspace`).
+`expected_policy_sha256=` reports `policy-mismatch` even when the digest
+is self-consistent (a forged policy with a matching digest);
 `expected_workspace_sha256=` reports `workspace-mismatch` or
 `missing-workspace`; `expected_model=` reports `model-mismatch` or
 `missing-model`, so a swapped backend label cannot pass.
@@ -517,8 +522,9 @@ the verdict. `python -m evals.claims` judges six T3 claims (3 supported, 2
 refuted, 1 inconclusive) with unchanged runs.
 
 `claims_store.py` makes the ledger durable. `save_ledger(ledger, path)`
-writes one checksummed snapshot atomically, keeps the previous as `.bak`,
-and holds an `O_CREAT|O_EXCL` lock (30 s stale steal, bounded wait).
+writes one checksummed snapshot atomically, keeps the previous as
+`.bak`, and holds an `O_CREAT|O_EXCL` lock (30 s stale steal, bounded
+wait).
 `load_ledger` returns an empty ledger when no snapshot exists, loads the
 primary, and on corruption quarantines it as `.corrupt`, falling back to
 `.bak`; `verify_ledger_file` names `missing-primary`,
@@ -544,13 +550,11 @@ verdict with the header episode digest, saves/loads the claim and checks
 that the ref matches; two runs keep distinct refs; a legacy payload
 loads with `None`; an invalid ref leaves the history unchanged.
 
-`claims_verify.py` checks refs against live logs. `verify_claim_refs(ledger,
-log_paths, hmac_key=None, verify_logs=True, journal_paths=None)` reads
-every header `episode_sha256` (union across logs and multiple headers)
-and, by default, runs `verify_chain` on each log first; an optional
-`hmac_key` also verifies keyed records, and `journal_paths` (one path
-for one log, or a per-log mapping) checks the log head/count against an
-anchor journal. A failed chain/MAC/journal check raises instead of
+`claims_verify.py` checks refs against logs. `verify_claim_refs(ledger, log_paths, hmac_key=None, verify_logs=True,
+journal_paths=None)` reads every header `episode_sha256` and, by
+default, runs `verify_chain` on each log first; `hmac_key` also
+verifies keyed records, and `journal_paths` checks the log head/count
+against an anchor journal. A failed chain/MAC/journal check raises instead of
 trusting the header. It reports `verified/unverified/unreferenced` and
 names `unknown-episode` findings; `verify_claim_store` loads a snapshot
 first and takes `store_hmac_key` to authenticate a keyed claim snapshot

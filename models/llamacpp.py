@@ -179,6 +179,15 @@ class LlamaCppBackend(ModelBackend):
     def base_url(self):
         return "http://127.0.0.1:%d" % self.port
 
+    def identity(self):
+        """Stable pin: provider plus checkpoint basename.
+
+        Independent of the class name, so renaming ``LlamaCppBackend`` does
+        not invalidate historical header pins.
+        """
+        import os as _os
+        return "llamacpp:%s" % _os.path.basename(str(self.model_path))
+
     def start_server(self, wait_seconds=120.0):
         """Launch llama-server and wait until /health reports ok."""
         cmd = [self.server_exe, "-m", self.model_path, "--port",

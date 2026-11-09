@@ -4904,6 +4904,35 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 151 - make the LLM seam pluggable and checkable
+
+- **Baseline** (commit e42560c):
+  - canonical gate: 797 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `ModelBackend` was an ABC with one method and `LlamaCppBackend` implemented it, but: no registry (a local `BACKENDS` dict lived inside `evals/trust.py`), no stable identity (`model_label` inferred the pin from `model_path`, then `type(backend).__name__`), and no way to validate a provider except reading its code.
+  - measured: `takes a rename and the header pin changes` — `model_label` returns the class name when `model_path` is absent.
+- **Gap**: the seam existed but could not be *used* by a new provider without editing call sites, and could not be *checked* at all.
+- **Target delta**: select a provider by name, refuse an unknown name loudly, pin a stable identity, and validate any provider by running a contract.
+- **Falsifier**: an unknown name silently defaults; a class rename changes the pin; a non-deterministic provider passes; or the check cannot be shown to discriminate.
+- **Change**: `models/backend.py` adds `identity()` to the protocol (+ `StubBackend`, `LlamaCppBackend` overrides); `models/registry.py` adds `register`/`build`/`names` with `stub` and `llamacpp`; `models/conformance.py` adds `check_backend` and `format_findings`; `agent.model_label` prefers a declared identity; `evals/backend_conformance.py` battery; `tests/test_backend_contract.py` (13), `tests/test_plugin_seam.py` (11), `tests/test_backend_conformance_checks.py` (9). ADR-146.
+- **After** (same tree):
+  - `check_backend` discriminates: conforming `ok`; alternating `non-deterministic`; class-identity `identity-from-class-name`; returns-none `no-proposal`.
+  - a mock provider is registered, built by name, driven through `Planner(backend=...)` and pinned — no network, no model file.
+  - `model_label(None)` still `"rule"`; `model_label(StubBackend)` still `"StubBackend"`; no header pin moved.
+  - battery exits 0 with `findings: []`; registered `['llamacpp', 'stub']`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: replacing `check_backend` with a rubber stamp fails 5 contract tests and 4 battery tests, so the seam is validated by the check rather than by a class existing.
+- **Verdict**: capability addition. The measured delta is "a provider can only be added by editing call sites" -> "a provider is registered by name, pinned by a stable identity, and validated by a contract that names its defects". Boundary: conformance asserts protocol behaviour, not model fidelity — determinism is checkable only through a deterministic transport, and `llamacpp` is identity-checked only since constructing it needs a server binary.
+- **Gates**: unittest 830/830 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_backend_contract` -> before: 1 error; after: 13 OK.
+  - `python -m unittest tests.test_plugin_seam` -> 11 OK.
+  - `python -m evals.backend_conformance` -> exit 0, four controls named correctly.
+  - `python -m unittest tests.test_backend_conformance_checks` -> 9 OK.
+  - `python ..\..\scratch\ablate_151.py` -> rubber-stamp check: 5 + 4 failures.
+  - `python -m unittest discover -s tests -t .` -> 830 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 152**: unittest 830 OK; aikit 5/5; registry `['llamacpp', 'stub']`; `build('no-such')` raises `KeyError`; `register` duplicate raises `ValueError`; conformance conforming ok / alternating `non-deterministic` / class-identity `identity-from-class-name` / returns-none `no-proposal` once; `model_label(None)` `rule`; `model_label(StubBackend)` `StubBackend`; `LlamaCppBackend.identity()` `llamacpp:<basename>`; 0 of 6 pinned traces and 0 of 17 slots distinguishable; pair gaps −0.1243/−0.2309/−0.1243/−0.0632/−0.0632; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 150 - the pair claims split into a correct estimate and a fabricated tail
 
 - **Baseline** (commit fe0a519):

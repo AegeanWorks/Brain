@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `200`
-- **Total Classes**: `200`
-- **Total Top-Level Functions**: `568`
-- **Total Class Methods**: `1037`
-- **Total Source Lines**: `27330`
+- **Total Python Modules**: `206`
+- **Total Classes**: `214`
+- **Total Top-Level Functions**: `579`
+- **Total Class Methods**: `1096`
+- **Total Source Lines**: `28026`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`200` module(s))
+- **Indexed**: python (`206` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1605` lines (`66281` bytes)
+**Size**: `1618` lines (`66856` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -294,6 +294,32 @@
 - `def _truncate(path, keep)`
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
+- `def main()`
+
+---
+
+### [`evals/backend_conformance.py`](evals/backend_conformance.py)
+> *Backend conformance battery: the seam is checkable without reading code.*
+
+**Size**: `144` lines (`4715` bytes)
+
+**Classes:**
+- `class Conforming`
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class Alternating`
+  - Method `.__init__()`
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class ClassIdentity`
+  - Method `.generate(observation)`
+- `class ReturnsNone`
+  - Method `.identity()`
+  - Method `.generate(observation)`
+
+**Functions:**
+- `def measure()` - *Run the contract over every control and the shipped registry.*
+- `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -993,26 +1019,42 @@
 ### [`models/backend.py`](models/backend.py)
 > *ModelBackend interface and deterministic StubBackend for protocol pins.*
 
-**Size**: `34` lines (`1075` bytes)
+**Size**: `52` lines (`1870` bytes)
 
 **Classes:**
 - `class ModelBackend` - *Propose one action token for an observation mapping.*
   - Method `.generate(observation)` - *Return one action token string for the observation.*
+  - Method `.identity()` - *Return a stable, human-readable provider identity for run pins.*
 - `class StubBackend` - *Replay a canned action script indexed by observation steps.*
   - Method `.__init__(script)`
+  - Method `.identity()`
   - Method `.generate(observation)`
+
+---
+
+### [`models/conformance.py`](models/conformance.py)
+> *Check a provider against the backend contract, without reading its code.*
+
+**Size**: `124` lines (`5263` bytes)
+
+**Functions:**
+- `def check_backend(provider, observation, calls)` - *Exercise ``provider`` and return ``ok`` plus named findings.*
+- `def _needs_script(provider)` - *True when the provider is StubBackend-like and needs a script list.*
+- `def _check_script()`
+- `def format_findings(report)` - *Render a conformance report as one line, for battery output.*
 
 ---
 
 ### [`models/llamacpp.py`](models/llamacpp.py)
 > *llama.cpp backend: llama-server subprocess plus completion client.*
 
-**Size**: `257` lines (`9967` bytes)
+**Size**: `266` lines (`10282` bytes)
 
 **Classes:**
 - `class LlamaCppBackend` - *Drive a local llama-server for action proposals.*
   - Method `.__init__(server_exe, model_path, port, seed, timeout, n_predict, prompt_budget)`
   - Method `.base_url()`
+  - Method `.identity()` - *Stable pin: provider plus checkpoint basename.*
   - Method `.start_server(wait_seconds)` - *Launch llama-server and wait until /health reports ok.*
   - Method `.generate(observation)` - *Post one chat completion; return the parsed token or None.*
   - Method `.close()` - *Terminate the server process if running, bounded wait.*
@@ -1039,6 +1081,19 @@
 - `def manifest_for(prompt, observation, model_id, checkpoint, sampling)` - *Build the generation manifest for one backend call.*
 - `def prompt_set_manifest(entries)` - *Hash a battery's manifest list into one prompt-set digest.*
 - `def _jsonable(value)` - *Convert an observation mapping into canonical JSON-safe data.*
+
+---
+
+### [`models/registry.py`](models/registry.py)
+> *A name-to-provider registry so a backend can be selected without code.*
+
+**Size**: `60` lines (`2012` bytes)
+
+**Functions:**
+- `def register(name, factory)` - *Register ``factory`` under ``name``; a duplicate name raises.*
+- `def build(name, **config)` - *Build the provider registered under ``name`` with ``config``.*
+- `def names()` - *Return the registered backend names, sorted.*
+- `def _build_llamacpp(**config)`
 
 ---
 
@@ -1374,6 +1429,63 @@
 **Functions:**
 - `def _log(path, records)`
 - `def _truncate(path, keep)`
+
+---
+
+### [`tests/test_backend_conformance_checks.py`](tests/test_backend_conformance_checks.py)
+> *The conformance battery must check its own controls.*
+
+**Size**: `75` lines (`3071` bytes)
+
+**Classes:**
+- `class TestBackendConformanceChecks`
+  - Method `.setUpClass()`
+  - Method `.test_a_clean_report_has_no_findings()`
+  - Method `.test_the_conforming_control_passes()`
+  - Method `.test_the_non_deterministic_control_is_named()`
+  - Method `.test_the_class_identity_control_is_named()`
+  - Method `.test_the_no_proposal_control_is_named_once()`
+  - Method `.test_both_shipped_providers_are_registered()`
+  - Method `.test_a_widened_contract_is_named()`
+  - Method `.test_a_missing_control_is_named()`
+  - Method `.test_an_unregistered_provider_is_named()`
+
+---
+
+### [`tests/test_backend_contract.py`](tests/test_backend_contract.py)
+> *A backend seam is only pluggable if a provider can be checked, not read.*
+
+**Size**: `147` lines (`5262` bytes)
+
+**Classes:**
+- `class _Echo` - *Minimal conforming provider: returns the first legal token.*
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class _NoIdentity`
+  - Method `.generate(observation)`
+- `class _Raising`
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class _ReturnsNone`
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class _ReturnsInt`
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class TestBackendContract`
+  - Method `.test_the_abc_requires_generate()`
+  - Method `.test_identity_is_part_of_the_protocol()`
+  - Method `.test_identity_survives_a_class_rename()`
+  - Method `.test_a_conforming_provider_passes()`
+  - Method `.test_a_missing_identity_is_named()`
+  - Method `.test_a_raising_provider_is_reported_not_swallowed()`
+  - Method `.test_a_none_proposal_is_named()`
+  - Method `.test_a_non_string_proposal_is_named()`
+  - Method `.test_determinism_is_checked()`
+  - Method `.test_the_registry_builds_a_known_provider()`
+  - Method `.test_an_unknown_name_raises_and_names_the_choices()`
+  - Method `.test_registering_a_duplicate_raises()`
+  - Method `.test_the_registry_names_what_it_has()`
 
 ---
 
@@ -2730,6 +2842,34 @@
   - Method `.test_mark_fail_and_recover_skips()`
   - Method `.test_recover_none_when_drained()`
   - Method `.test_state_shape()`
+
+---
+
+### [`tests/test_plugin_seam.py`](tests/test_plugin_seam.py)
+> *Two mock LLM providers to prove the seam, without a network or a model.*
+
+**Size**: `106` lines (`3893` bytes)
+
+**Classes:**
+- `class EchoProvider` - *Conforming mock: deterministic, identity declared, legal token.*
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class AlternatingProvider` - *Non-deterministic control: same input, different output.*
+  - Method `.__init__()`
+  - Method `.identity()`
+  - Method `.generate(observation)`
+- `class TestPlugInSeam`
+  - Method `.test_a_new_provider_is_pluggable_without_touching_the_agent()`
+  - Method `.test_a_registered_provider_drives_the_planner()`
+  - Method `.test_the_header_pin_comes_from_the_provider()`
+  - Method `.test_the_pin_survives_a_class_rename()`
+  - Method `.test_the_no_backend_label_is_unchanged()`
+  - Method `.test_the_stub_keeps_its_class_name_label()`
+  - Method `.test_the_conforming_mock_passes()`
+  - Method `.test_the_non_deterministic_control_fails()`
+  - Method `.test_every_registered_provider_is_named()`
+  - Method `.test_an_unknown_name_does_not_silently_default()`
+  - Method `.test_the_report_renders_as_one_line()`
 
 ---
 

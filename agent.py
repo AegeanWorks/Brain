@@ -88,9 +88,22 @@ def policy_digest(policy=None):
 
 
 def model_label(backend):
-    """Stable model label for run headers: 'rule' with no backend."""
+    """Stable model label for run headers: 'rule' with no backend.
+
+    The label is a *pin*: historical headers are re-verified against it, so
+    it must not change when a provider class is renamed. A backend that
+    declares ``identity()`` supplies it; the llama.cpp ``model_path``
+    fallback is kept so existing headers keep matching.
+    """
     if backend is None:
         return "rule"
+    identity = getattr(backend, "identity", None)
+    if callable(identity):
+        declared = identity()
+        if (isinstance(declared, str) and declared
+                and ":" in declared and not declared.endswith(
+                    type(backend).__name__)):
+            return declared
     path = getattr(backend, "model_path", None)
     if path:
         return str(path).replace("\\", "/").split("/")[-1]
