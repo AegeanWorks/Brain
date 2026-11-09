@@ -4527,6 +4527,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 129**: unittest 638 OK; aikit 5/5; `verify_run` honest True with four layers and each forgery rejected by its own layer; `syn_scope` in 17/17 trace slots; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 129 - give the aggregate verifier a command line
+
+- **Baseline** (commit 4630b3d):
+  - canonical gate: 638 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - a survey of top-level modules showed `run_verify.py` had no `main`, no `argparse` and no `__main__` guard; only `state_machines.py` had a CLI.
+  - measured: `python -m run_verify --log <path>` produced no output and no entry point existed.
+- **Gap**: the one call that checks every evidence layer could be used only by importing it, so a human could not run it — the aggregate was shipped but unreachable.
+- **Target delta**: a CLI with 0/1/2 exit codes and a terse per-layer report.
+- **Falsifier**: a clean log exits non-zero; a failing log exits 0; misuse raises a traceback instead of exiting 2.
+- **Change**: `run_verify.py` adds `format_report` and `main(argv=None)` with `--log` (required), `--json` and the policy/workspace/model/anchor/journal pins, plus a `__main__` guard; `tests/test_verify_run_cli.py` adds 6 tests driving the real module through a subprocess. ADR-123.
+- **After** (same logs):
+  - clean log: exit 0, `OK` with four `ok` layers; with `--model` set, exit 0.
+  - wrong `--model`: exit 1, `episode FAIL`, `! model-mismatch`.
+  - truncated log: exit 1, `replay FAIL`, `! missing-verdict`.
+  - missing path and bare invocation: exit 2.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: without `main` there is no way to run the aggregate from a shell, so every exit code above is unreachable; with it the four outcomes are exercised through the real entry point.
+- **Verdict**: usability extension on the aggregate verifier. The measured delta is four reachable CLI outcomes where there were none; no check, pin or estimate moves. Boundary: the CLI exposes the existing pins and adds no check; the caller still chooses which pins to supply.
+- **Gates**: unittest 644/644 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_cli.py` -> only `state_machines.py` has a CLI.
+  - `python -m unittest tests.test_verify_run_cli` -> before: 1 error; after: 6 OK.
+  - `python ..\..\scratch\ablate_129.py` -> exit 0/0/1/1/2 across five cases.
+  - `python -m unittest discover -s tests -t .` -> 644 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 130**: unittest 644 OK; aikit 5/5; `run_verify` CLI clean 0, wrong model 1 (`episode FAIL`, `model-mismatch`), truncated 1 (`replay FAIL`, `missing-verdict`), missing/bare 2; `verify_run` four layers; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

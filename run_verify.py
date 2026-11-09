@@ -66,3 +66,64 @@ def verify_run(log_path, expected_policy_sha256=None,
         "layers": results,
         "checked": [name for name in LAYERS if name in results],
     }
+
+
+def format_report(report):
+    """Render one aggregate report as terse, greppable lines.
+
+    One line per layer so a failing layer is visible without reading JSON,
+    then the union of findings. ``OK`` prefixes a clean report.
+    """
+    lines = []
+    status = "OK" if report.get("ok") else "FAIL"
+    lines.append("%s %s" % (status, report.get("log")))
+    for name in report.get("checked") or ():
+        layer = report["layers"].get(name) or {}
+        mark = "ok" if layer.get("ok") else "FAIL"
+        lines.append("  %-8s %s" % (name, mark))
+    for finding in report.get("findings") or ():
+        lines.append("  ! %s" % finding)
+    return "\n".join(lines) + "\n"
+
+
+def main(argv=None):
+    """CLI: exit 0 clean, 1 a finding, 2 misuse."""
+    import argparse
+    import json
+    import os
+
+    parser = argparse.ArgumentParser(
+        prog="run_verify",
+        description="Run every evidence verifier over one telemetry log.")
+    parser.add_argument("--log", required=True, help="path to a logged run")
+    parser.add_argument("--json", action="store_true",
+                        help="print the full report as JSON")
+    parser.add_argument("--policy", default=None,
+                        help="pin the producing policy digest (64-hex)")
+    parser.add_argument("--workspace", default=None,
+                        help="pin the source-tree digest (64-hex)")
+    parser.add_argument("--model", default=None,
+                        help="pin the backend label")
+    parser.add_argument("--anchor", default=None,
+                        help="path to a .anchor sidecar")
+    parser.add_argument("--journal", default=None,
+                        help="path to a .anchors journal")
+    args = parser.parse_args(argv)
+
+    if not os.path.isfile(args.log):
+        print("run_verify: FAIL %s does not exist" % args.log)
+        print("  Fix: pass --log pointing at a logged run.")
+        return 2
+    report = verify_run(args.log, expected_policy_sha256=args.policy,
+                        expected_workspace_sha256=args.workspace,
+                        expected_model=args.model,
+                        anchor_path=args.anchor, journal_path=args.journal)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print(format_report(report), end="")
+    return 0 if report["ok"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

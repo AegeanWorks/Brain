@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `170`
-- **Total Classes**: `174`
-- **Total Top-Level Functions**: `525`
-- **Total Class Methods**: `869`
-- **Total Source Lines**: `24331`
+- **Total Python Modules**: `171`
+- **Total Classes**: `175`
+- **Total Top-Level Functions**: `529`
+- **Total Class Methods**: `875`
+- **Total Source Lines**: `24485`
 
 ---
 
@@ -1023,10 +1023,12 @@
 ### [`run_verify.py`](run_verify.py)
 > *One call that runs every shipped verifier over a finished log.*
 
-**Size**: `68` lines (`2933` bytes)
+**Size**: `129` lines (`5341` bytes)
 
 **Functions:**
 - `def verify_run(log_path, expected_policy_sha256, expected_workspace_sha256, expected_model, hmac_key, anchor_path, journal_path)` - *Run every shipped verifier over one log; return the union.*
+- `def format_report(report)` - *Render one aggregate report as terse, greppable lines.*
+- `def main(argv)` - *CLI: exit 0 clean, 1 a finding, 2 misuse.*
 
 ---
 
@@ -3181,6 +3183,26 @@
 **Functions:**
 - `def _write_log(directory, name, task, seed)`
 - `def _rewrite(log_path, out_path, transform)` - *Re-emit a log through Telemetry, letting ``transform`` edit records.*
+
+---
+
+### [`tests/test_verify_run_cli.py`](tests/test_verify_run_cli.py)
+> *The aggregate verifier needs a command line, not just a function.*
+
+**Size**: `93` lines (`3511` bytes)
+
+**Classes:**
+- `class TestVerifyRunCli`
+  - Method `.test_a_clean_log_exits_zero()`
+  - Method `.test_a_failing_log_exits_one_and_names_the_layer()`
+  - Method `.test_a_missing_log_is_misuse()`
+  - Method `.test_no_arguments_is_misuse()`
+  - Method `.test_the_json_flag_prints_the_full_report()`
+  - Method `.test_format_report_names_each_layer()`
+
+**Functions:**
+- `def _write_log(directory, name, task, seed)`
+- `def _run(args)`
 
 ---
 

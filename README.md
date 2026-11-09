@@ -180,8 +180,7 @@ checkpoint swap changes the hash while the action trace stays
 identical. A raising call records `null` instead of leaking a stale
 manifest. `probe_manifest=False` removes the readout as the executable
 ablation. Weights never enter the repo: the manifest carries labels and
-hashes only. `python -m evals.manifest_binding` shows intact, probe-off and
-checkpoint A/B.
+hashes only. `python -m evals.manifest_binding` shows intact, probe-off, A/B.
 
 ## 🧭 Two-Blocker Dead-Pool Guard
 
@@ -246,14 +245,14 @@ a model produced them.
 ## 🧩 One Verdict Over Every Layer
 
 `run_verify.verify_run(log_path, ...)` composes the shipped verifiers —
-chain (with anchor, journal and HMAC options), episode digest with the
-policy/workspace/model pins, action replay with the verdict claim and word,
-and result-record pairing — returning `ok`, the union of findings and each
-layer's own result under `chain`/`episode`/`replay`/`results`. A raising
-layer is recorded as `<layer>:<error>`, so one defect does not hide the
-others, and a failing layer is named rather than collapsing to a bare
-false. It reimplements nothing: as strong as its weakest member, and a pin
-must be supplied.
+chain, episode digest with the policy/workspace/model pins, action replay
+with the verdict claim and word, and result-record pairing — returning
+`ok`, the union of findings and each layer's result under
+`chain`/`episode`/`replay`/`results`. A raising layer is recorded as
+`<layer>:<error>`, so one defect does not hide the others, and a failing
+layer is named instead of collapsing to a bare false. It is as strong as
+its weakest member, and a pin must be supplied. `python -m run_verify
+--log PATH` runs it (0 clean, 1 finding, 2 misuse); `--json` prints all.
 
 ## 🧷 Terminal Telemetry Anchor
 
@@ -300,8 +299,8 @@ obstacles and cue; the visits line is last, so it is dropped first and
 single-line prompt byte-identical. `prompt_stats` returns
 `tokens/omitted/lines`, and `LlamaCppBackend(prompt_budget=...)` applies
 the budget and records `last_prompt_stats`; the manifest binds the
-capped prompt. `python -m evals.prompt_budget` shows uncapped 63 / budgeted 52
-tokens with 13 omitted visit lines, actions unchanged.
+capped prompt. `python -m evals.prompt_budget` shows 63 / 52 tokens, 13 omitted,
+actions unchanged.
 
 ## 🌿 Merkle Batch Anchors
 
