@@ -87,7 +87,7 @@ brain/
 ├── models/                   <- swappable model backends
 ├── memory/                   <- SQLite FTS5 store + layout anchors
 ├── planner/                  <- explicit steps + recover
-├── self_model/               <- budget/error/confidence counters
+├── self_model/               <- budget/error/confidence counters + prediction
 ├── worlds/                   <- 8x8 fixed-step tasks T1-T3
 ├── telemetry/                <- JSONL append-only + ablation ops
 ├── evals/                    <- evidence and verification batteries
@@ -179,6 +179,13 @@ removes the readout as the executable ablation. Weights never enter the
 repo: the manifest carries labels and hashes only.
 `python -m evals.manifest_binding` shows intact, probe-off, A/B.
 
+## 🔮 Pre-Outcome Self-Prediction
+
+`predict_outcome(state, action, task)` forms a probability *before*
+`world.step`; `record_prediction` stores it, so `calibration` scores a
+real forecast. Pooled over 20 seeds skill is +0.936/+0.937/+0.934
+(T3/T1/T2); a constant predictor scores -0.067 and fails the bar.
+
 ## 🧭 Two-Blocker Dead-Pool Guard
 
 For exactly two blockers, the planner compares BFS distance to the target
@@ -193,8 +200,8 @@ evals.dead_pool` shows the `(7,5)` recovery (18 -> 16) and the ablation.
 
 ## 🔁 Repeated-Position Cycle Escape
 
-For obstacle layouts with two or more blockers, the planner counts how
-many times the current cell appears in the full episode history. On the
+For two or more blockers the planner counts how many times the current
+cell appears in the full episode history. On the
 second visit it takes one deterministic BFS step toward the target
 (neighbor order `up/down/left/right`), instead of following the local
 viability/pool order into the same loop. The action record's `probe`
@@ -215,8 +222,7 @@ absence from "signal outside them". `synergy_scope(...)` and
 a permutation null (`p_upper`/`p_lower`, `distinguishable`);
 `recompute` and each battery slot carry both. Equal scope columns mean
 no independent second signal: `duplicate-scope-column`; a constant reads
-`constant-scope-column`. Only 3 of 17 slots and 2 of 6 traces beat the
-null.
+`constant-scope-column`.
 
 ## 🧪 Lesion Detectability
 
@@ -371,27 +377,22 @@ new, legacy ask, policy-any resume, and the 13/6-step header traces.
 
 `run_task_logged` writes `seed` into the header alongside task, budget,
 policy digest, episode digest and workspace. `verify_episode_header(path)`
-rebuilds `GridWorld(task, seed)` and recomputes `input_digest` from the
-stored fields; `ok` means the header's episode digest is independently
-reproducible. Stored policy and workspace digests must be 64-hex
-(`invalid-policy`/`invalid-workspace` otherwise). An optional
-`expected_policy_sha256=` pin reports `policy-mismatch` when the header
-cites a different policy, even if its episode digest is self-consistent
-(a forged policy plus a matching digest); an optional
-`expected_workspace_sha256=` pin reports `workspace-mismatch`, or
-`missing-workspace` when the header has none; an optional `expected_model=`
-pin reports `model-mismatch` or `missing-model`, so a swapped backend label
-cannot pass.
+rebuilds `GridWorld(task, seed)` and recomputes `input_digest`; `ok` means
+the digest is independently reproducible. Policy and workspace digests
+must be 64-hex (`invalid-policy`/`invalid-workspace`). An optional
+`expected_policy_sha256=` pin reports `policy-mismatch` even when the
+digest is self-consistent (a forged policy with a matching digest);
+`expected_workspace_sha256=` reports `workspace-mismatch` or
+`missing-workspace`; `expected_model=` reports `model-mismatch` or
+`missing-model`, so a swapped backend label cannot pass.
 `verify_claim_refs(..., verify_episodes=True,
 expected_policy_sha256=..., expected_workspace_sha256=..., expected_model=...)`
 opts into the same checks and requires episode verification for any pin.
 `python -m evals.episode_header` shows intact, wrong seed/episode,
-missing seed/header, claims/tampered (membership-only still verifies),
-current/wrong/forged policy pins, invalid policy, workspace
-current/wrong/missing/invalid, and the claims-policy/-workspace paths.
-The recomputation trusts the stored
-task/seed/budget/policy; it proves internal consistency, not that the run
-happened, and old headers without a seed report `missing-seed`.
+missing seed/header, claims/tampered, the policy pins, invalid policy,
+and every workspace path. The recomputation trusts the stored
+task/seed/budget/policy: it proves internal consistency, not that the
+run happened, and headers without a seed report `missing-seed`.
 Verification reads only headers via `Telemetry.read_headers()`, so a long
 action log costs O(1) retained memory; `python -m evals.header_reader` shows 100k records at 0.1 MB
 peak vs 124.2 MB for `read_all`.

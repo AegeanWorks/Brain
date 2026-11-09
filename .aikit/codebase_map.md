@@ -1,16 +1,20 @@
 # Codebase Map & Symbol Catalog 🗺️
 
 > **AUTO-GENERATED & VERIFIED BY `scripts/update_knowledge_base.py`**
-> This document provides an automated, up-to-date registry of all modules, classes, and exported functions across this repository.
+> This document catalogues Python modules, classes, and exported functions. See Map Coverage for any stack it does not index.
 
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `188`
-- **Total Classes**: `190`
-- **Total Top-Level Functions**: `546`
-- **Total Class Methods**: `968`
-- **Total Source Lines**: `26029`
+- **Total Python Modules**: `191`
+- **Total Classes**: `192`
+- **Total Top-Level Functions**: `551`
+- **Total Class Methods**: `982`
+- **Total Source Lines**: `26345`
+
+## 🧭 Map Coverage
+- **Indexed**: python (`191` module(s))
+- **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
 
@@ -19,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1586` lines (`65328` bytes)
+**Size**: `1588` lines (`65453` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -312,7 +316,7 @@
 ### [`evals/calibration.py`](evals/calibration.py)
 > *Calibration battery: proper scores over fixtures and a real run.*
 
-**Size**: `158` lines (`5323` bytes)
+**Size**: `162` lines (`5547` bytes)
 
 **Functions:**
 - `def _forecast(identifier, probability, outcome)`
@@ -1068,17 +1072,30 @@
 ### [`self_model/model.py`](self_model/model.py)
 > *Running counters for cost, step outcomes, and reported confidence.*
 
-**Size**: `99` lines (`3868` bytes)
+**Size**: `120` lines (`4820` bytes)
 
 **Classes:**
 - `class SelfModel` - *Tally budget use, step counts, errors, and confidence values.*
   - Method `.__init__()` - *Start all counters at zero with an empty confidence log.*
   - Method `.record(cost, ok, conf)` - *Log one step: add cost, count ok/error, append confidence.*
+  - Method `.record_prediction(cost, ok, predicted)` - *Log one step with a confidence formed *before* the outcome.*
   - Method `.snapshot()` - *Return steps, errors, budget, mean_conf, and error_rate.*
   - Method `.reset()` - *Return all counters to zero and clear the confidence log.*
   - Method `.calibration(min_resolved)` - *Score recorded confidence/outcome pairs with Brier/log loss.*
   - Method `.forecast_count()` - *Return the number of recorded confidence/outcome pairs.*
   - Method `.forecasts(prefix, start)` - *Return recorded pairs as forecast records with ids ``prefix:index``.*
+
+---
+
+### [`self_model/prediction.py`](self_model/prediction.py)
+> *Rung 1: a pre-outcome self-prediction the agent can be scored on.*
+
+**Size**: `83` lines (`3185` bytes)
+
+**Functions:**
+- `def _goal_cells(state, task)`
+- `def goal_distance(state, task)` - *Manhattan distance from the pre-action position to the nearest goal.*
+- `def predict_outcome(state, action, task)` - *Probability that this step earns reward, from pre-action information.*
 
 ---
 
@@ -1460,7 +1477,7 @@
 ### [`tests/test_calibration_checks.py`](tests/test_calibration_checks.py)
 > *The calibration battery must check its own fixtures.*
 
-**Size**: `101` lines (`3847` bytes)
+**Size**: `106` lines (`4133` bytes)
 
 **Classes:**
 - `class TestCalibrationChecks`
@@ -1824,7 +1841,7 @@
 ### [`tests/test_degenerate_confidence.py`](tests/test_degenerate_confidence.py)
 > *A calibration score must name circular confidence, not present it.*
 
-**Size**: `89` lines (`3575` bytes)
+**Size**: `93` lines (`3851` bytes)
 
 **Classes:**
 - `class TestConfidenceDiagnosis`
@@ -1836,7 +1853,7 @@
   - Method `.test_summary_does_not_flag_a_perfect_forecast()`
   - Method `.test_self_model_calibration_flags_its_own_record()`
   - Method `.test_self_model_with_spread_is_not_flagged()`
-  - Method `.test_the_real_agent_run_is_flagged()`
+  - Method `.test_the_real_agent_run_is_no_longer_flagged()`
 
 **Functions:**
 - `def _pairs(rows)`
@@ -2617,6 +2634,43 @@
   - Method `.test_declares_detour_pooling()`
   - Method `.test_digest_differs_from_pre_pool_legacy()`
   - Method `.test_pooling_value_sensitive()`
+
+---
+
+### [`tests/test_pre_outcome_calibration.py`](tests/test_pre_outcome_calibration.py)
+> *A pre-outcome prediction must not be flagged as circular.*
+
+**Size**: `77` lines (`3225` bytes)
+
+**Classes:**
+- `class TestPreOutcomeCalibration`
+  - Method `.test_a_post_hoc_confidence_still_warns()`
+  - Method `.test_a_pre_outcome_prediction_does_not_warn()`
+  - Method `.test_a_pre_outcome_prediction_reports_positive_skill()`
+  - Method `.test_reset_clears_the_pre_outcome_flag()`
+  - Method `.test_the_agent_run_reaches_real_skill()`
+  - Method `.test_the_recorded_values_are_the_predictor_outputs()`
+
+---
+
+### [`tests/test_pre_outcome_prediction.py`](tests/test_pre_outcome_prediction.py)
+> *A self-prediction must be made before the outcome and score above chance.*
+
+**Size**: `120` lines (`4783` bytes)
+
+**Classes:**
+- `class TestPreOutcomePrediction`
+  - Method `.test_the_predictor_beats_the_base_rate_on_every_task()`
+  - Method `.test_the_selected_predictors_are_the_measured_ones()`
+  - Method `.test_the_prediction_names_its_basis()`
+  - Method `.test_an_unknown_task_degrades_to_a_coin_flip()`
+  - Method `.test_a_goal_less_state_does_not_raise()`
+  - Method `.test_the_predictor_never_sees_post_action_state()`
+  - Method `.test_a_non_generalizing_predictor_fails_the_same_bar()`
+
+**Functions:**
+- `def _brier(pairs)`
+- `def _episode(task, seed)` - *Replay one episode, recording the pre-action prediction each step.*
 
 ---
 

@@ -72,15 +72,19 @@ class TestConfidenceDiagnosis(unittest.TestCase):
         result = model.calibration(min_resolved=1)
         self.assertFalse(_flagged(result))
 
-    def test_the_real_agent_run_is_flagged(self):
+    def test_the_real_agent_run_is_no_longer_flagged(self):
+        # Re-baselined in ADR-140. The run used to record `1.0 if reward > 0
+        # else 0.5`, so it was flagged as circular. The confidence is now
+        # formed before the action, so the diagnosis must not fire — even
+        # though the predictor separates the classes, which is what a
+        # correct forecast looks like.
         from agent import Agent
         from self_model.model import SelfModel as PersistentSelfModel
 
         model = PersistentSelfModel()
         Agent(self_model=model).run_task("T3_navigate", 15)
         result = model.calibration()
-        self.assertTrue(_flagged(result))
-        # Numbers are still reported; only their meaning is qualified.
+        self.assertFalse(_flagged(result))
         self.assertIsNotNone(result["brier"])
         self.assertEqual(result["counts"]["resolved"], 13)
 

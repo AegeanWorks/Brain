@@ -88,7 +88,7 @@ class TestCalibrationBridge(unittest.TestCase):
         self.assertEqual(persisted["counts"]["resolved"], 13)
         self.assertEqual(persisted["counts"]["resolved"],
                          memory["counts"]["resolved"])
-        self.assertAlmostEqual(persisted["brier"], 0.230769, places=6)
+        self.assertAlmostEqual(persisted["brier"], 0.005385, places=6)
         self.assertAlmostEqual(persisted["brier"], memory["brier"], places=6)
 
     def test_keyed_bridge_roundtrip_and_wrong_key(self):

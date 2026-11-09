@@ -22,6 +22,7 @@ from collections import deque
 
 from budget import BudgetExceeded, spend, use_budget
 from identity import input_digest
+from self_model.prediction import predict_outcome
 from workspace import workspace_digest
 
 SIZE = 8
@@ -1369,6 +1370,8 @@ class Agent:
             self.memory.save(state)  # perceive
             memories = self.memory.recall(limit=None)  # recall for planner
             action = self.planner.plan(state, memories)  # plan
+            prediction, prediction_basis = predict_outcome(
+                state, action, getattr(self.world, "task_id", None))
             new_state, reward, done = self.world.step(action)  # act
             self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
             self.selfmodel.record(new_state, action, reward, done)
@@ -1417,9 +1420,8 @@ class Agent:
                     self._substrate_errors["planner_tracker"] += 1
             if self.self_model is not None:
                 try:
-                    _conf_sm = 1.0 if float(reward) > 0.0 else 0.5
                     _ok_sm = float(reward) > 0.0
-                    self.self_model.record(1.0, _ok_sm, _conf_sm)
+                    self.self_model.record_prediction(1.0, _ok_sm, prediction)
                 except Exception:
                     self._substrate_errors["self_model"] += 1
             m_vec, p_vec, s_vec, hub_vec = self._step_vectors(i, new_state, reward, memories)

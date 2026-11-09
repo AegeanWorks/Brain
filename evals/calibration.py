@@ -93,13 +93,17 @@ def run_battery():
 #: built by construction (a perfect forecaster scores 0 and skill 1, an
 #: inverted one scores 1 and skill -3); the sixth is the real T3:15
 #: self-model readout. Pinning them makes a scorer change fail the battery.
+#:
+#: ``run-T3-15`` was re-baselined in ADR-140 from ``(0.230769, -2.25)`` to
+#: ``(0.005385, 0.924167)`` when the agent began recording a confidence
+#: formed before the action instead of ``1.0 if reward > 0 else 0.5``.
 EXPECTED = {
     "perfect": (0.0, 1.0),
     "calibrated": (0.166, 0.308333),
     "inverted": (1.0, -3.0),
     "small": (0.0, None),
     "ignored": (0.04, 0.84),
-    "run-T3-15": (0.230769, -2.25),
+    "run-T3-15": (0.005385, 0.924167),
 }
 
 

@@ -8,7 +8,12 @@ way, so a change to the scorer that moved a known score only altered the
 JSON.
 
 Measured: perfect 0.0/1.0, calibrated 0.166/0.308333, inverted 1.0/-3.0,
-small 0.0/None, ignored 0.04/0.84, run 0.230769/-2.25.
+small 0.0/None, ignored 0.04/0.84, run 0.005385/0.924167.
+
+Re-baselined in ADR-140: the real-run case moved from 0.230769/-2.25 to
+0.005385/0.924167 because the agent now records a confidence formed
+*before* the action rather than `1.0 if reward > 0 else 0.5`. The old score
+was a restatement of the base rate; the new one is a forecast.
 """
 
 import unittest
@@ -22,7 +27,7 @@ EXPECTED = {
     "inverted": (1.0, -3.0),
     "small": (0.0, None),
     "ignored": (0.04, 0.84),
-    "run-T3-15": (0.230769, -2.25),
+    "run-T3-15": (0.005385, 0.924167),
 }
 
 

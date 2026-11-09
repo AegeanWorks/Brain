@@ -14,6 +14,9 @@ class SelfModel:
         self._errors = 0
         self._confs = []
         self._outcomes = []
+        #: True once a confidence has been recorded before its outcome, which
+        #: makes the pairs a real forecast rather than a restatement of them.
+        self._pre_outcome = False
 
     def record(self, cost, ok, conf):
         """Log one step: add cost, count ok/error, append confidence.
@@ -26,6 +29,22 @@ class SelfModel:
             self._errors += 1
         self._confs.append(float(conf))
         self._outcomes.append(1 if ok else 0)
+        return self.snapshot()
+
+    def record_prediction(self, cost, ok, predicted):
+        """Log one step with a confidence formed *before* the outcome.
+
+        Unlike :meth:`record`, ``predicted`` is supplied by the caller from
+        pre-action information, so the resulting pairs are a real forecast
+        and their Brier/skill are not circular.
+        """
+        self._budget_used += float(cost)
+        self._steps += 1
+        if not ok:
+            self._errors += 1
+        self._confs.append(float(predicted))
+        self._outcomes.append(1 if ok else 0)
+        self._pre_outcome = True
         return self.snapshot()
 
     def snapshot(self):
@@ -48,16 +67,18 @@ class SelfModel:
         self._errors = 0
         self._confs = []
         self._outcomes = []
+        self._pre_outcome = False
 
     def calibration(self, min_resolved=10):
         """Score recorded confidence/outcome pairs with Brier/log loss.
 
-        The pair is recorded after the step's outcome is known (``Agent``
-        only sees a step's reward once it has it), so this readout is a
-        record of confidence *given* the outcome, not a forecast. When the
-        confidence is a function of the outcome the score is circular, so
-        the summary carries a ``confidence-is-outcome`` warning instead of
-        presenting it as a forecast measure.
+        When the pairs came from :meth:`record` the confidence was formed
+        after the reward was known, so the score is circular and carries a
+        ``confidence-is-outcome`` warning. When they came from
+        :meth:`record_prediction` the confidence was formed before the
+        action, so the score is a real forecast measure and the warning is
+        not applied — even though such a forecast legitimately separates
+        the outcome classes, which is the case the diagnosis must not flag.
         """
         from calibration import confidence_is_outcome, summary
         forecasts = [
@@ -66,7 +87,7 @@ class SelfModel:
                 zip(self._confs, self._outcomes))
         ]
         result = summary(forecasts, min_resolved=min_resolved)
-        if confidence_is_outcome(forecasts):
+        if not self._pre_outcome and confidence_is_outcome(forecasts):
             result["warnings"].append(
                 "confidence-is-outcome: recorded after the outcome, so Brier "
                 "restates the base rate and skill is not a forecast measure")

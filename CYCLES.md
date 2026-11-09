@@ -4904,6 +4904,40 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 145 - record self-prediction before the outcome
+
+- **Baseline** (commit 1255fa2):
+  - canonical gate: 736 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the self-model recorded `_conf_sm = 1.0 if reward > 0 else 0.5`, computed after the step, so its Brier restated the base rate and `confidence_is_outcome` flagged it.
+  - measured: no learning code exists in the tree (grep for train/update/fit/gradient/Q-learning finds only a test helper), so the self-model had no prediction to score.
+- **Gap**: the self-model is unscorable as a forecast because its confidence is a function of the outcome. There is nothing to learn from when there is no prediction.
+- **Target delta**: a prediction formed before `world.step`, scored with real skill, and a calibration readout that no longer claims circularity.
+- **Falsifier**: no predictor beats the base rate when pooled; the skill bar passes a constant predictor; or a pinned value moves without a recorded re-baseline.
+- **Measurements** (pooled over 20 seeds per task, 143/308/160 steps):
+  - `distance == 1`: T3 +0.936, T1 −0.925, T2 −0.780.
+  - `action == collect`: T3 −0.067, T1 +0.937, T2 +0.934.
+  - `since_reward >= 5`: −1.009 / −0.106 / −0.523. `steps >= 8`: −0.148 / −0.938 / −0.051. `revisit >= 2`: −0.067 / −0.134 / −0.051.
+  - per-episode scoring is meaningless at n=6–16; each candidate wins on one episode and loses on the next.
+  - `probe.rule.confidence` as a forecast: skill −7.125 to −2.795 — strongly anti-predictive, consistent with ADR-073.
+- **Change**: `self_model/prediction.py` adds `predict_outcome(state, action, task)` returning `(probability, basis)`, task-conditional on the pooled measurement; `SelfModel.record_prediction` stores a pre-action confidence and sets `_pre_outcome`; `calibration` applies the circularity warning only when that flag is unset; `Agent.run` predicts between `plan` and `world.step`; `tests/test_pre_outcome_prediction.py` (7) and `tests/test_pre_outcome_calibration.py` (6) added. ADR-140.
+- **After** (same episodes):
+  - self-model skill **+0.935** (Brier 0.007339 over 62 pairs); `confidence-is-outcome` no longer fires.
+  - `run-T3-15` fixture re-baselined `(0.230769, -2.25)` -> `(0.005385, 0.924167)`; four derived pins -> `0.005385` / `0.006447`.
+  - `test_degenerate_confidence` real-run test renamed `..._is_no_longer_flagged`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: a constant predictor scores skill −0.067 on T3 and fails 4 of 7 prediction tests, so the bar measures prediction, not the act of returning a float.
+- **Verdict**: rung 1 of the emergence ladder. The measured delta is "no scorable prediction" -> "a scorable prediction with +0.935 skill". Boundary: the predictor is task-conditional and encodes the world's reward rule for two of three tasks, so this establishes scoring, **not** that the agent learns to predict itself — every experience-derived signal measured negative.
+- **Gates**: unittest 749/749 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_reward_shape.py` -> reward only on the completing step (base rates 0.077-0.188).
+  - `python ..\..\scratch\probe_prediction_honest.py` -> pre-action distance predictor +0.86 to +0.93 on T3 only; my first probe read post-action state and was circular.
+  - `python ..\..\scratch\probe_rule_conf_skill.py` -> `probe.rule.confidence` skill −7.125 to −2.795.
+  - `python ..\..\scratch\probe_pooled_skill.py` -> pooled table above.
+  - `python ..\..\scratch\ablate_145.py` -> constant predictor fails 4 of 7.
+  - `python -m unittest discover -s tests -t .` -> 749 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 146**: unittest 749 OK; aikit 5/5; self-model skill +0.935 Brier 0.007339 over 62 pairs; `run-T3-15` `(0.005385, 0.924167)`; second-run Brier 0.006447; `confidence-is-outcome` fires for `record` and not `record_prediction`; `predict_outcome` skill > 0.5 on all three tasks pooled over 20 seeds; constant predictor skill −0.067; `syn_null` 17/17 with 3 distinguishable; `syn_sign` 17/17; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 144 - a synergy gap needs its null
 
 - **Baseline** (commit 9d497dd):

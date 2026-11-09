@@ -58,7 +58,7 @@ class TestCalibrationAutoRetention(unittest.TestCase):
         self.assertEqual(len(combined), 13)
         self.assertEqual(len({r["id"] for r in combined}), 13)
         self.assertEqual(stats["counts"]["resolved"], 13)
-        self.assertAlmostEqual(stats["brier"], 0.230769, places=6)
+        self.assertAlmostEqual(stats["brier"], 0.005385, places=6)
         self.assertEqual(len(backup), 13)
         self.assertTrue(verified["ok"], verified["findings"])
         self.assertEqual(meta["source_records"], 13)
@@ -82,7 +82,7 @@ class TestCalibrationAutoRetention(unittest.TestCase):
         self.assertEqual(len(combined), 19)
         self.assertEqual(len({r["id"] for r in combined}), 19)
         self.assertEqual(stats["counts"]["resolved"], 19)
-        self.assertAlmostEqual(stats["brier"], 0.223684, places=6)
+        self.assertAlmostEqual(stats["brier"], 0.006447, places=6)
         self.assertEqual(len(backup), 16)
 
     def test_no_threshold_keeps_all_live(self):
@@ -153,7 +153,7 @@ class TestCalibrationAutoRetention(unittest.TestCase):
         self.assertEqual(len(archive), 12)
         self.assertEqual(len(combined), 13)
         self.assertAlmostEqual(summary(combined, min_resolved=2)["brier"],
-                               0.230769, places=6)
+                               0.005385, places=6)
 
     def test_retained_actions_match_unretained(self):
         with tempfile.TemporaryDirectory() as tmp:
