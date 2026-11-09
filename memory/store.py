@@ -63,10 +63,14 @@ def recall_terms(query):
     literal substring search that matches nothing, so the fallback runs on
     the query's tokens instead. Terms shorter than two characters and the
     FTS operators/keywords (``AND``/``OR``/``NOT``/``NEAR``) are dropped.
+
+    Tokenisation is unicode-aware: a word is a maximal run of characters
+    that are alphanumeric or ``_``, so ``"Türkçe"`` stays one term instead
+    of splitting at the accented letters and ``"日本語"`` is a term at all.
     """
     if not isinstance(query, str):
         return []
-    words = re.findall(r"[A-Za-z0-9_]+", query)
+    words = re.findall(r"[^\W]+", query, re.UNICODE)
     keywords = {"and", "or", "not", "near"}
     return [word for word in words
             if len(word) >= 2 and word.lower() not in keywords]

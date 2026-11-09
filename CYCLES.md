@@ -4630,6 +4630,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 133**: unittest 656 OK; aikit 5/5; `recall_terms` strips operators and keywords; malformed query finds 13, genuine misses find 0, limit/order preserved; `verify_run` isolation; `push_budget`/`pop_budget` absent; `use_budget` nests; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 133 - tokenise search terms without splitting non-ASCII words
+
+- **Baseline** (commit a432ee7):
+  - canonical gate: 656 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-126's `recall_terms` tokenised with `[A-Za-z0-9_]+`, an ASCII-only class.
+  - measured: `"Türkçe"` -> `["rk"]`, `"français"` -> `["fran","ais"]`, `"içerik"` -> `["erik"]`, `"éè"`/`"日本語"` -> `[]`.
+- **Gap**: a residual defect in my own cycle-132 fix. A wholly non-ASCII query extracts no terms and returns nothing even when a stored row contains exactly that text — the same silent-empty class ADR-126 exists to prevent.
+- **Target delta**: words are tokenised whole for any script; ASCII behaviour unchanged; a non-ASCII query finds its row through both paths.
+- **Falsifier**: an accented word is still split; a wholly non-ASCII query still returns nothing; or ASCII behaviour changes.
+- **Change**: `memory/store.py` `recall_terms` uses `re.findall(r"[^\W]+", query, re.UNICODE)` instead of the ASCII class; `tests/test_recall_terms_unicode.py` adds 7 tests. ADR-127.
+- **After** (same store):
+  - `"Türkçe"` -> `["Türkçe"]`, `"日本語"` -> `["日本語"]`, `"T3_navigate"` unchanged.
+  - a stored `"Türkçe içerik burada"` row is found by `recall("Türkçe")` and by `recall("Türkçe AND (")`; a stored `"日本語のテキスト"` row by `recall("日本語 AND (")`; a miss stays a miss.
+  - cycle-132 fallback suite still 6 OK; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: with the ASCII class the five probe queries give `["rk"]`, `["fran","ais"]`, `["erik"]`, `[]`, `["T3_navigate"]`; with `[^\W]+` each word stays whole, and the ASCII case is identical in both readings.
+- **Verdict**: correctness fix completing cycle 132. The measured delta is a non-ASCII query going from nothing to its row; no step, reward or pin moves. Boundary: this fixes word boundaries, not ranking or stemming — accented forms are not normalised.
+- **Gates**: unittest 663/663 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_terms_edges.py` -> `'éè'` -> `[]`, accent splits.
+  - `python ..\..\scratch\probe_unicode_recall.py` -> `'Türkçe'` -> `['rk']`.
+  - `python -m unittest tests.test_recall_terms_unicode` -> before: 4 failures; after: 7 OK.
+  - `python ..\..\scratch\ablate_133.py` -> ASCII class vs `[^\W]+` on five queries.
+  - `python -m unittest discover -s tests -t .` -> 663 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 134**: unittest 663 OK; aikit 5/5; `recall_terms` unicode-aware (`Türkçe`, `日本語` whole; ASCII unchanged); non-ASCII queries find their rows through FTS and fallback; `verify_run` isolation; `push_budget`/`pop_budget` absent; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

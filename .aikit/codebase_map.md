@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `173`
-- **Total Classes**: `177`
+- **Total Python Modules**: `174`
+- **Total Classes**: `178`
 - **Total Top-Level Functions**: `528`
-- **Total Class Methods**: `888`
-- **Total Source Lines**: `24682`
+- **Total Class Methods**: `895`
+- **Total Source Lines**: `24765`
 
 ---
 
@@ -912,7 +912,7 @@
 ### [`memory/store.py`](memory/store.py)
 > *SQLite-backed store with FTS5 index and LIKE fallback.*
 
-**Size**: `339` lines (`13443` bytes)
+**Size**: `343` lines (`13678` bytes)
 
 **Classes:**
 - `class MemoryStore` - *Persisted key/content map with full-text lookup.*
@@ -2668,6 +2668,23 @@
   - Method `.test_a_query_with_no_terms_returns_nothing()`
   - Method `.test_the_fallback_preserves_limit_and_ordering()`
   - Method `.test_no_match_is_still_no_match()`
+
+---
+
+### [`tests/test_recall_terms_unicode.py`](tests/test_recall_terms_unicode.py)
+> *Search terms must keep non-ASCII words whole.*
+
+**Size**: `79` lines (`3247` bytes)
+
+**Classes:**
+- `class TestRecallTermsUnicode`
+  - Method `.test_an_accented_word_stays_one_term()`
+  - Method `.test_a_word_of_only_non_ascii_characters_is_a_term()`
+  - Method `.test_operators_between_non_ascii_words_are_dropped()`
+  - Method `.test_ascii_behaviour_is_unchanged()`
+  - Method `.test_a_non_ascii_query_finds_its_row_through_the_fallback()`
+  - Method `.test_a_wholly_non_ascii_query_finds_its_row()`
+  - Method `.test_a_missing_non_ascii_word_is_still_a_miss()`
 
 ---
 
