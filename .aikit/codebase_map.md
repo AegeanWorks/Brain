@@ -10,7 +10,7 @@
 - **Total Classes**: `176`
 - **Total Top-Level Functions**: `527`
 - **Total Class Methods**: `881`
-- **Total Source Lines**: `24556`
+- **Total Source Lines**: `24563`
 
 ---
 
@@ -3183,7 +3183,7 @@
 ### [`tests/test_verify_run.py`](tests/test_verify_run.py)
 > *One aggregate verifier must compose every shipped check.*
 
-**Size**: `135` lines (`5792` bytes)
+**Size**: `142` lines (`6253` bytes)
 
 **Classes:**
 - `class TestVerifyRun`

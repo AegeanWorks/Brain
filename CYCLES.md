@@ -4580,6 +4580,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 131**: unittest 650 OK; aikit 5/5; `push_budget`/`pop_budget` absent and unreferenced; `use_budget` nests and restores on exception; `run_verify` CLI 0/1/2; `verify_run` four layers; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 131 - pin the aggregate verifier's per-layer isolation
+
+- **Baseline** (commit cf69554):
+  - canonical gate: 650 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `tests/test_verify_run.py` asserted only that the forged layer fails; nothing required the uninvolved layers to stay green.
+  - measured: a hand-broken `verify_run` that fails every layer on any finding passed the cycle-128 suite with 0 failures.
+- **Gap**: the aggregate's headline claim — it names which layer spoke rather than failing wholesale — was asserted one-sided, so a wholesale-failing regression satisfied every existing check.
+- **Target delta**: each forgery also proves the layers that never read the tampered data stay `ok`.
+- **Falsifier**: the strengthened suite still passes a wholesale-failing aggregate; or the real suite fails.
+- **Change**: `tests/test_verify_run.py` adds the isolation asserts to the forged-action and rewritten-result tests (chain and episode stay `ok`); the model-pin test already checks the finding text. No production change. ADR-125.
+- **After** (same code):
+  - real suite: 650 OK (count unchanged — two tests strengthened).
+  - wholesale-failing aggregate: 3 failures (`False is not true` on `chain` twice, `'model-mismatch' not found in ['collateral']`) where it previously reported 0.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: with the wholesale-failing aggregate the new asserts fail; with the shipped aggregate they pass, so the asserts are load-bearing rather than satisfied by construction.
+- **Verdict**: test-strength extension on the aggregate's central claim. The measured delta is a one-sided assertion made two-sided; no behavior, verifier or pin moves. Boundary: this pins isolation between the four composed layers, not the completeness of each layer's internal checks.
+- **Gates**: unittest 650/650 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_layer_claims.py` -> only the failing layer was asserted.
+  - `python -m unittest tests.test_verify_run` -> 6 OK with the new asserts.
+  - `python ..\..\scratch\ablate_131.py` -> wholesale aggregate: 3 failures vs 0 before.
+  - `python -m unittest discover -s tests -t .` -> 650 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 132**: unittest 650 OK; aikit 5/5; `verify_run` per-layer isolation asserted in both directions (forged layer fails, uninvolved layers stay ok); `push_budget`/`pop_budget` absent; `use_budget` nests/restores; `run_verify` CLI 0/1/2; `syn_scope` 17/17; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

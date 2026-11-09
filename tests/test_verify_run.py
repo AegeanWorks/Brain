@@ -90,6 +90,10 @@ class TestVerifyRun(unittest.TestCase):
             result = verify_run(forged)
         self.assertFalse(result["ok"])
         self.assertFalse(result["layers"]["replay"]["ok"])
+        # Isolation: the layers that never read the actions stay green, so
+        # the report says WHICH check spoke rather than failing wholesale.
+        self.assertTrue(result["layers"]["chain"]["ok"])
+        self.assertTrue(result["layers"]["episode"]["ok"])
 
     def test_a_rewritten_result_is_rejected_by_the_results_layer(self):
         with tempfile.TemporaryDirectory() as d:
@@ -103,6 +107,9 @@ class TestVerifyRun(unittest.TestCase):
             result = verify_run(forged)
         self.assertFalse(result["ok"])
         self.assertFalse(result["layers"]["results"]["ok"])
+        # chain and episode read no result record; they must not "fail along".
+        self.assertTrue(result["layers"]["chain"]["ok"])
+        self.assertTrue(result["layers"]["episode"]["ok"])
 
     def test_a_wrong_model_pin_is_rejected_by_the_episode_layer(self):
         with tempfile.TemporaryDirectory() as d:
