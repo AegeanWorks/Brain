@@ -4448,6 +4448,34 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 126**: unittest 619 OK; aikit 5/5; `vector_audit.audit_vectors` equals `audit_rows`, order-observable fixture reports `["M0"]`, wrong order fails; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` uncovered names `estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 126 - pin the estimator edge conventions
+
+- **Baseline** (commit 7f01932):
+  - canonical gate: 619 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals/estimators.py` documents a neutral-value convention per function for degenerate input; the suite checked only the happy path.
+  - measured all twelve edge cases against the shipped code: every one returns the documented neutral value and none raises.
+- **Gap**: the documented edge contracts were unverified. A refactor could have made `transfer_gain` raise on a zero baseline, dropped `recovery`'s clip, or divided by zero in `gbi` at `pre >= 1`, with no test noticing.
+- **Target delta**: each convention is pinned, and a mutation of any of them fails the suite.
+- **Falsifier**: a mutation of a documented convention leaves the suite green; or the real suite fails.
+- **Change**: `tests/test_estimator_edges.py` adds 8 tests (one per function's edge, plus a no-raise sweep). No production change. ADR-120.
+- **After** (same code):
+  - 8 tests pass; the suite total rises 619 -> 627.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation** (three mutations of the shipped functions):
+  - `transfer_gain` raises on a zero baseline -> 2 errors.
+  - `recovery` loses its clip -> 1 failure (`-1.25 != 0.0`).
+  - `gbi` divides at `pre >= 1` -> 2 errors, including the `ZeroDivisionError` the shipped code avoids.
+  - restoring the functions -> 0 failures, 0 errors.
+- **Verdict**: coverage extension on documented-but-unverified library conventions. No estimate, behavior or pin moves. Boundary: the tests pin the documented neutral conventions, not the optimality of the statistics; a deliberate convention change must update them, which is the intent.
+- **Gates**: unittest 627/627 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_estimator_edges.py` -> all 12 edge cases document-conformant.
+  - `python -m unittest tests.test_estimator_edges` -> 8 OK.
+  - `python ..\..\scratch\ablate_126.py` -> three mutations each fail; restore clean.
+  - `python -m unittest discover -s tests -t .` -> 627 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 127**: unittest 627 OK; aikit 5/5; `estimators` edge conventions pinned and three mutations each fail; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `prompt_budget`; `header_reader`; `progress_guard`; `telemetry_lock`; `audit_batteries` uncovered names `estimators`/`recompute`/`vector_audit`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 
 
 

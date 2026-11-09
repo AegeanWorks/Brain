@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `166`
-- **Total Classes**: `171`
+- **Total Python Modules**: `167`
+- **Total Classes**: `172`
 - **Total Top-Level Functions**: `522`
-- **Total Class Methods**: `850`
-- **Total Source Lines**: `23971`
+- **Total Class Methods**: `858`
+- **Total Source Lines**: `24051`
 
 ---
 
@@ -1822,6 +1822,24 @@
 - `def _run(tmp, task, seed, name, workspace_root)`
 - `def _ledger(episode)`
 - `def _rewrite_header(path, mutate)`
+
+---
+
+### [`tests/test_estimator_edges.py`](tests/test_estimator_edges.py)
+> *Pin the estimator edge cases their docstrings promise.*
+
+**Size**: `80` lines (`2996` bytes)
+
+**Classes:**
+- `class TestEstimatorEdges`
+  - Method `.test_transfer_gain_neutral_on_nonpositive_naive()`
+  - Method `.test_recovery_is_clipped_to_unit_interval()`
+  - Method `.test_phi_neutral_below_three_rows_and_on_constant_input()`
+  - Method `.test_synergy_neutral_on_empty_or_mismatched_input()`
+  - Method `.test_mutual_information_neutral_without_variation()`
+  - Method `.test_gbi_saturates_at_and_above_one()`
+  - Method `.test_logistic_k_neutral_on_empty_or_mismatched_input()`
+  - Method `.test_no_estimator_raises_on_degenerate_input()`
 
 ---
 
