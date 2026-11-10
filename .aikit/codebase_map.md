@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `206`
-- **Total Classes**: `214`
-- **Total Top-Level Functions**: `579`
-- **Total Class Methods**: `1096`
-- **Total Source Lines**: `28026`
+- **Total Python Modules**: `208`
+- **Total Classes**: `215`
+- **Total Top-Level Functions**: `583`
+- **Total Class Methods**: `1104`
+- **Total Source Lines**: `28204`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`206` module(s))
+- **Indexed**: python (`208` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -1118,6 +1118,18 @@
   - Method `.mark_fail()` - *Mark the current step failed. Cursor holds for recover().*
   - Method `.recover()` - *Skip failed entries and return the next viable step or None.*
   - Method `.state()` - *Return cursor plus per-step status list.*
+
+---
+
+### [`run_agent.py`](run_agent.py)
+> *Run one episode, optionally with a backend chosen by name.*
+
+**Size**: `89` lines (`3453` bytes)
+
+**Functions:**
+- `def _parse_script(text)` - *Split a comma-separated action script, ignoring blanks.*
+- `def _build_backend(name, script)` - *Build a registered backend, or exit 2 with the available names.*
+- `def main(argv)`
 
 ---
 
@@ -3263,6 +3275,27 @@
 **Functions:**
 - `def _state(x, y, target, obstacles, task, items, steps)`
 - `def _plan(planner, state)`
+
+---
+
+### [`tests/test_run_agent_cli.py`](tests/test_run_agent_cli.py)
+> *A registry nobody can reach is not pluggable.*
+
+**Size**: `89` lines (`3648` bytes)
+
+**Classes:**
+- `class TestRunAgentCli`
+  - Method `.test_an_episode_runs_with_the_rule_policy()`
+  - Method `.test_a_registered_backend_can_be_named()`
+  - Method `.test_an_unknown_backend_is_misuse_and_names_the_choices()`
+  - Method `.test_a_missing_task_is_misuse()`
+  - Method `.test_an_unknown_task_is_misuse()`
+  - Method `.test_a_stub_without_a_script_is_misuse()`
+  - Method `.test_the_run_reports_the_backend_it_actually_used()`
+  - Method `.test_naming_a_backend_does_not_change_a_rule_run()`
+
+**Functions:**
+- `def _run(args)`
 
 ---
 

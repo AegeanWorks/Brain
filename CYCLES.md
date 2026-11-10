@@ -4904,6 +4904,34 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 152 - a registry nobody can reach is not pluggable
+
+- **Baseline** (commit 125e7da):
+  - canonical gate: 830 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `models.registry` had `register`/`build`/`names` and a conformance check, but a survey found **zero** non-test callers of `build()`; only `evals/backend_conformance.py` imported it.
+  - measured: every `evals/` battery instantiates its backend directly (~10 sites), and there was no CLI for running the agent at all.
+- **Gap**: fourth occurrence of the same defect class (ADR-121/131/139) — a facility with no reachable caller. "Choose a backend" still meant editing Python.
+- **Target delta**: a command line that names a provider, builds it through the registry, runs an episode and reports both what was asked for and what was pinned.
+- **Falsifier**: the CLI cannot select a provider; an unknown name defaults instead of exiting 2; or naming a backend changes a rule run.
+- **Change**: `run_agent.py` adds `--task/--seed/--max-steps/--backend/--stub-script`, exit 0 on a run and 2 on misuse; `tests/test_run_agent_cli.py` (8 subprocess tests). ADR-147.
+- **After** (same tree):
+  - `--task T3_navigate --seed 15` -> 13 steps, 1.0, model `rule`.
+  - `--backend stub --stub-script right,right,right` -> 13 steps, 1.0, model `StubBackend` (historical label preserved).
+  - `--backend nope` -> exit 2, `Available: llamacpp, stub`.
+  - `run_agent.py` is now the only production importer of `models.registry`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: removing `run_agent.py` errors all 8 tests; restoring returns 0. Done at file level — an in-process monkeypatch had **no effect** on subprocess-driving tests and first reported 0 failures.
+- **Verdict**: wiring, and the fourth instance of the class. The measured delta is "selectable only by editing Python" -> "selectable by name from a shell". Boundary: exposes the seam, adds no provider; `llamacpp` needs a model path and server binary, so only `stub` is exercisable today.
+- **Gates**: unittest 838/838 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_run_agent_cli` -> before: 6 failures + 2 errors; after: 8 OK.
+  - `python -m run_agent --task T3_navigate --seed 15` -> 13/1.0/rule.
+  - `python -m run_agent ... --backend nope` -> exit 2 naming choices.
+  - `python ..\..\scratch\ablate_152c.py` -> module removed: 8 errors; restored: 0.
+  - `python -m unittest discover -s tests -t .` -> 838 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 153**: unittest 838 OK; aikit 5/5; `run_agent` rule run 13/1.0 model `rule`; stub run 13/1.0 model `StubBackend`; unknown backend exit 2 with `Available: llamacpp, stub`; missing `--task` exit 2; stub without script exit 2 naming `stub-script`; registry `['llamacpp','stub']`; conformance four controls; `model_label(None)` `rule`; `model_label(StubBackend)` `StubBackend`; 0 of 6 traces and 0 of 17 slots distinguishable; pair gaps −0.1243/−0.2309/−0.1243/−0.0632/−0.0632; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 151 - make the LLM seam pluggable and checkable
 
 - **Baseline** (commit e42560c):
