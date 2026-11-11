@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `209`
-- **Total Classes**: `216`
-- **Total Top-Level Functions**: `586`
-- **Total Class Methods**: `1112`
-- **Total Source Lines**: `28402`
+- **Total Python Modules**: `210`
+- **Total Classes**: `217`
+- **Total Top-Level Functions**: `588`
+- **Total Class Methods**: `1118`
+- **Total Source Lines**: `28519`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`209` module(s))
+- **Indexed**: python (`210` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -720,15 +720,16 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `196` lines (`8237` bytes)
+**Size**: `219` lines (`9334` bytes)
 
 **Functions:**
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
-- `def pair_report(rows, target, first, second, trials, with_null)` - *Score one column pair, refusing artifacts before scoring.*
+- `def _target_column(values, target)` - *True when a column is identical to the target.*
+- `def pair_report(rows, target, first, second, trials, with_null, guard_target)` - *Score one column pair, refusing artifacts before scoring.*
 - `def _family_wise(rows, target, reports, trials, seed)` - *Attach a max/min-statistic null to every pair that passed the gate.*
-- `def scan_pairs(rows, target, trials, family_wise, seed)` - *Return every column pair's report, sorted by gap descending.*
-- `def interactions(rows, target, trials, family_wise, seed)` - *Return only the pairs that pass the gate AND beat their family upward.*
-- `def anti_interactions(rows, target, trials, family_wise, seed)` - *Return pairs that pass the gate and sit below their family null.*
+- `def scan_pairs(rows, target, trials, family_wise, seed, guard_target)` - *Return every feature-column pair's report, sorted by gap descending.*
+- `def interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return only the pairs that pass the gate AND beat their family upward.*
+- `def anti_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return pairs that pass the gate and sit below their family null.*
 
 ---
 
@@ -2746,7 +2747,7 @@
 ### [`tests/test_pair_conclusions.py`](tests/test_pair_conclusions.py)
 > *Pair-level conclusions must be re-derived at one observation per step.*
 
-**Size**: `125` lines (`5610` bytes)
+**Size**: `123` lines (`5450` bytes)
 
 **Classes:**
 - `class TestPairConclusionsAtCorrectN`
@@ -2788,7 +2789,7 @@
 ### [`tests/test_pair_scan_fwer.py`](tests/test_pair_scan_fwer.py)
 > *Scanning every pair needs a family-wise null, not per-pair tails.*
 
-**Size**: `125` lines (`5470` bytes)
+**Size**: `127` lines (`5509` bytes)
 
 **Classes:**
 - `class TestPairScanFamilyWise`
@@ -2804,6 +2805,25 @@
 **Functions:**
 - `def _planted(n, decoys, seed)` - *One XOR pair plus independent binary decoys; no world, no agent.*
 - `def _shipped(task, seed)`
+
+---
+
+### [`tests/test_pair_scan_target_column.py`](tests/test_pair_scan_target_column.py)
+> *The target column is not a feature.*
+
+**Size**: `96` lines (`3695` bytes)
+
+**Classes:**
+- `class TestPairScanTargetColumn`
+  - Method `.test_the_last_column_is_the_target()`
+  - Method `.test_scan_pairs_never_returns_the_target_column()`
+  - Method `.test_pair_report_refuses_the_target_column()`
+  - Method `.test_a_feature_pair_still_passes()`
+  - Method `.test_ablation_restores_the_target_pairs()`
+  - Method `.test_the_family_contains_only_feature_pairs()`
+
+**Functions:**
+- `def _wired(task, seed)`
 
 ---
 
@@ -3921,7 +3941,7 @@
 ### [`tests/test_wiring_independence.py`](tests/test_wiring_independence.py)
 > *Wiring the modules makes them independent, and then anti-synchronous.*
 
-**Size**: `133` lines (`5915` bytes)
+**Size**: `131` lines (`5756` bytes)
 
 **Classes:**
 - `class TestWiringIndependence`

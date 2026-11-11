@@ -8,13 +8,11 @@ Tested: they can, but only when the modules are actually supplied.
     fully wired          [13,13,13,13,12,13, 6, 8, 2]          31 of 36
 
 The wired counters advance with the step, so more columns vary while *more*
-pairs are dependent (22 -> 31). The five pairs that are not dependent are:
+pairs are dependent (22 -> 31). The three feature pairs that are not dependent are:
 
     cols(4,5) syn -0.1243  p_upper 0.610  not distinguishable
     cols(4,7) syn -0.2309  p_upper 0.890  not distinguishable
-    cols(4,8) syn -0.1243  p_upper 1.000  not distinguishable
     cols(6,7) syn -0.0632  p_upper 0.640  not distinguishable
-    cols(6,8) syn -0.0632  p_upper 1.000  not distinguishable
 
 Every one is **negative**, so the joint carries *less* than its marginals —
 but at one observation per step *none* is distinguishable from its null.
@@ -92,15 +90,15 @@ class TestWiringIndependence(unittest.TestCase):
 
     def test_wiring_produces_independent_pairs(self):
         padded, _ = _vectors(True)
-        width = len(padded[0])
+        width = len(padded[0]) - 1
         cols = [[r[j] for r in padded] for j in range(width)]
         independent = [(i, j) for i in range(width) for j in range(i + 1, width)
                        if not _dependent(cols[i], cols[j])]
-        self.assertEqual(independent, [(4, 5), (4, 7), (4, 8), (6, 7), (6, 8)])
+        self.assertEqual(independent, [(4, 5), (4, 7), (6, 7)])
 
     def test_every_independent_pair_is_anti_synchronous(self):
         padded, target = _vectors(True)
-        for first, second in ((4, 5), (4, 7), (4, 8), (6, 7), (6, 8)):
+        for first, second in ((4, 5), (4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=200)
             self.assertTrue(report["ok"])
             self.assertLess(report["syn"], 0.0,
@@ -110,7 +108,7 @@ class TestWiringIndependence(unittest.TestCase):
         # Cycle 148 reported three of these as significant; at one
         # observation per step none is. The gaps are unchanged.
         padded, target = _vectors(True)
-        for first, second in ((4, 5), (4, 7), (4, 8), (6, 7), (6, 8)):
+        for first, second in ((4, 5), (4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=200)
             self.assertFalse(report["null"]["distinguishable"],
                              "cols(%d,%d)" % (first, second))

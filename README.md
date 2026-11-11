@@ -231,9 +231,9 @@ a permutation null (`p_upper`/`p_lower`, `distinguishable`);
 `recompute` and each battery slot carry both; `dedupe_rows` collapses the
 paired action/result record so `n` counts steps. Equal scope columns mean
 no independent second signal: `duplicate-scope-column`; a constant reads
-`constant-scope-column`. `evals.pair_scan` applies a family-wise max/min-statistic null to a
-multi-pair scan (`family_wise=False` is the per-pair ablation).
-Nothing shipped beats its null.
+`constant-scope-column`. `evals.pair_scan` skips the target column, refuses
+`target-column`, and applies a family-wise max/min null (`family_wise=False`/
+`guard_target=False` are ablations). Nothing shipped beats its null.
 
 ## 🧪 Lesion Detectability
 

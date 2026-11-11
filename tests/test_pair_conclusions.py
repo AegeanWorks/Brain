@@ -14,9 +14,7 @@ Re-measured with and without dedupe:
     pair       syn       p_upper @2T   p_upper @T   distinguishable @T
     (4,5)     -0.1243     0.860          0.610      False
     (4,7)     -0.2309     0.975          0.890      False
-    (4,8)     -0.1243     1.000          1.000      False
     (6,7)     -0.0632     0.915          0.640      False
-    (6,8)     -0.0632     1.000          1.000      False
 
     anti_interactions: 3 -> 0
 
@@ -88,25 +86,25 @@ class TestPairConclusionsAtCorrectN(unittest.TestCase):
 
     def test_the_independent_pairs_are_the_same_at_correct_n(self):
         rows = dedupe_rows(_raw("T3_navigate", 15, wired=True))
-        width = len(rows[0])
+        width = len(rows[0]) - 1
         cols = [[r[j] for r in rows] for j in range(width)]
         independent = [(i, j) for i in range(width) for j in range(i + 1, width)
                        if not _dependent(cols[i], cols[j])]
-        self.assertEqual(independent, [(4, 5), (4, 7), (4, 8), (6, 7), (6, 8)])
+        self.assertEqual(independent, [(4, 5), (4, 7), (6, 7)])
 
     def test_the_gaps_are_unchanged_by_dedupe(self):
         raw, deduped = _raw("T3_navigate", 15, wired=True), None
         deduped = dedupe_rows(raw)
         p_raw, t_raw = _split(raw)
         p_ded, t_ded = _split(deduped)
-        for first, second in ((4, 5), (4, 7), (4, 8), (6, 7), (6, 8)):
+        for first, second in ((4, 5), (4, 7), (6, 7)):
             a = pair_report(p_raw, t_raw, first, second, trials=25)["syn"]
             b = pair_report(p_ded, t_ded, first, second, trials=25)["syn"]
             self.assertAlmostEqual(a, b, places=12)
 
     def test_no_pair_is_distinguishable_at_correct_n(self):
         padded, target = _split(dedupe_rows(_raw("T3_navigate", 15, True)))
-        for first, second in ((4, 5), (4, 7), (4, 8), (6, 7), (6, 8)):
+        for first, second in ((4, 5), (4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=150)
             self.assertFalse(report["null"]["distinguishable"],
                              "cols(%d,%d)" % (first, second))

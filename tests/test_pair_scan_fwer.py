@@ -35,9 +35,11 @@ def _planted(n=24, decoys=6, seed=28):
     for _ in range(n):
         first = rng.randint(0, 1)
         second = rng.randint(0, 1)
-        rows.append([first, second] + [rng.randint(0, 1)
-                                       for _ in range(decoys)])
-        target.append(first ^ second)
+        outcome = first ^ second
+        rows.append([first, second]
+                    + [rng.randint(0, 1) for _ in range(decoys)]
+                    + [outcome])
+        target.append(outcome)
     return rows, target
 
 

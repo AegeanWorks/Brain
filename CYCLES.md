@@ -4904,6 +4904,34 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 154 - the target column is not a feature
+
+- **Baseline** (commit 501d8f5):
+  - canonical gate: 846 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `evals.recompute` and the pair tests build full block rows with the target in the last column, but `scan_pairs` iterated `range(width)` over **all** columns.
+  - measured on `T3_navigate:15` wired: `col8 == target`; the scan returned 36 reports, 5 valid, `family_size 5`; eight of the reports paired a feature with column 8, e.g. `(4,8)` `syn -0.1243` and `(6,8)` `syn -0.0632`; `pair_report(4,8)` returned `ok True`.
+  - the "five independent pairs" claim included `(4,8)` and `(6,8)`; the feature-only set is `(4,5)/(4,7)/(6,7)`.
+- **Gap**: the target was counted as a feature. A pair containing the answer is not a module pair; its negative gap is the target's own marginal entropy, and it inflated both the independent-pair set and the family size.
+- **Target delta**: feature-only scans, a direct `target-column` refusal, and a family built only from feature pairs.
+- **Falsifier**: the target column still appears; a feature pair's `syn` moves; the planted interaction is lost; or a shipped interaction appears.
+- **Change**: `evals/pair_scan.py` adds `_target_column`; `scan_pairs` scans `range(width - 1)` and returns no pairs below two features; `pair_report` refuses a column identical to the target as `target-column`; `guard_target=False` restores the old all-column scan and is the executable ablation; `tests/test_pair_scan_target_column.py` (6 tests); `test_wiring_independence`/`test_pair_conclusions` re-baselined from five independent pairs to three.
+- **After** (same trace):
+  - guarded: 28 reports, 3 valid, `family_size 3`; open: 36, 5, `family_size 5`.
+  - target pairs: 0 guarded, 8 open; `pair_report(4,8)` guarded `ok False` / `target-column`, open `ok True`; `syn -0.1243` unchanged.
+  - feature independent pairs `(4,5)/(4,7)/(6,7)`; the two dropped pairs were column-vs-target.
+  - `interactions` and `anti_interactions` empty under both settings; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `guard_target=False` returns eight target pairs and accepts `pair_report(4,8)`; `guard_target=True` returns none and refuses it as `target-column`. The guard is the integration point; removing it restores the contamination.
+- **Verdict**: structural correction. The measured delta is "the target is scanned as a feature and the independent-pair set is five" -> "feature-only scan and three independent pairs". Boundary: the gate is exact equality only; a column that is a deterministic function of the target without being identical still passes, and the `bins=64` joint / `bins=8` marginal mismatch can still inflate such a pair. That target-leak gate is the next falsifier.
+- **Gates**: unittest 852/852 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_pair_scan_target_column` -> before: 3 failures + 1 error; after: 6 OK.
+  - `python ..\..\scratch\probe_154.py` -> guarded 28/3/3, open 36/5/5, target pairs 0 vs 8, feature independent `(4,5)/(4,7)/(6,7)`, interactions/anti 0/0.
+  - `python -m unittest tests.test_pair_scan tests.test_pair_scan_fwer tests.test_pair_conclusions tests.test_wiring_independence` -> 37 OK.
+  - `python -m unittest discover -s tests -t .` -> 852 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> `.aikit\codebase_map.md` updated.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 155**: unittest 852 OK; aikit 5/5; guarded scan 28 reports / 3 valid / `family_size 3`; open scan 36 / 5 / 5; guarded target pairs 0, open 8; `pair_report(4,8)` `target-column` and `syn -0.1243`; `(6,8)` `syn -0.0632`; feature independent `(4,5)/(4,7)/(6,7)`; interactions/anti empty both; planted fixture `(0,1)` family `p_upper 0.005`, `(0,6)` family `p_upper 0.5522`, `family_size 28`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 153 - a scan of many pairs needs a family-wise null
 
 - **Baseline** (commit 3a43908):

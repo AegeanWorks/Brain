@@ -59,21 +59,31 @@ def _dependent(first, second):
     return True
 
 
-def pair_report(rows, target, first, second, trials=200, with_null=True):
+def _target_column(values, target):
+    """True when a column is identical to the target."""
+    return list(values) == list(target)
+
+
+def pair_report(rows, target, first, second, trials=200, with_null=True,
+                guard_target=True):
     """Score one column pair, refusing artifacts before scoring.
 
     Returns ``syn``/``syn_n``/``ok`` plus the scope verdict. ``ok`` is false
-    when the pair cannot decide (constant, duplicate or functionally
-    dependent columns), in which case the gap is reported but must not be
-    read as interaction. ``with_null=False`` omits the single-pair null for
-    callers that will apply a family-wise null across all pairs instead.
+    when the pair cannot decide (the target, a constant, a duplicate or a
+    functionally dependent column), in which case the gap is reported but
+    must not be read as interaction. ``with_null=False`` omits the
+    single-pair null for callers that will apply a family-wise null across
+    all pairs instead. ``guard_target=False`` is the executable ablation.
     """
     pair = [[row[first], row[second]] for row in rows]
     scope = synergy_scope(pair, target)
     syn, syn_n = synergy(pair, target)
     reason = scope["reason"]
-    if scope["sufficient"] and _dependent([r[0] for r in pair],
-                                          [r[1] for r in pair]):
+    if guard_target and (_target_column([r[0] for r in pair], target)
+                         or _target_column([r[1] for r in pair], target)):
+        reason = "target-column"
+    elif scope["sufficient"] and _dependent([r[0] for r in pair],
+                                            [r[1] for r in pair]):
         reason = "dependent-columns"
     report = {
         "columns": [first, second],
@@ -131,41 +141,52 @@ def _family_wise(rows, target, reports, trials=200, seed=0):
         }
 
 
-def scan_pairs(rows, target, trials=200, family_wise=True, seed=0):
-    """Return every column pair's report, sorted by gap descending.
+def scan_pairs(rows, target, trials=200, family_wise=True, seed=0,
+               guard_target=True):
+    """Return every feature-column pair's report, sorted by gap descending.
 
-    Pairs that fail the gate sort last regardless of their gap, so a caller
-    reading the head of the list never sees an artifact first. With
-    ``family_wise=True`` every valid pair carries a ``family`` block holding
-    the scan-corrected tails; ``family_wise=False`` restores the per-pair
-    null only and is the executable ablation.
+    Rows are full block rows with the target in the last column, matching
+    ``evals.recompute``: the last column is the answer, not a feature, so it
+    is never scanned. ``guard_target=False`` is the executable ablation and
+    restores the old all-column scan. Pairs that fail the gate sort last
+    regardless of their gap, so a caller reading the head of the list never
+    sees an artifact first. With ``family_wise=True`` every valid pair
+    carries a ``family`` block holding the scan-corrected tails;
+    ``family_wise=False`` restores the per-pair null only.
     """
     if not rows:
         return []
     width = min(len(row) for row in rows)
+    if guard_target:
+        width -= 1
+    if width < 2:
+        return []
     reports = []
     for first in range(width):
         for second in range(first + 1, width):
             reports.append(pair_report(rows, target, first, second, trials,
-                                       with_null=not family_wise))
+                                       with_null=not family_wise,
+                                       guard_target=guard_target))
     reports.sort(key=lambda r: (r["ok"], r["syn"]), reverse=True)
     if family_wise:
         _family_wise(rows, target, reports, trials=trials, seed=seed)
     return reports
 
 
-def interactions(rows, target, trials=200, family_wise=True, seed=0):
+def interactions(rows, target, trials=200, family_wise=True, seed=0,
+                 guard_target=True):
     """Return only the pairs that pass the gate AND beat their family upward.
 
     This is the honest answer to "which two modules interact": empty when no
     pair both varies independently and clears the scan-corrected positive
     tail. A pair that is distinguishable only *below* its family is
     anti-interacting (the joint carries less than its marginals), a different
-    claim returned by :func:`anti_interactions`.
+    claim returned by :func:`anti_interactions`. ``guard_target=False``
+    restores the target-column ablation.
     """
     selected = []
     for report in scan_pairs(rows, target, trials, family_wise=family_wise,
-                             seed=seed):
+                             seed=seed, guard_target=guard_target):
         if not report["ok"] or report["syn"] <= 0.0:
             continue
         if family_wise:
@@ -176,16 +197,18 @@ def interactions(rows, target, trials=200, family_wise=True, seed=0):
     return selected
 
 
-def anti_interactions(rows, target, trials=200, family_wise=True, seed=0):
+def anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
+                      guard_target=True):
     """Return pairs that pass the gate and sit below their family null.
 
     Kept separate from :func:`interactions` so a caller counting
     "interactions" is never handed a negative gap. The same family-wise
-    correction applies to the lower tail.
+    correction applies to the lower tail. ``guard_target=False`` restores
+    the target-column ablation.
     """
     selected = []
     for report in scan_pairs(rows, target, trials, family_wise=family_wise,
-                             seed=seed):
+                             seed=seed, guard_target=guard_target):
         if not report["ok"] or report["syn"] >= 0.0:
             continue
         if family_wise:
