@@ -26,7 +26,7 @@ import unittest
 
 from agent import Agent
 from evals.pair_scan import (block_for, interactions, module_interactions,
-                             scan_pairs)
+                             module_pair, scan_pairs, world_interactions)
 from evals.recompute import _vec_row, dedupe_rows
 from memory.store import MemoryStore
 from planner.plan import Planner as TrackerPlanner
@@ -90,6 +90,26 @@ class TestModulePairScan(unittest.TestCase):
         self.assertTrue(reports)
         for report in reports:
             self.assertIn("hub", report["blocks"])
+
+    def test_module_pair_accepts_only_cross_module_blocks(self):
+        self.assertTrue(module_pair({"blocks": ["M", "P"]}))
+        self.assertFalse(module_pair({"blocks": ["S", "S"]}))
+        self.assertFalse(module_pair({"blocks": ["M", "hub"]}))
+
+    def test_world_interactions_match_the_hub_subset(self):
+        rows, target = _pooled()
+        selected = interactions(rows, target, trials=200)
+        world = world_interactions(rows, target, trials=200)
+        self.assertTrue(world)
+        self.assertEqual(world, [report for report in selected
+                                 if "hub" in report["blocks"]])
+
+    def test_world_interactions_exclude_module_pairs(self):
+        rows, target = _cross_module()
+        self.assertEqual([report["columns"]
+                          for report in interactions(rows, target, trials=200)],
+                         [[0, 2]])
+        self.assertEqual(world_interactions(rows, target, trials=200), [])
 
     def test_pooled_module_interactions_are_empty(self):
         rows, target = _pooled()

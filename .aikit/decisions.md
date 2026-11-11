@@ -1095,6 +1095,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 881 tests OK; aikit check 5/5. The signal candidate `(0,4)` reads `p_upper 0.0495` at 100 trials and `0.0547` at 200, so `stable` is false and `selected` is `[]`; `require_stability=False` returns `[[0,4]]`. The planted M/P XOR is stable at both counts and replicated, and stays selected. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged. Ablation: removing the stability check returns the 100-trial candidate; restoring it removes it without touching the planted pair.
 - **Boundary**: one higher trial count is not convergence. A p-value near `alpha` can oscillate as the permutation resolution improves, so the scan reports both `trials` and `stability_trials`; a larger grid or a sequential test is the next step if stability becomes the deciding gate.
 
+### ADR-156: The world-pair filter needs a caller and a test
+- **Date**: 2026-11-11
+- **Status**: Accepted
+- **Context**: ADR-151 added `world_interactions` to name the pairs that include `hub`, but a survey of callers found none outside the definition: tests used `interactions` and `module_interactions`, and the two filters duplicated the same block predicate. The block split was an unreachable, untested path — the fifth instance of the ADR-147 defect class.
+- **Decision**: Factor `module_pair(report)` and `world_pair(report)`, use them in `module_interactions` and `world_interactions`, and add `evals.module_state.scan_module_state_blocks(log_paths, trials)` as the eval-path caller that returns the module and world subsets. Tests: `test_module_pair_accepts_only_cross_module_blocks`, `test_world_interactions_match_the_hub_subset`, `test_world_interactions_exclude_module_pairs`, `test_block_split_reaches_module_and_world` (4 new).
+- **Consequences**: 885 tests OK; aikit check 5/5. On the pooled ten-episode trace `world_interactions` equals the hub subset (5 pairs); on the planted M/P XOR `interactions` is `[[0,2]]` and `world_interactions` is `[]`; the signal block split returns `module []` and `world []` at 200 trials. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged. Ablation: removing `world_pair` makes `world_interactions` return the planted module pair and the exclusion test fails; removing `scan_module_state_blocks` makes the split test error.
+- **Boundary**: the new caller is an eval/library path, not a user-facing command. The split is now exercised whenever the module-state eval reports blocks, but no production claim reads world pairs; if none does, the function remains a tested convenience rather than an integration point.
+
 
 
 

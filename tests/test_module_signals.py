@@ -21,7 +21,9 @@ import tempfile
 import unittest
 
 from agent import Agent
-from evals.module_state import pool_signals, read_signals, scan_module_states
+from evals.module_state import (pool_signals, read_signals,
+                                scan_module_state_blocks,
+                                scan_module_states)
 from evals.pair_scan import _dependent, module_interactions, scan_pairs
 from evals.recompute import _vec_row, dedupe_rows
 
@@ -119,6 +121,13 @@ class TestModuleSignals(unittest.TestCase):
         self.assertEqual(
             [(step["action"], step["reward"], step["done"]) for step in plain],
             [(step["action"], step["reward"], step["done"]) for step in signal])
+
+    def test_block_split_reaches_module_and_world(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            blocks = scan_module_state_blocks(paths, trials=200)
+        self.assertEqual(blocks["module"], [])
+        self.assertEqual(blocks["world"], [])
 
     def test_malformed_signal_rows_are_ignored(self):
         with tempfile.TemporaryDirectory() as directory:

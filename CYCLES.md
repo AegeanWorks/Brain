@@ -4904,6 +4904,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 161 - the world-pair filter needs a caller and a test
+
+- **Baseline** (commit ff321cc):
+  - canonical gate: 881 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `world_interactions` has zero callers outside its definition; the tests use `interactions` and `module_interactions` only.
+  - `module_interactions` and `world_interactions` duplicate the block predicate, and the block split is an untested path.
+- **Gap**: a facility built with no reachable caller (the ADR-147 defect class), plus duplicate filter logic.
+- **Target delta**: single-source the block predicates, exercise both filters, and expose the module/world split through the module-state eval.
+- **Falsifier**: a world filter returns a module pair; the eval split is absent; the predicates diverge; or a shipped selection moves.
+- **Change**: `evals/pair_scan.py` adds `MODULE_BLOCKS`, `module_pair(report)` and `world_pair(report)`, and uses them; `evals/module_state.py` adds `scan_module_state_blocks`; `tests/test_module_pair_scan.py` and `tests/test_module_signals.py` add four tests.
+- **After** (same traces):
+  - pooled ten-episode trace: `world_interactions` equals the hub subset (5 pairs); module subset `[]`.
+  - planted M/P XOR: `interactions [[0,2]]`, `world_interactions []`.
+  - signal block split at 200 trials: `module []`, `world []`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: removing the `world_pair` filter makes `world_interactions` return the planted module pair and the exclusion test fails; removing `scan_module_state_blocks` makes the split test error. Restoring either returns the tests to green.
+- **Verdict**: reachability/coverage. The measured delta is "an unused filter plus duplicated predicates" -> "single-sourced predicates with an eval-path split and four tests". Boundary: the caller is a library/eval path, not a user-facing command; no production claim reads world pairs.
+- **Gates**: unittest 885/885 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_pair_scan tests.test_module_signals` -> 19 OK.
+  - `python -m unittest discover -s tests -t .` -> 885 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 162**: unittest 885 OK; aikit 5/5; pooled world 5 hub pairs / module `[]`; planted M/P `[[0,2]]` / world `[]`; signal split `module []` / `world []`; stability candidate p100 0.0495 / p200 0.0547 / stable False / selected `[]` / ablation `[[0,4]]`; keys mode 70 / 6 / S False; seen mode 70 / 5 / S True; signal rows 70 / 5 cross-module; legacy 70 / 0 module-valid; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 160 - a candidate must clear a higher-trial stability check
 
 - **Baseline** (commit 4c5f835):

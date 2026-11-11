@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
-- **Total Top-Level Functions**: `608`
-- **Total Class Methods**: `1148`
-- **Total Source Lines**: `29328`
+- **Total Top-Level Functions**: `611`
+- **Total Class Methods**: `1152`
+- **Total Source Lines**: `29378`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -721,20 +721,21 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `78` lines (`2490` bytes)
+**Size**: `88` lines (`2888` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
 - `def read_signals(log_path)` - *Return one row per action record carrying a ``signals`` block.*
 - `def pool_signals(log_paths)` - *Concatenate the signal rows from several episode logs.*
 - `def scan_module_states(log_paths, trials)` - *Scan pooled signal rows with the shared pair gate and family null.*
+- `def scan_module_state_blocks(log_paths, trials)` - *Return the pooled signal scan split into module and world pairs.*
 
 ---
 
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `283` lines (`11922` bytes)
+**Size**: `294` lines (`12161` bytes)
 
 **Functions:**
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
@@ -746,6 +747,8 @@
 - `def scan_pairs(rows, target, trials, family_wise, seed, guard_target)` - *Return every feature-column pair's report, sorted by gap descending.*
 - `def interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return only the pairs that pass the gate AND beat their family upward.*
 - `def anti_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return pairs that pass the gate and sit below their family null.*
+- `def module_pair(report)` - *True when a report's two blocks are different M/P/S modules.*
+- `def world_pair(report)` - *True when a report includes the world hub.*
 - `def module_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return corrected interactions whose two blocks are different modules.*
 - `def world_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return corrected interactions that include a ``hub`` column.*
 
@@ -2657,12 +2660,15 @@
 ### [`tests/test_module_pair_scan.py`](tests/test_module_pair_scan.py)
 > *A module interaction needs two module blocks, not the world hub.*
 
-**Size**: `122` lines (`4743` bytes)
+**Size**: `142` lines (`5735` bytes)
 
 **Classes:**
 - `class TestModulePairScan`
   - Method `.test_blocks_label_the_legacy_vector()`
   - Method `.test_pooled_scan_reports_world_pairs()`
+  - Method `.test_module_pair_accepts_only_cross_module_blocks()`
+  - Method `.test_world_interactions_match_the_hub_subset()`
+  - Method `.test_world_interactions_exclude_module_pairs()`
   - Method `.test_pooled_module_interactions_are_empty()`
   - Method `.test_module_interactions_require_two_different_blocks()`
   - Method `.test_a_cross_module_planted_pair_is_detected()`
@@ -2678,7 +2684,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `136` lines (`6244` bytes)
+**Size**: `145` lines (`6652` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2690,6 +2696,7 @@
   - Method `.test_keys_mode_adds_one_testable_pair()`
   - Method `.test_module_interactions_are_empty_at_200_trials()`
   - Method `.test_signals_do_not_change_actions()`
+  - Method `.test_block_split_reaches_module_and_world()`
   - Method `.test_malformed_signal_rows_are_ignored()`
 
 **Functions:**

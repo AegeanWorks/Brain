@@ -255,6 +255,22 @@ def anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
     return selected
 
 
+#: Blocks that count as modules for a module-interaction claim.
+MODULE_BLOCKS = ("M", "P", "S")
+
+
+def module_pair(report):
+    """True when a report's two blocks are different M/P/S modules."""
+    first, second = report["blocks"]
+    return (first in MODULE_BLOCKS and second in MODULE_BLOCKS
+            and first != second)
+
+
+def world_pair(report):
+    """True when a report includes the world hub."""
+    return "hub" in report["blocks"]
+
+
 def module_interactions(rows, target, trials=200, family_wise=True, seed=0,
                         guard_target=True):
     """Return corrected interactions whose two blocks are different modules.
@@ -263,15 +279,10 @@ def module_interactions(rows, target, trials=200, family_wise=True, seed=0,
     interacting. This keeps the generic :func:`interactions` result intact
     and exposes the module-only subset for emergence claims.
     """
-    selected = []
-    for report in interactions(rows, target, trials=trials,
-                               family_wise=family_wise, seed=seed,
-                               guard_target=guard_target):
-        first, second = report["blocks"]
-        if (first in ("M", "P", "S") and second in ("M", "P", "S")
-                and first != second):
-            selected.append(report)
-    return selected
+    return [report for report in interactions(
+                rows, target, trials=trials, family_wise=family_wise,
+                seed=seed, guard_target=guard_target)
+            if module_pair(report)]
 
 
 def world_interactions(rows, target, trials=200, family_wise=True, seed=0,
@@ -280,4 +291,4 @@ def world_interactions(rows, target, trials=200, family_wise=True, seed=0,
     return [report for report in interactions(
                 rows, target, trials=trials, family_wise=family_wise,
                 seed=seed, guard_target=guard_target)
-            if "hub" in report["blocks"]]
+            if world_pair(report)]

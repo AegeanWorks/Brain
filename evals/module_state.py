@@ -16,7 +16,7 @@ rows.
 
 import json
 
-from evals.pair_scan import scan_pairs
+from evals.pair_scan import module_interactions, scan_pairs, world_interactions
 
 
 def _row(args):
@@ -76,3 +76,13 @@ def scan_module_states(log_paths, trials=200):
     rows = pool_signals(log_paths)
     target = [row[-1] for row in rows]
     return scan_pairs(rows, target, trials=trials, family_wise=True)
+
+
+def scan_module_state_blocks(log_paths, trials=200):
+    """Return the pooled signal scan split into module and world pairs."""
+    rows = pool_signals(log_paths)
+    target = [row[-1] for row in rows]
+    return {
+        "module": module_interactions(rows, target, trials=trials),
+        "world": world_interactions(rows, target, trials=trials),
+    }
