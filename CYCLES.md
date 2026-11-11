@@ -4904,6 +4904,34 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 156 - a module interaction needs two module blocks, not the world hub
+
+- **Baseline** (commit 69b50b4):
+  - canonical gate: 859 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - pooling ten fully wired `T3_navigate` episodes (seeds 0-9) gives 70 deduped rows and 10 rewards.
+  - the corrected pair scan returns five interactions: `(0,6)/(1,6)/(2,6)/(5,6)` at `syn +0.2142`, family `p_upper 0.010`, and `(3,6)` at `syn +0.1895`, family `p_upper 0.0299`.
+  - column 6 is `hub0` (x); columns 0/1/2/5 are step counters. All five are time-and-position pairs, and `pair_scan` has no block labels.
+- **Gap**: "which two modules interact" counted world/time pairs because every feature column was treated as a module. `lesion_audit.MODULE_SPANS` already defines M/P/S/hub, but the scan ignored it.
+- **Target delta**: label each pair's blocks, expose a module-only corrected subset, and show a planted cross-module pair survives the filter.
+- **Falsifier**: a hub pair survives `module_interactions`; the planted M/P pair is lost; a block label is wrong; or a shipped module interaction appears that the unfiltered scan did not report.
+- **Change**: `evals/pair_scan.py` imports `MODULE_SPANS`, adds `block_for(column, width)`, attaches `blocks` to every pair report, and adds `module_interactions` (two different M/P/S blocks) and `world_interactions` (hub present); `tests/test_module_pair_scan.py` (6 tests).
+- **After** (same pooled trace):
+  - `interactions` and `world_interactions`: the same five hub pairs; `module_interactions`: `[]`.
+  - cross-module planted XOR: `[[0,2]]`, `blocks ['M','P']`, `syn 0.6107`, family `p_upper 0.005`.
+  - block labels on the 9-column vector: `M M P P S S hub hub target`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: using `interactions` without the block filter returns the five hub pairs; `module_interactions` returns none; the planted M/P pair survives the module filter. The filter is the integration point; removing it restores the world-pair claim, restoring it leaves only the planted cross-module candidate.
+- **Verdict**: criteria hardening. The measured delta is "five family-significant world/time pairs read as module interactions" -> "five hub pairs separated, zero module interactions, and a planted cross-module pair still detected". Boundary: the filter separates world from module pairs but does not make the M/P/S counters independent of elapsed time; on one episode the step counters still determine the sparse reward, and pooling only lets hub pairs through the target gate. The next measurement is an episode-aware control that keeps world position and elapsed time out of the module pair set without discarding world evidence.
+- **Gates**: unittest 865/865 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_pair_scan` -> before: ImportError; after: 6 OK.
+  - `python ..\..\scratch\probe_156.py` -> pooled 70 rows / 10 rewards; 5 hub pairs; module 0; cross-module `[[0,2]]` p 0.005.
+  - `python -m unittest tests.test_pair_scan tests.test_pair_scan_fwer tests.test_pair_scan_target_column tests.test_pair_scan_target_leak tests.test_pair_conclusions tests.test_wiring_independence` -> 44 OK.
+  - `python -m unittest discover -s tests -t .` -> 865 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 157**: unittest 865 OK; aikit 5/5; pooled 70 rows / 10 rewards; `interactions` and `world_interactions` each 5 hub pairs at `syn 0.2142/0.1895` and family `p_upper 0.010/0.0299`; `module_interactions` empty; cross-module XOR `[[0,2]]` `blocks ['M','P']` `syn 0.6107` family `p_upper 0.005`; block labels `M M P P S S hub hub target`; leak fixture guarded `target-leak-column` / `syn 0.0542` / `interactions []`; planted XOR `[[0,1]]` family `p_upper 0.005`; wired guarded 28 reports / 0 valid / no family; `(4,5)/(4,7)/(6,7)` `target-leak-column` with `syn -0.1243/-0.2309/-0.0632`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 155 - a feature that determines the target is not an interaction partner
 
 - **Baseline** (commit 6913625):

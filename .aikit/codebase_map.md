@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `211`
-- **Total Classes**: `218`
-- **Total Top-Level Functions**: `592`
-- **Total Class Methods**: `1125`
-- **Total Source Lines**: `28644`
+- **Total Python Modules**: `212`
+- **Total Classes**: `219`
+- **Total Top-Level Functions**: `598`
+- **Total Class Methods**: `1131`
+- **Total Source Lines**: `28816`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`211` module(s))
+- **Indexed**: python (`212` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -720,17 +720,20 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `233` lines (`9804` bytes)
+**Size**: `283` lines (`11922` bytes)
 
 **Functions:**
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
 - `def _target_column(values, target)` - *True when a column is identical to the target.*
 - `def _target_leak(values, target)` - *True when the target is a deterministic function of the column.*
+- `def block_for(column, width)` - *Return the M/P/S/hub block a column belongs to.*
 - `def pair_report(rows, target, first, second, trials, with_null, guard_target)` - *Score one column pair, refusing artifacts before scoring.*
 - `def _family_wise(rows, target, reports, trials, seed)` - *Attach a max/min-statistic null to every pair that passed the gate.*
 - `def scan_pairs(rows, target, trials, family_wise, seed, guard_target)` - *Return every feature-column pair's report, sorted by gap descending.*
 - `def interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return only the pairs that pass the gate AND beat their family upward.*
 - `def anti_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return pairs that pass the gate and sit below their family null.*
+- `def module_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return corrected interactions whose two blocks are different modules.*
+- `def world_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return corrected interactions that include a ``hub`` column.*
 
 ---
 
@@ -2623,6 +2626,27 @@
 **Functions:**
 - `def _write_log(directory, name, task, seed)`
 - `def _rewrite_model(log_path, out_path, model)`
+
+---
+
+### [`tests/test_module_pair_scan.py`](tests/test_module_pair_scan.py)
+> *A module interaction needs two module blocks, not the world hub.*
+
+**Size**: `122` lines (`4743` bytes)
+
+**Classes:**
+- `class TestModulePairScan`
+  - Method `.test_blocks_label_the_legacy_vector()`
+  - Method `.test_pooled_scan_reports_world_pairs()`
+  - Method `.test_pooled_module_interactions_are_empty()`
+  - Method `.test_module_interactions_require_two_different_blocks()`
+  - Method `.test_a_cross_module_planted_pair_is_detected()`
+  - Method `.test_the_ablation_keeps_the_world_pairs()`
+
+**Functions:**
+- `def _episode(seed)`
+- `def _pooled(seeds)`
+- `def _cross_module(n, seed)` - *A planted XOR between column 0 (M) and column 2 (P).*
 
 ---
 

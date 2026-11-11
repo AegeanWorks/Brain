@@ -32,6 +32,7 @@ for a substrate whose trace carries one variable in nine columns.
 import random
 
 from evals.estimators import synergy, synergy_scope
+from evals.lesion_audit import MODULE_SPANS
 from evals.synergy_null import synergy_verdict
 
 #: Family-wise tail for a scan that tests every valid pair at once.
@@ -73,6 +74,25 @@ def _target_leak(values, target):
     return True
 
 
+def block_for(column, width=None):
+    """Return the M/P/S/hub block a column belongs to.
+
+    ``width`` names the last column as ``target``; omitting it treats every
+    column from 6 on as ``hub``. Columns outside the legacy block layout
+    fall back to ``c<index>``.
+    """
+    if isinstance(column, bool) or not isinstance(column, int) or column < 0:
+        raise ValueError(
+            "Why: column must be a non-negative int. "
+            "Fix: pass block_for(0, width).")
+    if width is not None and column == width - 1:
+        return "target"
+    for name, (low, high) in MODULE_SPANS.items():
+        if column >= low and (high is None or column < high):
+            return name
+    return "c%d" % column
+
+
 def pair_report(rows, target, first, second, trials=200, with_null=True,
                 guard_target=True):
     """Score one column pair, refusing artifacts before scoring.
@@ -85,6 +105,7 @@ def pair_report(rows, target, first, second, trials=200, with_null=True,
     all pairs instead. ``guard_target=False`` is the executable ablation.
     """
     pair = [[row[first], row[second]] for row in rows]
+    width = max((len(row) for row in rows), default=0)
     scope = synergy_scope(pair, target)
     syn, syn_n = synergy(pair, target)
     reason = scope["reason"]
@@ -101,6 +122,7 @@ def pair_report(rows, target, first, second, trials=200, with_null=True,
         reason = "target-leak-column"
     report = {
         "columns": [first, second],
+        "blocks": [block_for(first, width), block_for(second, width)],
         "syn": syn,
         "syn_n": syn_n,
         "ok": reason is None,
@@ -231,3 +253,31 @@ def anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
         elif report["null"]["distinguishable"]:
             selected.append(report)
     return selected
+
+
+def module_interactions(rows, target, trials=200, family_wise=True, seed=0,
+                        guard_target=True):
+    """Return corrected interactions whose two blocks are different modules.
+
+    A pair with a ``hub`` column is a world/time pair, not two modules
+    interacting. This keeps the generic :func:`interactions` result intact
+    and exposes the module-only subset for emergence claims.
+    """
+    selected = []
+    for report in interactions(rows, target, trials=trials,
+                               family_wise=family_wise, seed=seed,
+                               guard_target=guard_target):
+        first, second = report["blocks"]
+        if (first in ("M", "P", "S") and second in ("M", "P", "S")
+                and first != second):
+            selected.append(report)
+    return selected
+
+
+def world_interactions(rows, target, trials=200, family_wise=True, seed=0,
+                       guard_target=True):
+    """Return corrected interactions that include a ``hub`` column."""
+    return [report for report in interactions(
+                rows, target, trials=trials, family_wise=family_wise,
+                seed=seed, guard_target=guard_target)
+            if "hub" in report["blocks"]]

@@ -233,8 +233,9 @@ paired action/result record so `n` counts steps. Equal scope columns mean
 no independent second signal: `duplicate-scope-column`; a constant reads
 `constant-scope-column`. `evals.pair_scan` skips the target column, refuses
 `target-column`/`target-leak-column`, and applies a family-wise max/min null
-(`family_wise=False`/`guard_target=False` are ablations). Nothing shipped
-beats its null.
+(`family_wise=False`/`guard_target=False` are ablations). Pairs carry
+M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
+shipped pair beats its null.
 
 ## 🧪 Lesion Detectability
 
@@ -448,8 +449,8 @@ intact/tampered/missing meta.
 
 `calibration.summary(forecasts, min_resolved=10)` scores forecast
 records with Brier, log loss, base rate, skill, five reliability bins
-and small-sample/over-confidence warnings.
-`outcome=None` is ignored and reflected in coverage.
+and warnings.
+`outcome=None` is ignored in coverage.
 `SelfModel.calibration()` scores them.
 `record_prediction` forms the confidence *before* the action, so the
 score is a real forecast (skill +0.935 over six pinned episodes); the
@@ -520,9 +521,7 @@ inconclusive`, `summary()` counts claims/verdicts, and `to_dict`/
 `from_dict` roundtrip as JSON. A claim's status derives from its
 verdict history (`proposed` with none, otherwise the last verdict's
 status); a claim or snapshot whose status contradicts that history is
-rejected, even when its checksum was recomputed. Verdict evidence and
-timestamps are validated on load too. Declared confidence does not decide
-the verdict. `python -m evals.claims` judges six T3 claims (3/2/1).
+rejected, even when its checksum was recomputed. Verdict evidence and timestamps are validated on load. `python -m evals.claims` judges six T3 claims (3/2/1).
 
 `claims_store.py` makes the ledger durable. `save_ledger(ledger,
 path)` writes one checksummed snapshot atomically, keeps the previous
