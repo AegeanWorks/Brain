@@ -4904,6 +4904,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 158 - a scan candidate must replicate on held-out episodes
+
+- **Baseline** (commit 06267d4):
+  - canonical gate: 871 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the module-state train scan reports two family-significant candidates on `T3_navigate` seeds 0-9: `(0,4)` and `(0,5)` M-S at `syn +0.13`, family `p_upper 0.0495` (100 trials).
+  - on held-out seeds 10-19 the same pairs read `syn +0.0076` at `p_upper 0.95` and `syn +0.0219` at `p_upper 0.87`; both are pool-selection artifacts, not replicated interactions.
+  - the family scan corrects multiplicity within one pool; nothing tested replication across pools.
+- **Gap**: a family-significant candidate can be the one pool where a noise pair cleared the tail. Reporting it as an interaction is a selection artifact.
+- **Target delta**: test every train candidate on a disjoint holdout with the same pair gate and null, select only replicated candidates, and leave a planted cross-module pair selected.
+- **Falsifier**: a non-replicated train candidate is selected; a replicated planted pair is rejected; the ablation does not return the train set; or the result is nondeterministic.
+- **Change**: `evals/replication.py` adds `scan_with_holdout` (`candidates`, `selected`, `rejected`, `require_replication`); `tests/test_replication.py` (5 tests).
+- **After** (same signal pools):
+  - candidates 2: `(0,4)` train `0.13` / family `0.0495`, holdout `0.0076` / `p_upper 0.95`, not replicated; `(0,5)` holdout `0.0219` / `p_upper 0.87`, not replicated.
+  - selected `[]`; rejected `[[0,4],[0,5]]`.
+  - planted M/P XOR: selected `[[0,2]]`; it replicates on both pools.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `require_replication=False` selects both train candidates (`[[0,4],[0,5]]`); `True` selects none, while the planted cross-module pair is selected under both. The holdout check is the integration point; removing it restores the train-only claim, restoring it removes it and keeps the replicated pair.
+- **Verdict**: criteria hardening. The measured delta is "two train-only family-significant pairs are reported as candidates" -> "both are rejected on held-out episodes, and only a replicated planted pair is selected". Boundary: the holdout must be disjoint by episode; one holdout block can be unlucky in the other direction, so this is a replication gate, not sequential validation. The signal channel still has no stable module interaction at 200 trials; the gate makes that failure explicit.
+- **Gates**: unittest 876/876 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_replication` -> before: ImportError; after: 5 OK.
+  - `python ..\..\scratch\probe_158.py` -> candidates 2, selected 0, rejected 2; ablation selected 2.
+  - `python -m unittest discover -s tests -t .` -> 876 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 159**: unittest 876 OK; aikit 5/5; signal train candidates `(0,4)/(0,5)` `syn 0.13` family `p_upper 0.0495`; holdout `(0,4)` `0.0076` / `0.95`, `(0,5)` `0.0219` / `0.87`; selected `[]`; rejected 2; ablation selected 2; planted M/P `[[0,2]]` selected under both; signal rows 70 / 5 gate-passing module pairs; legacy 70 / 0 module-valid; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; wired guarded 28 / 0; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 157 - expose pre-action module state that is not a step counter
 
 - **Baseline** (commit c428c2b):

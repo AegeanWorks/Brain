@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `214`
-- **Total Classes**: `220`
-- **Total Top-Level Functions**: `604`
-- **Total Class Methods**: `1138`
-- **Total Source Lines**: `29048`
+- **Total Python Modules**: `216`
+- **Total Classes**: `221`
+- **Total Top-Level Functions**: `608`
+- **Total Class Methods**: `1143`
+- **Total Source Lines**: `29231`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`214` module(s))
+- **Indexed**: python (`216` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -814,6 +814,17 @@
 - `def dedupe_rows(rows)` - *Collapse adjacent identical rows to one.*
 - `def recompute(log_path)` - *Read JSONL log and return dict with syn, phi, gbi, gain, recovery.*
 - `def main()`
+
+---
+
+### [`evals/replication.py`](evals/replication.py)
+> *A scan candidate must survive a held-out pool.*
+
+**Size**: `65` lines (`2783` bytes)
+
+**Functions:**
+- `def _train_candidate(report, alpha)` - *True when a train report is a positive, family-significant pair.*
+- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, alpha, require_replication)` - *Return train candidates with their holdout verdict.*
 
 ---
 
@@ -3302,6 +3313,25 @@
 
 **Functions:**
 - `def _xor_trace(seed, n)`
+
+---
+
+### [`tests/test_replication.py`](tests/test_replication.py)
+> *A scan candidate must replicate on held-out episodes.*
+
+**Size**: `118` lines (`5120` bytes)
+
+**Classes:**
+- `class TestHoldoutReplication`
+  - Method `.test_a_train_only_signal_candidate_fails_holdout()`
+  - Method `.test_the_ablation_returns_the_train_candidates()`
+  - Method `.test_a_planted_cross_module_pair_replicates()`
+  - Method `.test_no_candidate_degrades_to_empty()`
+  - Method `.test_the_holdout_result_is_deterministic()`
+
+**Functions:**
+- `def _signal_rows(seeds)`
+- `def _planted(seed, n)` - *A non-leaky XOR between column 0 (M) and column 2 (P).*
 
 ---
 

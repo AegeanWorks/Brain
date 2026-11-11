@@ -238,7 +238,8 @@ M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
 shipped pair beats its null. `Agent(module_signals=True)` writes six
 pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
 5 gate-passing module pairs versus 0 legacy, none family-significant at
-200 trials).
+200 trials). `evals.replication` requires a candidate to replicate on
+held-out episodes; the train-only signal pairs fail.
 
 ## 🧪 Lesion Detectability
 
@@ -451,16 +452,15 @@ intact/tampered/missing meta.
 ## 📐 Calibration Scoring
 
 `calibration.summary(forecasts, min_resolved=10)` scores forecast
-records with Brier, log loss, base rate, skill, five reliability bins
-and warnings.
-`outcome=None` is ignored in coverage.
+records with Brier, log loss, base rate, skill and five bins.
+`outcome=None` is ignored.
 `SelfModel.calibration()` scores them.
 `record_prediction` forms the confidence *before* the action, so the
 score is a real forecast (skill +0.935 over six pinned episodes); the
 older `record` uses `1.0` rewarded or `0.5` otherwise, a function of
 the outcome, and the readout appends a `confidence-is-outcome`
 warning. The scorer never applies it.
-`python -m evals.calibration` shows all four fixtures.
+`python -m evals.calibration` shows four fixtures.
 
 `calibration_store.py` makes forecasts durable across runs.
 `append_forecasts` validates each record, refuses duplicate ids, and
