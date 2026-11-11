@@ -5,7 +5,7 @@ block into each action record:
 
     M = [distinct positions, revisits]
     P = [BFS distance, ties]
-    S = [online probability, outcomes seen]
+    S = [online probability, distinct feature keys seen]
 
 The six values use the same M/P/S block layout as the legacy vector, so a
 seven-column row (six signals plus the reward target) can go straight into

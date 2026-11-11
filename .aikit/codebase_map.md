@@ -9,8 +9,8 @@
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
 - **Total Top-Level Functions**: `608`
-- **Total Class Methods**: `1143`
-- **Total Source Lines**: `29231`
+- **Total Class Methods**: `1146`
+- **Total Source Lines**: `29265`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1664` lines (`68808` bytes)
+**Size**: `1671` lines (`69207` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -58,7 +58,7 @@
   - Method `.events()`
   - Method `.clear()`
 - `class Agent` - *Closed loop over a GridWorld instance.*
-  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log, module_signals)`
+  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log, module_signals, module_s_mode)`
   - Property `.log_path` - *Return file path of telemetry_log when present, else None.*
   - Method `.hub_write(content)` - *Merge a dict into the shared hub and return a hub copy.*
   - Method `.get_hub()` - *Return a copy of the shared hub mapping.*
@@ -67,7 +67,7 @@
   - Method `._persistent_layout()` - *Return the persisted initial state for this world, or None.*
   - Method `._layout_complete(state)` - *True when a state carries every goal field its task consumes.*
   - Method `._remember_layout(state)` - *Persist the initial state once; never store an incomplete one.*
-  - Method `._module_signals(memories, learned, seen)` - *Return pre-action M/P/S state that is not an elapsed-time counter.*
+  - Method `._module_signals(memories, learned, keys, seen)` - *Return pre-action M/P/S state that is not an elapsed-time counter.*
   - Method `._step_vectors(idx, new_state, reward, memories)` - *Build numeric M/P/S/hub vectors for one step.*
   - Method `.run(max_steps, budget)` - *Run the loop; optionally install an execution budget.*
   - Method `._run_loop(max_steps)` - *Run perceive/plan/act/observe loop; return trace list.*
@@ -721,7 +721,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `78` lines (`2477` bytes)
+**Size**: `78` lines (`2490` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
@@ -2678,19 +2678,22 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `108` lines (`4775` bytes)
+**Size**: `136` lines (`6244` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
   - Method `.test_signals_are_emitted()`
   - Method `.test_module_signals_can_be_disabled()`
   - Method `.test_signal_scan_has_more_testable_module_pairs_than_legacy()`
+  - Method `.test_the_s_block_is_independent()`
+  - Method `.test_the_seen_mode_is_dependent()`
+  - Method `.test_keys_mode_adds_one_testable_pair()`
   - Method `.test_module_interactions_are_empty_at_200_trials()`
   - Method `.test_signals_do_not_change_actions()`
   - Method `.test_malformed_signal_rows_are_ignored()`
 
 **Functions:**
-- `def _logs(directory, module_signals, seeds, task)`
+- `def _logs(directory, module_signals, seeds, task, module_s_mode)`
 - `def _cross_module_count(reports)`
 
 ---
@@ -3319,7 +3322,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `118` lines (`5120` bytes)
+**Size**: `117` lines (`5080` bytes)
 
 **Classes:**
 - `class TestHoldoutReplication`

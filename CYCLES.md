@@ -4904,6 +4904,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 159 - the S block needs a second signal that is not its own count
+
+- **Baseline** (commit 7ef0d42):
+  - canonical gate: 876 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the module-state S block is `[online probability, outcomes seen]`; the two values are functionally dependent, so the block counts one signal twice.
+  - on ten `T3_navigate` episodes the pooled S columns are dependent and the signal scan has 5 gate-passing pairs; no within-S pair can be evidence.
+- **Gap**: a module block with two dependent values cannot supply an independent second signal; the second S column is dead weight, and the family counts duplicate evidence.
+- **Target delta**: make the S columns independent, keep the cross-module candidates, and show the old dependent pair is the only thing the ablation restores.
+- **Falsifier**: the keys mode is still dependent; the seen mode is independent; a cross-module pair changes; an action moves; or the holdout result changes its verdict.
+- **Change**: `agent.py` adds `module_s_mode="keys"` (default) and `"seen"` (ablation); `S=[online probability, distinct feature keys seen]`; `tests/test_module_signals.py` gains the S-independence and valid-pair differential tests (9 total); `evals/module_state.py` documents the new S block.
+- **After** (same ten episodes):
+  - keys: 70 rows, S dependent **False**, 6 gate-passing pairs; `module_interactions` `[]` at 200 trials.
+  - seen: 70 rows, S dependent **True**, 5 gate-passing pairs.
+  - cross-module valid pairs remain 5; the extra keys-mode pair is `(4,5)` S-S, within the S block.
+  - replication: only `(0,4)` is a train candidate (`syn 0.13`, family `p_upper 0.0495`); holdout `syn 0.0076`, `p_upper 0.95`, selected `[]`; ablation selects `[[0,4]]`.
+  - actions, rewards and step counts identical in both modes; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `module_s_mode="seen"` restores the dependent S columns and 5 valid pairs; `"keys"` makes them independent and yields 6 valid pairs. The mode is the integration point; removing it restores the duplication, restoring it removes it, and no action moves either way.
+- **Verdict**: telemetry correctness and a rung-3 prerequisite. The measured delta is "the S block counts one signal twice and has 5 valid pairs" -> "the S block has two independent values and 6 valid pairs, with no selected module interaction". Boundary: the extra pair is S-S, not cross-module; cross-module valid pairs stay 5. The S duplication is fixed; a cross-module signal that is not a function of the episode index is still missing.
+- **Gates**: unittest 879/879 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_signals` -> 9 OK.
+  - `python ..\..\scratch\probe_159.py` -> keys 70/6/S False; seen 70/5/S True; replication candidate 1, selected 0, ablation 1.
+  - `python -m unittest discover -s tests -t .` -> 879 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 160**: unittest 879 OK; aikit 5/5; keys mode 70 rows / 6 valid / S dependent False; seen mode 70 rows / 5 valid / S dependent True; cross-module valid 5 both; `module_interactions []` both; replication candidate `(0,4)` `syn 0.13` family `p_upper 0.0495`, holdout `0.0076` / `0.95`, selected `[]`, ablation `[[0,4]]`; signal rows 70 / 5 cross-module; legacy 70 / 0 module-valid; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 158 - a scan candidate must replicate on held-out episodes
 
 - **Baseline** (commit 06267d4):

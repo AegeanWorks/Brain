@@ -1079,6 +1079,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 876 tests OK; aikit check 5/5. The signal train scan has 2 candidates, 0 selected and 2 rejected; the ablation selects both. A synthetic XOR across the M and P blocks replicates on both pools and is the only selected pair. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged. Ablation: `require_replication=False` returns the two train candidates; `True` returns none, while the planted cross-module pair remains selected under both.
 - **Boundary**: the holdout must be disjoint by episode, and one holdout block can still be unlucky in the other direction; this is a replication gate, not a sequential or rolling validation. The signal channel still has no stable module interaction at 200 trials; the gate makes that failure explicit instead of turning a train-only tail into a claim.
 
+### ADR-154: The S block needs a second signal that is not its own count
+- **Date**: 2026-11-11
+- **Status**: Accepted
+- **Context**: ADR-152 defined `S=[online probability, outcomes seen]`. The two values are functionally dependent (the probability is a monotone function of the same key's count), so the S block counted one signal twice: on ten `T3_navigate` episodes the pooled S columns are dependent, the signal scan has 5 gate-passing pairs, and no within-S pair can be evidence. The second S value was effectively dead.
+- **Decision**: Add `module_s_mode="keys"` as the default: `S=[online probability, distinct feature keys seen]`; `module_s_mode="seen"` restores the old dependent pair and is the executable ablation. Both values are read before the step; actions are unchanged. Update `evals/module_state.py` and `tests/test_module_signals.py` (9 tests, including the keys/seen dependence and valid-pair differential).
+- **Consequences**: 879 tests OK; aikit check 5/5. Keys: 70 rows, S columns independent, 6 gate-passing pairs. Seen: 70 rows, S columns dependent, 5 gate-passing pairs. `module_interactions` is empty under both at 200 trials. The replication gate still rejects the train candidate: `(0,4)` reads `syn +0.13` / family `p_upper 0.0495`, holdout `syn +0.0076` / `p_upper 0.95`, selected `[]`; the ablation selects it. Actions, rewards and step counts are identical in both modes. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged.
+- **Boundary**: independence is a prerequisite for a module pair, not an interaction. The extra valid pair is `(4,5)` S-S, a within-block pair, so the cross-module count stays 5; the S block now has two independent values, but no cross-module signal has been shown to vary independently of the episode index. That coupling, not the S duplication, is the next substrate falsifier.
+
 
 
 

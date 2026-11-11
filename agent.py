@@ -1109,7 +1109,7 @@ class Agent:
 
     def __init__(self, memory=None, planner=None, selfmodel=None, telemetry=None, world=None,
                  memory_store=None, planner_tracker=None, self_model=None, telemetry_log=None,
-                 module_signals=True):
+                 module_signals=True, module_s_mode="keys"):
         self.memory = memory if memory is not None else Memory()
         self.planner = planner if planner is not None else Planner()
         self.selfmodel = selfmodel if selfmodel is not None else SelfModel()
@@ -1124,6 +1124,11 @@ class Agent:
                 "Why: module_signals must be a bool. "
                 "Fix: pass module_signals=True or False.")
         self._emit_module_signals = module_signals
+        if module_s_mode not in ("keys", "seen"):
+            raise ValueError(
+                "Why: module_s_mode must be 'keys' or 'seen'. "
+                "Fix: pass module_s_mode='keys'.")
+        self._module_s_mode = module_s_mode
         self._hub = {}
         self._steps_since_reward = 0
         #: Laplace-smoothed outcome frequencies, learned online from error
@@ -1317,11 +1322,11 @@ class Agent:
 
     # -- loop ----------------------------------------------------------
 
-    def _module_signals(self, memories, learned, seen):
+    def _module_signals(self, memories, learned, keys, seen):
         """Return pre-action M/P/S state that is not an elapsed-time counter.
 
         M = [distinct positions, revisits]; P = [BFS distance, ties];
-        S = [online probability, outcomes seen]. These are read from the
+        S = [online probability, distinct feature keys seen]. These are read from the
         memory contents, the planner's rule probe and the online predictor
         before the step, so they vary with the episode's geometry and
         history rather than with its index.
@@ -1347,10 +1352,11 @@ class Agent:
                 ties = int(rule.get("ties", 0))
             except (TypeError, ValueError):
                 ties = 0
+        second = keys if self._module_s_mode == "keys" else seen
         return {
             "M": [distinct, revisits],
             "P": [distance, ties],
-            "S": [float(learned), int(seen)],
+            "S": [float(learned), int(second)],
         }
 
     def _step_vectors(self, idx, new_state, reward, memories):
@@ -1443,6 +1449,7 @@ class Agent:
             _learn_key = feature_key(getattr(self.world, "task_id", None),
                                      state, action)
             _learned = self._online.predict(_learn_key)
+            _keys = len(self._online.keys())
             _seen = self._online.seen(_learn_key)
             new_state, reward, done = self.world.step(action)  # act
             self._online.observe(_learn_key, float(reward) > 0.0)
@@ -1513,7 +1520,7 @@ class Agent:
                     args["probe"] = copy.deepcopy(probe)
                 if self._emit_module_signals:
                     args["signals"] = self._module_signals(
-                        memories, _learned, _seen)
+                        memories, _learned, _keys, _seen)
                 try:
                     self.telemetry_log.append_action(
                         i + 1, "step", args,

@@ -68,7 +68,6 @@ class TestHoldoutReplication(unittest.TestCase):
         rejected = [item["candidate"]["columns"]
                     for item in result["rejected"]]
         self.assertIn([0, 4], rejected)
-        self.assertIn([0, 5], rejected)
 
     def test_the_ablation_returns_the_train_candidates(self):
         train_rows, train_target = _signal_rows(range(10))
