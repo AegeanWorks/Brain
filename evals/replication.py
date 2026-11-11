@@ -19,13 +19,15 @@ def _train_candidate(report, alpha):
 
 
 def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
-                      trials=200, alpha=ALPHA, require_replication=True):
-    """Return train candidates with their holdout verdict.
+                      trials=200, stability_trials=None, alpha=ALPHA,
+                      require_replication=True, require_stability=True):
+    """Return train candidates with their stability and holdout verdicts.
 
-    Each candidate carries the train report, the holdout pair report, and a
-    ``replicated`` flag. ``selected`` is the replicated subset when
-    ``require_replication`` is true, and the full candidate set otherwise;
-    ``rejected`` is always the non-replicated subset.
+    ``stability_trials`` re-runs the train family scan at a higher trial
+    count; a candidate that clears ``alpha`` at ``trials`` but not there is
+    underpowered. The default is ``max(trials, 200)``. Each candidate carries
+    ``stable``, ``replicated`` and both pair reports; ``selected`` honours
+    the two gates, and ``rejected`` is the rest.
     """
     if len(train_rows) != len(train_target):
         raise ValueError(
@@ -35,13 +37,38 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         raise ValueError(
             "Why: holdout rows and target must align. "
             "Fix: pass one target per holdout row.")
+    if isinstance(trials, bool) or not isinstance(trials, int) or trials < 1:
+        raise ValueError(
+            "Why: trials must be a positive int. "
+            "Fix: pass trials=200.")
+    if stability_trials is None:
+        stability_trials = max(trials, 200)
+    if (isinstance(stability_trials, bool)
+            or not isinstance(stability_trials, int)
+            or stability_trials < trials):
+        raise ValueError(
+            "Why: stability_trials must be an int >= trials. "
+            "Fix: pass stability_trials=200.")
     reports = scan_pairs(train_rows, train_target, trials=trials,
                          family_wise=True)
+    stable_map = None
+    if require_stability and stability_trials > trials:
+        stable_reports = scan_pairs(train_rows, train_target,
+                                    trials=stability_trials,
+                                    family_wise=True)
+        stable_map = {tuple(report["columns"]): report
+                      for report in stable_reports if report["ok"]}
     candidates = []
     for report in reports:
         if not _train_candidate(report, alpha):
             continue
         first, second = report["columns"]
+        stable = True
+        stability_report = None
+        if require_stability and stable_map is not None:
+            stability_report = stable_map.get((first, second))
+            stable = bool(stability_report
+                          and stability_report["family"]["p_upper"] <= alpha)
         holdout = pair_report(holdout_rows, holdout_target, first, second,
                               trials=trials)
         null = holdout.get("null") or {}
@@ -50,16 +77,22 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
                           and null["p_upper"] <= alpha)
         candidates.append({
             "candidate": report,
+            "stability": stability_report,
             "holdout": holdout,
+            "stable": stable,
             "replicated": replicated,
         })
-    selected = ([item for item in candidates if item["replicated"]]
-                if require_replication else list(candidates))
-    rejected = [item for item in candidates if not item["replicated"]]
+    selected = [
+        item for item in candidates
+        if (not require_stability or item["stable"])
+        and (not require_replication or item["replicated"])
+    ]
+    rejected = [item for item in candidates if item not in selected]
     return {
         "candidates": candidates,
         "selected": selected,
         "rejected": rejected,
         "alpha": alpha,
         "trials": trials,
+        "stability_trials": stability_trials,
     }

@@ -1087,6 +1087,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 879 tests OK; aikit check 5/5. Keys: 70 rows, S columns independent, 6 gate-passing pairs. Seen: 70 rows, S columns dependent, 5 gate-passing pairs. `module_interactions` is empty under both at 200 trials. The replication gate still rejects the train candidate: `(0,4)` reads `syn +0.13` / family `p_upper 0.0495`, holdout `syn +0.0076` / `p_upper 0.95`, selected `[]`; the ablation selects it. Actions, rewards and step counts are identical in both modes. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged.
 - **Boundary**: independence is a prerequisite for a module pair, not an interaction. The extra valid pair is `(4,5)` S-S, a within-block pair, so the cross-module count stays 5; the S block now has two independent values, but no cross-module signal has been shown to vary independently of the episode index. That coupling, not the S duplication, is the next substrate falsifier.
 
+### ADR-155: A candidate must clear a higher-trial stability check
+- **Date**: 2026-11-11
+- **Status**: Accepted
+- **Context**: ADR-153's replication test discovered the signal candidate `(0,4)` at 100 permutation trials, where its family `p_upper` was `0.0495`. At 200 trials the same pair's family `p_upper` is `0.0547`: the 100-trial result was a trial-count artifact, not a stable tail. The holdout gate rejected it, but the candidate should not have reached the holdout stage as a discovery.
+- **Decision**: `scan_with_holdout` now defaults `stability_trials=max(trials, 200)`, re-runs the train family scan at that count, attaches the higher-trial report as `stability` and a `stable` flag, and selects a candidate only when both stability and replication pass. `require_stability=False` and `require_replication=False` are independent executable ablations. Tests: `tests/test_replication.py` (7).
+- **Consequences**: 881 tests OK; aikit check 5/5. The signal candidate `(0,4)` reads `p_upper 0.0495` at 100 trials and `0.0547` at 200, so `stable` is false and `selected` is `[]`; `require_stability=False` returns `[[0,4]]`. The planted M/P XOR is stable at both counts and replicated, and stays selected. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged. Ablation: removing the stability check returns the 100-trial candidate; restoring it removes it without touching the planted pair.
+- **Boundary**: one higher trial count is not convergence. A p-value near `alpha` can oscillate as the permutation resolution improves, so the scan reports both `trials` and `stability_trials`; a larger grid or a sequential test is the next step if stability becomes the deciding gate.
+
 
 
 

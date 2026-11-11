@@ -238,8 +238,9 @@ M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
 shipped pair beats its null. `Agent(module_signals=True)` writes six
 pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
 5 gate-passing module pairs versus 0 legacy, none family-significant at
-200 trials). `evals.replication` requires a candidate to replicate on
-held-out episodes; the train-only signal pairs fail.
+200 trials). `evals.replication` requires a candidate to survive a higher-trial
+stability check and replicate on held-out episodes; the train-only signal
+pairs fail.
 
 ## 🧪 Lesion Detectability
 
@@ -537,7 +538,7 @@ wrong MAC fails without quarantining the valid primary, so a key mistake
 never destroys evidence. `python -m evals.claims_store` shows the ablation, recovery and keyed
 modes; keep the snapshot outside the source tree. The
 checksum detects accidental edits; the HMAC also detects a rewritten
-checksum when the key stays outside the store. An unkeyed save over a
+checksum. An unkeyed save over a
 keyed snapshot is refused, so authenticated evidence cannot be
 downgraded.
 

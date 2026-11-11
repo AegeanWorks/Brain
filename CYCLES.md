@@ -4904,6 +4904,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 160 - a candidate must clear a higher-trial stability check
+
+- **Baseline** (commit 4c5f835):
+  - canonical gate: 879 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the replication test discovered the signal candidate `(0,4)` at 100 trials with family `p_upper 0.0495`.
+  - at 200 trials the same pair's family `p_upper` is `0.0547`: the 100-trial discovery was a trial-count artifact, not a stable tail.
+- **Gap**: the discovery stage can select a candidate that exists only at the lower permutation resolution; the holdout gate rejected it, but it should not reach the holdout stage as a discovery.
+- **Target delta**: re-run the train family scan at a higher trial count, reject a candidate whose tail does not survive it, and leave a planted stable pair selected.
+- **Falsifier**: the 100-trial candidate is still selected; the planted pair is rejected; the stability report is absent; or the ablation does not restore the candidate.
+- **Change**: `evals/replication.py` adds `stability_trials` (default `max(trials, 200)`), a `stability` report and a `stable` flag, and requires both stability and replication for selection; `require_stability=False` is the executable ablation; `tests/test_replication.py` (7 tests).
+- **After** (same signal pools):
+  - `(0,4)` family `p_upper` `0.0495` at 100 trials, `0.0547` at 200; `stable False`; `selected []` with replication disabled.
+  - `require_stability=False`: selected `[[0,4]]`.
+  - planted M/P XOR: stable at both counts, replicated, selected `[[0,2]]`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: removing the stability check returns the 100-trial candidate (`[[0,4]]`); restoring it removes it while the planted pair stays selected. The check is the integration point; the candidate dies with the cut and returns with the restore.
+- **Verdict**: criteria hardening. The measured delta is "a 100-trial tail at 0.0495 is treated as a discovery" -> "it reads 0.0547 at 200 trials, is marked unstable, and is not selected". Boundary: one higher trial count is not convergence; a p near `alpha` can oscillate as resolution improves, so both counts are reported and a larger grid or sequential test is the next step if stability becomes the deciding gate.
+- **Gates**: unittest 881/881 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_replication` -> 7 OK.
+  - `python ..\..\scratch\probe_160.py` -> p100 0.0495, p200 0.0547, stable False, selected []; ablation selected [[0,4]].
+  - `python -m unittest discover -s tests -t .` -> 881 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 161**: unittest 881 OK; aikit 5/5; signal candidate `(0,4)` family `p_upper 0.0495` at 100 trials / `0.0547` at 200; stable False; selected `[]`; stability ablation `[[0,4]]`; planted M/P `[[0,2]]` stable and replicated; keys mode 70 rows / 6 valid / S dependent False; seen mode 70 rows / 5 valid / S dependent True; cross-module valid 5 both; `module_interactions []` both; signal rows 70 / 5 cross-module; legacy 70 / 0 module-valid; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 159 - the S block needs a second signal that is not its own count
 
 - **Baseline** (commit 7ef0d42):

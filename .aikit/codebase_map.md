@@ -9,8 +9,8 @@
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
 - **Total Top-Level Functions**: `608`
-- **Total Class Methods**: `1146`
-- **Total Source Lines**: `29265`
+- **Total Class Methods**: `1148`
+- **Total Source Lines**: `29328`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -820,11 +820,11 @@
 ### [`evals/replication.py`](evals/replication.py)
 > *A scan candidate must survive a held-out pool.*
 
-**Size**: `65` lines (`2783` bytes)
+**Size**: `98` lines (`4321` bytes)
 
 **Functions:**
 - `def _train_candidate(report, alpha)` - *True when a train report is a positive, family-significant pair.*
-- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, alpha, require_replication)` - *Return train candidates with their holdout verdict.*
+- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, require_replication, require_stability)` - *Return train candidates with their stability and holdout verdicts.*
 
 ---
 
@@ -3322,7 +3322,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `117` lines (`5080` bytes)
+**Size**: `147` lines (`6801` bytes)
 
 **Classes:**
 - `class TestHoldoutReplication`
@@ -3330,6 +3330,8 @@
   - Method `.test_the_ablation_returns_the_train_candidates()`
   - Method `.test_a_planted_cross_module_pair_replicates()`
   - Method `.test_no_candidate_degrades_to_empty()`
+  - Method `.test_a_100_trial_candidate_is_unstable_at_200()`
+  - Method `.test_the_stability_ablation_returns_the_candidate()`
   - Method `.test_the_holdout_result_is_deterministic()`
 
 **Functions:**

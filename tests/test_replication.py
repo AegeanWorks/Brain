@@ -8,11 +8,12 @@ per-pair ``p_upper 0.045``; on the held-out seeds 10-19 the same pair reads
 ``syn +0.0076`` at ``p_upper 0.97``. A train-only report calls the first a
 candidate.
 
-``scan_with_holdout`` keeps the family scan on the train rows and tests
-every candidate on the held-out rows with the same pair gate. A candidate
-is selected only when the holdout pair is valid, positive and outside its
-null. ``require_replication=False`` is the executable ablation and returns
-the train-only candidate set.
+``scan_with_holdout`` keeps the family scan on the train rows, re-runs it
+at ``max(trials, 200)`` to reject a trial-count artifact, and tests every
+candidate on the held-out rows with the same pair gate. A candidate is
+selected only when the higher-trial tail survives and the holdout pair is
+valid, positive and outside its null. ``require_stability=False`` and
+``require_replication=False`` are the executable ablations.
 """
 
 import json
@@ -68,18 +69,21 @@ class TestHoldoutReplication(unittest.TestCase):
         rejected = [item["candidate"]["columns"]
                     for item in result["rejected"]]
         self.assertIn([0, 4], rejected)
+        candidate = [item for item in result["candidates"]
+                     if item["candidate"]["columns"] == [0, 4]][0]
+        self.assertFalse(candidate["stable"])
+        self.assertEqual(result["stability_trials"], 200)
 
     def test_the_ablation_returns_the_train_candidates(self):
         train_rows, train_target = _signal_rows(range(10))
         holdout_rows, holdout_target = _signal_rows(range(10, 20))
         result = scan_with_holdout(train_rows, train_target,
                                    holdout_rows, holdout_target, trials=100,
-                                   require_replication=False)
+                                   require_replication=False,
+                                   require_stability=False)
         self.assertTrue(result["candidates"])
         self.assertEqual(result["selected"], result["candidates"])
-        self.assertTrue(result["rejected"])
-        for item in result["rejected"]:
-            self.assertIn(item, result["selected"])
+        self.assertEqual(result["rejected"], [])
 
     def test_a_planted_cross_module_pair_replicates(self):
         train_rows, train_target = _planted(1)
@@ -91,14 +95,40 @@ class TestHoldoutReplication(unittest.TestCase):
         self.assertEqual(replicated, [[0, 2]])
         self.assertTrue(all(item["replicated"]
                             for item in result["candidates"]))
+        self.assertTrue(all(item["stable"]
+                            for item in result["candidates"]))
 
     def test_no_candidate_degrades_to_empty(self):
         rows = [[0.0] * 9 for _ in range(10)]
         target = [0.0] * 10
-        result = scan_with_holdout(rows, target, rows, target, trials=50)
+        result = scan_with_holdout(rows, target, rows, target, trials=50,
+                                   stability_trials=50)
         self.assertEqual(result["candidates"], [])
         self.assertEqual(result["selected"], [])
         self.assertEqual(result["rejected"], [])
+
+    def test_a_100_trial_candidate_is_unstable_at_200(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10, 20))
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target,
+                                   trials=100, stability_trials=200,
+                                   require_replication=False)
+        self.assertEqual(result["selected"], [])
+        self.assertTrue(result["rejected"])
+        for item in result["candidates"]:
+            self.assertFalse(item["stable"])
+
+    def test_the_stability_ablation_returns_the_candidate(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10, 20))
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target,
+                                   trials=100, stability_trials=200,
+                                   require_replication=False,
+                                   require_stability=False)
+        self.assertEqual([item["candidate"]["columns"]
+                          for item in result["selected"]], [[0, 4]])
 
     def test_the_holdout_result_is_deterministic(self):
         train_rows, train_target = _planted(3)
