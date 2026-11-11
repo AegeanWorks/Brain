@@ -26,7 +26,9 @@ from evals.module_state import (pool_signals, read_signals,
                                 scan_module_state_blocks,
                                 scan_module_states, scan_traces,
                                 signals_from_trace)
+from evals.coldstart import cold_run, warm_run
 from evals.replication import scan_with_holdout
+from memory.store import MemoryStore
 from evals.pair_scan import _dependent, module_interactions, scan_pairs
 from evals.recompute import _vec_row, dedupe_rows
 
@@ -110,6 +112,22 @@ class TestModuleSignals(unittest.TestCase):
             [row for trace in traces for row in signals_from_trace(trace)],
             [step["reward"] for trace in traces for step in trace],
             trials=200), [])
+
+    def test_coldstart_trace_carries_signals(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = MemoryStore(os.path.join(directory, "m.db"))
+            try:
+                warm_run(store, "T3_navigate", 15)
+                _, trace, _ = cold_run(
+                    store, "T3_navigate", 15,
+                    log_path=os.path.join(directory, "cold.jsonl"))
+            finally:
+                store.close()
+            rows = signals_from_trace(trace)
+            log_rows = read_signals(os.path.join(directory, "cold.jsonl"))
+        self.assertEqual(len(rows), len(trace))
+        self.assertEqual(rows, log_rows)
+        self.assertTrue(scan_traces([trace], trials=100))
 
     def test_module_signals_can_be_disabled(self):
         with tempfile.TemporaryDirectory() as directory:

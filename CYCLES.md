@@ -4904,6 +4904,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 164 - the cold-start trace must carry the same signal rows
+
+- **Baseline** (commit a78752c):
+  - canonical gate: 892 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-158 proved trace/log parity on a warm `T3_navigate:15` episode.
+  - the cold-start path (`evals.coldstart.cold_run`) returns a trace but had no test that the signal block exists or agrees with its log.
+- **Gap**: the condition where the persistent layout is supposed to matter had no in-memory signal evidence path.
+- **Target delta**: prove a cold trace carries the same signal rows as its log and that `scan_traces` reaches it.
+- **Falsifier**: the cold trace lacks signals; its rows differ from the log; or the in-memory scan returns no reports.
+- **Change**: `tests/test_module_signals.py` adds `test_coldstart_trace_carries_signals` (warm store, cold run with log, row parity, `scan_traces` reachability).
+- **After**:
+  - cold trace: 13 signal rows, exactly equal to `read_signals(log)`; `scan_traces([trace], trials=100)` returns reports.
+  - no production code changed; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `module_signals=False` removes both the trace block and the log block, so the parity assertion fails; restoring it returns the rows.
+- **Verdict**: coverage/reachability. The measured delta is "cold-start trace signal evidence is untested" -> "cold trace rows equal log rows and the in-memory scan is reachable". Boundary: one seed proves the path, not a cold-start interaction; the persistent layout is not shown to change a module pair.
+- **Gates**: unittest 893/893 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_signals` -> 18 OK.
+  - `python -m unittest discover -s tests -t .` -> 893 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 165**: unittest 893 OK; aikit 5/5; cold trace 13 rows / log parity; `scan_traces` reachable; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 6 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; stability candidate p100 0.0495 / p200 0.0547 / stable False / selected `[]` / ablation `[[0,4]]`; keys mode 70 / 6 / S False; seen mode 70 / 5 / S True; signal rows 70 / 5 cross-module; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 163 - the signal block travels in the trace, not only in a log
 
 - **Baseline** (commit 7573417):

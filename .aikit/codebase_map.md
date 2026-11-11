@@ -9,8 +9,8 @@
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
 - **Total Top-Level Functions**: `614`
-- **Total Class Methods**: `1159`
-- **Total Source Lines**: `29491`
+- **Total Class Methods**: `1160`
+- **Total Source Lines**: `29509`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -2686,7 +2686,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `232` lines (`10761` bytes)
+**Size**: `250` lines (`11560` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2695,6 +2695,7 @@
   - Method `.test_disabled_trace_has_no_signals()`
   - Method `.test_trace_and_log_signals_agree()`
   - Method `.test_in_memory_scan_matches_the_log_path()`
+  - Method `.test_coldstart_trace_carries_signals()`
   - Method `.test_module_signals_can_be_disabled()`
   - Method `.test_signal_scan_has_more_testable_module_pairs_than_legacy()`
   - Method `.test_the_s_block_is_independent()`

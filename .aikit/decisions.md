@@ -1119,6 +1119,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 892 tests OK; aikit check 5/5. `signals_from_trace` returns 13 rows on `T3_navigate:15`; the trace rows equal `read_signals(log)`; ten in-memory traces give 70 rows, 6 valid pairs and `module_interactions []` at 200 trials. Actions, rewards and step counts are unchanged; `module_signals=False` removes the trace block. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: the flag is the integration point; disabling it removes both the trace block and the rows, and restoring it returns parity with the log.
 - **Boundary**: the trace signal is a pre-action proxy, not a new interaction; it makes the evidence object self-contained and removes temp-log dependence. The in-memory scan is the same estimator, so its negative result is not independent evidence.
 
+### ADR-159: The cold-start trace must carry the same signal rows
+- **Date**: 2026-11-11
+- **Status**: Accepted
+- **Context**: ADR-158 proved trace/log parity on a warm `T3_navigate:15` episode. The cold-start path (`evals.coldstart.cold_run`) returns a trace but was untested; it is the condition where the persistent layout is supposed to matter, so a missing or divergent signal block there would remove the only in-memory evidence path for the case the substrate was built for.
+- **Decision**: Add `test_coldstart_trace_carries_signals` to `tests/test_module_signals.py`. It warms a store, runs a cold episode with a log, and requires `signals_from_trace(trace)` to equal `read_signals(log)` and `scan_traces([trace], trials=100)` to return reports.
+- **Consequences**: 893 tests OK; aikit check 5/5. The cold trace carries 13 signal rows, exactly equal to the log rows; the in-memory scan is reachable. No production code changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `module_signals=False` would remove both the trace block and the rows, so the parity assertion fails.
+- **Boundary**: one seed proves the path, not a cold-start interaction. It makes the cold trace an evidence object; it does not show that the persistent layout changes a module pair.
+
 
 
 
