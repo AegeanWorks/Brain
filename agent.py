@@ -1108,7 +1108,8 @@ class Agent:
     """
 
     def __init__(self, memory=None, planner=None, selfmodel=None, telemetry=None, world=None,
-                 memory_store=None, planner_tracker=None, self_model=None, telemetry_log=None):
+                 memory_store=None, planner_tracker=None, self_model=None, telemetry_log=None,
+                 module_signals=True):
         self.memory = memory if memory is not None else Memory()
         self.planner = planner if planner is not None else Planner()
         self.selfmodel = selfmodel if selfmodel is not None else SelfModel()
@@ -1118,6 +1119,11 @@ class Agent:
         self.planner_tracker = planner_tracker
         self.self_model = self_model
         self.telemetry_log = telemetry_log
+        if not isinstance(module_signals, bool):
+            raise ValueError(
+                "Why: module_signals must be a bool. "
+                "Fix: pass module_signals=True or False.")
+        self._emit_module_signals = module_signals
         self._hub = {}
         self._steps_since_reward = 0
         #: Laplace-smoothed outcome frequencies, learned online from error
@@ -1311,6 +1317,42 @@ class Agent:
 
     # -- loop ----------------------------------------------------------
 
+    def _module_signals(self, memories, learned, seen):
+        """Return pre-action M/P/S state that is not an elapsed-time counter.
+
+        M = [distinct positions, revisits]; P = [BFS distance, ties];
+        S = [online probability, outcomes seen]. These are read from the
+        memory contents, the planner's rule probe and the online predictor
+        before the step, so they vary with the episode's geometry and
+        history rather than with its index.
+        """
+        try:
+            positions = [(int(m.get("x", 0)), int(m.get("y", 0)))
+                         for m in (memories or [])
+                         if isinstance(m, dict) and "x" in m and "y" in m]
+        except (TypeError, ValueError):
+            positions = []
+        distinct = len(set(positions))
+        revisits = len(positions) - distinct
+        probe = getattr(self.planner, "last_probe", None)
+        rule = probe.get("rule") if isinstance(probe, dict) else None
+        distance = -1
+        ties = 0
+        if isinstance(rule, dict):
+            try:
+                distance = int(rule.get("distance"))
+            except (TypeError, ValueError):
+                distance = -1
+            try:
+                ties = int(rule.get("ties", 0))
+            except (TypeError, ValueError):
+                ties = 0
+        return {
+            "M": [distinct, revisits],
+            "P": [distance, ties],
+            "S": [float(learned), int(seen)],
+        }
+
     def _step_vectors(self, idx, new_state, reward, memories):
         """Build numeric M/P/S/hub vectors for one step.
 
@@ -1401,6 +1443,7 @@ class Agent:
             _learn_key = feature_key(getattr(self.world, "task_id", None),
                                      state, action)
             _learned = self._online.predict(_learn_key)
+            _seen = self._online.seen(_learn_key)
             new_state, reward, done = self.world.step(action)  # act
             self._online.observe(_learn_key, float(reward) > 0.0)
             self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
@@ -1468,6 +1511,9 @@ class Agent:
                 probe = getattr(self.planner, "last_probe", None)
                 if isinstance(probe, dict):
                     args["probe"] = copy.deepcopy(probe)
+                if self._emit_module_signals:
+                    args["signals"] = self._module_signals(
+                        memories, _learned, _seen)
                 try:
                     self.telemetry_log.append_action(
                         i + 1, "step", args,

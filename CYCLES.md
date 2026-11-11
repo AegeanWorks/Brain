@@ -4904,6 +4904,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 157 - expose pre-action module state that is not a step counter
+
+- **Baseline** (commit c428c2b):
+  - canonical gate: 865 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the legacy M/P/S blocks are elapsed-time counters: on ten default-wired `T3_navigate` episodes (seeds 0-9) the pooled vector has 70 rows and **0** gate-passing cross-module M/P/S pairs.
+  - the substrate has no pre-action module state that varies with geometry and history rather than with the step index.
+- **Gap**: rung 3 needs independent module state; the shipped vector cannot supply a testable module pair after the constant/dependent/target-leak gates.
+- **Target delta**: emit six pre-action module signals in the same M/P/S layout, pool them into seven-column rows, and show they create gate-passing module pairs without changing an action.
+- **Falsifier**: the channel changes an action; disabling it changes nothing; the signal rows are absent or malformed; or a module pair survives the family null when the legacy vector has none (which would require a separate emergence claim, not this cycle).
+- **Change**: `agent.py` adds `module_signals=True`, `_module_signals` (M distinct/revisits, P distance/ties, S online probability/seen) and writes `args["signals"]`; `evals/module_state.py` reads and pools the block; `tests/test_module_signals.py` (6 tests). `module_signals=False` is the executable ablation.
+- **After** (same episodes):
+  - signal rows 70; 5 gate-passing cross-module pairs; `module_interactions` `[]` at 200 trials.
+  - top pairs `(0,4)/(0,5)` M-S `syn 0.13`, `(0,3)` M-P `0.0556`; none clears the family null.
+  - legacy vector on the same episodes: 70 rows, 0 gate-passing module pairs; its selected pairs are `hub` pairs.
+  - seeds 10-19 and 20-29 also return no module interaction at 200 trials.
+  - actions, rewards and step counts identical with and without the channel; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `module_signals=False` produces no signal rows and 0 gate-passing module pairs; `module_signals=True` produces 70 rows and 5 gate-passing module pairs. The channel is the integration point; removing it removes the testable module state, restoring it returns the five pairs, and no action moves either way.
+- **Verdict**: substrate/telemetry capability with an honest negative on interaction. The measured delta is "the legacy vector has zero testable module pairs" -> "the signal channel has five, and none is family-significant at 200 trials". Boundary: the values are pre-action proxies, not learned dynamics; `M.revisits` is constant on T3 and the two S values are functionally dependent, so the S block cannot form an independent pair yet. That dependence and a pooled holdout are the next falsifiers.
+- **Gates**: unittest 871/871 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_signals` -> 6 OK.
+  - `python ..\..\scratch\probe_module_state.py` -> signal 70 rows / 5 module-valid / module `[]`; legacy 70 / 0 module-valid; actions identical.
+  - `python -m unittest discover -s tests -t .` -> 871 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 158**: unittest 871 OK; aikit 5/5; signal rows 70 / 5 cross-module gate-passing pairs / `module_interactions []`; signal top `(0,4)/(0,5)` M-S `syn 0.13`, `(0,3)` M-P `0.0556`; legacy rows 70 / 0 gate-passing module pairs; signal vs legacy actions identical; holdout seeds 10-19 and 20-29 no module interaction at 200 trials; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; wired guarded 28 reports / 0 valid; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 156 - a module interaction needs two module blocks, not the world hub
 
 - **Baseline** (commit 69b50b4):

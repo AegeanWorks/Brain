@@ -235,7 +235,10 @@ no independent second signal: `duplicate-scope-column`; a constant reads
 `target-column`/`target-leak-column`, and applies a family-wise max/min null
 (`family_wise=False`/`guard_target=False` are ablations). Pairs carry
 M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
-shipped pair beats its null.
+shipped pair beats its null. `Agent(module_signals=True)` writes six
+pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
+5 gate-passing module pairs versus 0 legacy, none family-significant at
+200 trials).
 
 ## 🧪 Lesion Detectability
 
@@ -471,11 +474,8 @@ optional `hmac_key=bytes` adds a per-record HMAC-SHA256; `load_forecasts`,
 same key, so a keyed journal can be rotated without dropping its MACs.
 An unkeyed append or rotation over a keyed journal is refused, so a
 mixed unauthenticated journal cannot be created by accident.
-`python -m evals.calibration_store` shows the in-memory
-file-before/after ablation, duplicate refusal, tamper/corrupt
-findings, lock modes and the keyed modes. Keep the journal
-under `.aikit/` or outside the source tree; it is local evidence, not
-committed.
+`python -m evals.calibration_store` shows the ablation, recovery and
+keyed modes; keep the journal outside the source tree.
 
 `run_task_logged(..., calibration_path=...)` is the opt-in bridge from a
 real run to the journal. It requires a persistent `SelfModel` and
@@ -534,10 +534,8 @@ to `.bak`; `verify_ledger_file` names `missing-primary`,
 (including its checksum); `load_ledger(..., hmac_key=...)` and
 `verify_ledger_file(..., hmac_key=...)` require and verify it. A missing or
 wrong MAC fails without quarantining the valid primary, so a key mistake
-never destroys evidence. `python -m evals.claims_store` shows the in-memory
-file-before/after ablation, corrupt-primary recovery, checksum
-tamper, lock modes and the keyed modes. Keep the snapshot under `.aikit/`
-or outside the source tree; it is local, not committed. The
+never destroys evidence. `python -m evals.claims_store` shows the ablation, recovery and keyed
+modes; keep the snapshot outside the source tree. The
 checksum detects accidental edits; the HMAC also detects a rewritten
 checksum when the key stays outside the store. An unkeyed save over a
 keyed snapshot is refused, so authenticated evidence cannot be

@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `212`
-- **Total Classes**: `219`
-- **Total Top-Level Functions**: `598`
-- **Total Class Methods**: `1131`
-- **Total Source Lines**: `28816`
+- **Total Python Modules**: `214`
+- **Total Classes**: `220`
+- **Total Top-Level Functions**: `604`
+- **Total Class Methods**: `1138`
+- **Total Source Lines**: `29048`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`212` module(s))
+- **Indexed**: python (`214` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1618` lines (`66856` bytes)
+**Size**: `1664` lines (`68808` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -58,7 +58,7 @@
   - Method `.events()`
   - Method `.clear()`
 - `class Agent` - *Closed loop over a GridWorld instance.*
-  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log)`
+  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log, module_signals)`
   - Property `.log_path` - *Return file path of telemetry_log when present, else None.*
   - Method `.hub_write(content)` - *Merge a dict into the shared hub and return a hub copy.*
   - Method `.get_hub()` - *Return a copy of the shared hub mapping.*
@@ -67,6 +67,7 @@
   - Method `._persistent_layout()` - *Return the persisted initial state for this world, or None.*
   - Method `._layout_complete(state)` - *True when a state carries every goal field its task consumes.*
   - Method `._remember_layout(state)` - *Persist the initial state once; never store an incomplete one.*
+  - Method `._module_signals(memories, learned, seen)` - *Return pre-action M/P/S state that is not an elapsed-time counter.*
   - Method `._step_vectors(idx, new_state, reward, memories)` - *Build numeric M/P/S/hub vectors for one step.*
   - Method `.run(max_steps, budget)` - *Run the loop; optionally install an execution budget.*
   - Method `._run_loop(max_steps)` - *Run perceive/plan/act/observe loop; return trace list.*
@@ -714,6 +715,19 @@
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
 - `def main()`
+
+---
+
+### [`evals/module_state.py`](evals/module_state.py)
+> *Read the optional six-value module-state channel from telemetry.*
+
+**Size**: `78` lines (`2477` bytes)
+
+**Functions:**
+- `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
+- `def read_signals(log_path)` - *Return one row per action record carrying a ``signals`` block.*
+- `def pool_signals(log_paths)` - *Concatenate the signal rows from several episode logs.*
+- `def scan_module_states(log_paths, trials)` - *Scan pooled signal rows with the shared pair gate and family null.*
 
 ---
 
@@ -2647,6 +2661,26 @@
 - `def _episode(seed)`
 - `def _pooled(seeds)`
 - `def _cross_module(n, seed)` - *A planted XOR between column 0 (M) and column 2 (P).*
+
+---
+
+### [`tests/test_module_signals.py`](tests/test_module_signals.py)
+> *The module-state channel must add testable state without changing actions.*
+
+**Size**: `108` lines (`4775` bytes)
+
+**Classes:**
+- `class TestModuleSignals`
+  - Method `.test_signals_are_emitted()`
+  - Method `.test_module_signals_can_be_disabled()`
+  - Method `.test_signal_scan_has_more_testable_module_pairs_than_legacy()`
+  - Method `.test_module_interactions_are_empty_at_200_trials()`
+  - Method `.test_signals_do_not_change_actions()`
+  - Method `.test_malformed_signal_rows_are_ignored()`
+
+**Functions:**
+- `def _logs(directory, module_signals, seeds, task)`
+- `def _cross_module_count(reports)`
 
 ---
 
