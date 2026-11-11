@@ -1103,6 +1103,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 885 tests OK; aikit check 5/5. On the pooled ten-episode trace `world_interactions` equals the hub subset (5 pairs); on the planted M/P XOR `interactions` is `[[0,2]]` and `world_interactions` is `[]`; the signal block split returns `module []` and `world []` at 200 trials. Standing 89 steps / 11.0 reward and `policy_digest` decbfce3... are unchanged. Ablation: removing `world_pair` makes `world_interactions` return the planted module pair and the exclusion test fails; removing `scan_module_state_blocks` makes the split test error.
 - **Boundary**: the new caller is an eval/library path, not a user-facing command. The split is now exercised whenever the module-state eval reports blocks, but no production claim reads world pairs; if none does, the function remains a tested convenience rather than an integration point.
 
+### ADR-157: The module-state pipeline needs a positive control
+- **Date**: 2026-11-11
+- **Status**: Accepted
+- **Context**: every module-state test was negative: the signal scan reports no stable interaction, replication rejects its candidates, and the block split returns empty module/world subsets. A criterion that only ever says "no" could be blind. The pair scan has synthetic XOR tests, but the path from action-record `signals` through `read_signals`, `pool_signals`, `scan_module_state_blocks` and `scan_with_holdout` had no planted interaction.
+- **Decision**: add three tests to `tests/test_module_signals.py`. A synthetic JSONL writes 64 action records with `M=[first,0]`, `P=[second,0]`, `S=[0,0]` and `reward=first XOR second`. The first test requires `scan_module_state_blocks` to return `[[0,2]]`; the second requires `scan_with_holdout` to select it as stable and replicated on a second seeded log; the third removes the `signals` block and requires no rows and no detection.
+- **Consequences**: 888 tests OK; aikit check 5/5. The planted M/P pair is detected at `[[0,2]]` and replicates; without the signal block the reader returns no rows and both block subsets are empty. No production code changes and no standing numbers move (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: the control construction is the integration point; deleting `signals` from the records removes the rows and the detection.
+- **Boundary**: the control is a synthetic JSONL, not an agent-produced interaction. It proves the instrument can detect a known cross-module pair through the telemetry reader and replication gate; it does not claim the default substrate contains one. The next positive control should use an agent-produced signal path.
+
 
 
 

@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
-- **Total Top-Level Functions**: `611`
-- **Total Class Methods**: `1152`
-- **Total Source Lines**: `29378`
+- **Total Top-Level Functions**: `612`
+- **Total Class Methods**: `1155`
+- **Total Source Lines**: `29434`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -2684,7 +2684,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `145` lines (`6652` bytes)
+**Size**: `201` lines (`9200` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2697,11 +2697,15 @@
   - Method `.test_module_interactions_are_empty_at_200_trials()`
   - Method `.test_signals_do_not_change_actions()`
   - Method `.test_block_split_reaches_module_and_world()`
+  - Method `.test_a_planted_signal_interaction_is_detected()`
+  - Method `.test_a_planted_signal_interaction_replicates()`
+  - Method `.test_the_positive_control_needs_the_signal_block()`
   - Method `.test_malformed_signal_rows_are_ignored()`
 
 **Functions:**
 - `def _logs(directory, module_signals, seeds, task, module_s_mode)`
 - `def _cross_module_count(reports)`
+- `def _planted_log(directory, name, seed, n)` - *Write action records whose reward is an M/P XOR of the signals.*
 
 ---
 

@@ -17,6 +17,7 @@ ablation: no signal rows, no testable module pairs.
 
 import json
 import os
+import random
 import tempfile
 import unittest
 
@@ -24,6 +25,7 @@ from agent import Agent
 from evals.module_state import (pool_signals, read_signals,
                                 scan_module_state_blocks,
                                 scan_module_states)
+from evals.replication import scan_with_holdout
 from evals.pair_scan import _dependent, module_interactions, scan_pairs
 from evals.recompute import _vec_row, dedupe_rows
 
@@ -47,6 +49,26 @@ def _cross_module_count(reports):
         and report["blocks"][0] in ("M", "P", "S")
         and report["blocks"][1] in ("M", "P", "S")
         and report["blocks"][0] != report["blocks"][1])
+
+
+def _planted_log(directory, name, seed, n=64):
+    """Write action records whose reward is an M/P XOR of the signals."""
+    rng = random.Random(seed)
+    path = os.path.join(directory, name)
+    with open(path, "w", encoding="utf-8") as handle:
+        for _ in range(n):
+            first = rng.randint(0, 1)
+            second = rng.randint(0, 1)
+            outcome = first ^ second
+            handle.write(json.dumps({
+                "type": "action",
+                "args": {
+                    "signals": {"M": [first, 0], "P": [second, 0],
+                                "S": [0, 0]},
+                    "reward": outcome,
+                },
+            }) + "\n")
+    return path
 
 
 class TestModuleSignals(unittest.TestCase):
@@ -126,6 +148,40 @@ class TestModuleSignals(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             paths = _logs(directory, True)
             blocks = scan_module_state_blocks(paths, trials=200)
+        self.assertEqual(blocks["module"], [])
+        self.assertEqual(blocks["world"], [])
+
+    def test_a_planted_signal_interaction_is_detected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = _planted_log(directory, "planted.jsonl", 1)
+            blocks = scan_module_state_blocks([path], trials=100)
+        self.assertEqual([report["columns"]
+                          for report in blocks["module"]], [[0, 2]])
+        self.assertEqual(blocks["world"], [])
+
+    def test_a_planted_signal_interaction_replicates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            train = _planted_log(directory, "train.jsonl", 1)
+            holdout = _planted_log(directory, "holdout.jsonl", 2)
+            train_rows = pool_signals([train])
+            holdout_rows = pool_signals([holdout])
+            result = scan_with_holdout(
+                train_rows, [row[-1] for row in train_rows],
+                holdout_rows, [row[-1] for row in holdout_rows], trials=100)
+        self.assertEqual([item["candidate"]["columns"]
+                          for item in result["selected"]], [[0, 2]])
+        self.assertTrue(all(item["stable"] and item["replicated"]
+                            for item in result["candidates"]))
+
+    def test_the_positive_control_needs_the_signal_block(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "plain.jsonl")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(json.dumps({"type": "action",
+                                         "args": {"reward": 1.0}}) + "\n")
+            rows = read_signals(path)
+            blocks = scan_module_state_blocks([path], trials=50)
+        self.assertEqual(rows, [])
         self.assertEqual(blocks["module"], [])
         self.assertEqual(blocks["world"], [])
 
