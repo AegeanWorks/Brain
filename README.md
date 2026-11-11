@@ -232,8 +232,9 @@ a permutation null (`p_upper`/`p_lower`, `distinguishable`);
 paired action/result record so `n` counts steps. Equal scope columns mean
 no independent second signal: `duplicate-scope-column`; a constant reads
 `constant-scope-column`. `evals.pair_scan` skips the target column, refuses
-`target-column`, and applies a family-wise max/min null (`family_wise=False`/
-`guard_target=False` are ablations). Nothing shipped beats its null.
+`target-column`/`target-leak-column`, and applies a family-wise max/min null
+(`family_wise=False`/`guard_target=False` are ablations). Nothing shipped
+beats its null.
 
 ## 🧪 Lesion Detectability
 
@@ -447,14 +448,14 @@ intact/tampered/missing meta.
 
 `calibration.summary(forecasts, min_resolved=10)` scores forecast
 records with Brier, log loss, base rate, skill, five reliability bins
-and small-sample / over-confidence warnings.
+and small-sample/over-confidence warnings.
 `outcome=None` is ignored and reflected in coverage.
-`SelfModel.calibration()` scores those pairs.
+`SelfModel.calibration()` scores them.
 `record_prediction` forms the confidence *before* the action, so the
 score is a real forecast (skill +0.935 over six pinned episodes); the
 older `record` uses `1.0` rewarded or `0.5` otherwise, a function of
 the outcome, and the readout appends a `confidence-is-outcome`
-warning. The scorer never applies that diagnosis.
+warning. The scorer never applies it.
 `python -m evals.calibration` shows all four fixtures.
 
 `calibration_store.py` makes forecasts durable across runs.

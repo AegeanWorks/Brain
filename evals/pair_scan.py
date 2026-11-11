@@ -64,6 +64,15 @@ def _target_column(values, target):
     return list(values) == list(target)
 
 
+def _target_leak(values, target):
+    """True when the target is a deterministic function of the column."""
+    mapping = {}
+    for value, outcome in zip(values, target):
+        if mapping.setdefault(value, outcome) != outcome:
+            return False
+    return True
+
+
 def pair_report(rows, target, first, second, trials=200, with_null=True,
                 guard_target=True):
     """Score one column pair, refusing artifacts before scoring.
@@ -79,12 +88,17 @@ def pair_report(rows, target, first, second, trials=200, with_null=True,
     scope = synergy_scope(pair, target)
     syn, syn_n = synergy(pair, target)
     reason = scope["reason"]
-    if guard_target and (_target_column([r[0] for r in pair], target)
-                         or _target_column([r[1] for r in pair], target)):
+    first_values = [r[0] for r in pair]
+    second_values = [r[1] for r in pair]
+    if guard_target and (_target_column(first_values, target)
+                         or _target_column(second_values, target)):
         reason = "target-column"
-    elif scope["sufficient"] and _dependent([r[0] for r in pair],
-                                            [r[1] for r in pair]):
+    elif scope["sufficient"] and _dependent(first_values, second_values):
         reason = "dependent-columns"
+    elif guard_target and scope["sufficient"] and (
+            _target_leak(first_values, target)
+            or _target_leak(second_values, target)):
+        reason = "target-leak-column"
     report = {
         "columns": [first, second],
         "syn": syn,

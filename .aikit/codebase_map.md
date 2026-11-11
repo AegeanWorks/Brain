@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `210`
-- **Total Classes**: `217`
-- **Total Top-Level Functions**: `588`
-- **Total Class Methods**: `1118`
-- **Total Source Lines**: `28519`
+- **Total Python Modules**: `211`
+- **Total Classes**: `218`
+- **Total Top-Level Functions**: `592`
+- **Total Class Methods**: `1125`
+- **Total Source Lines**: `28644`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`210` module(s))
+- **Indexed**: python (`211` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -720,11 +720,12 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `219` lines (`9334` bytes)
+**Size**: `233` lines (`9804` bytes)
 
 **Functions:**
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
 - `def _target_column(values, target)` - *True when a column is identical to the target.*
+- `def _target_leak(values, target)` - *True when the target is a deterministic function of the column.*
 - `def pair_report(rows, target, first, second, trials, with_null, guard_target)` - *Score one column pair, refusing artifacts before scoring.*
 - `def _family_wise(rows, target, reports, trials, seed)` - *Attach a max/min-statistic null to every pair that passed the gate.*
 - `def scan_pairs(rows, target, trials, family_wise, seed, guard_target)` - *Return every feature-column pair's report, sorted by gap descending.*
@@ -2747,7 +2748,7 @@
 ### [`tests/test_pair_conclusions.py`](tests/test_pair_conclusions.py)
 > *Pair-level conclusions must be re-derived at one observation per step.*
 
-**Size**: `123` lines (`5450` bytes)
+**Size**: `125` lines (`5556` bytes)
 
 **Classes:**
 - `class TestPairConclusionsAtCorrectN`
@@ -2755,7 +2756,7 @@
   - Method `.test_the_artifact_gate_verdicts_survive_dedupe()`
   - Method `.test_the_independent_pairs_are_the_same_at_correct_n()`
   - Method `.test_the_gaps_are_unchanged_by_dedupe()`
-  - Method `.test_no_pair_is_distinguishable_at_correct_n()`
+  - Method `.test_every_independent_pair_is_refused_by_the_target_gate()`
   - Method `.test_anti_interactions_are_empty_at_correct_n()`
   - Method `.test_interactions_remain_empty()`
 
@@ -2811,7 +2812,7 @@
 ### [`tests/test_pair_scan_target_column.py`](tests/test_pair_scan_target_column.py)
 > *The target column is not a feature.*
 
-**Size**: `96` lines (`3695` bytes)
+**Size**: `112` lines (`4191` bytes)
 
 **Classes:**
 - `class TestPairScanTargetColumn`
@@ -2824,6 +2825,28 @@
 
 **Functions:**
 - `def _wired(task, seed)`
+- `def _planted(n, decoys, seed)` - *A non-leaky XOR pair with the target in the last column.*
+
+---
+
+### [`tests/test_pair_scan_target_leak.py`](tests/test_pair_scan_target_leak.py)
+> *A feature that determines the target is not an interaction partner.*
+
+**Size**: `92` lines (`3575` bytes)
+
+**Classes:**
+- `class TestPairScanTargetLeak`
+  - Method `.test_the_leak_column_is_not_pairwise_dependent_on_noise()`
+  - Method `.test_the_leak_column_determines_the_target()`
+  - Method `.test_the_leak_pair_is_returned_without_the_guard()`
+  - Method `.test_the_leak_pair_is_refused_by_the_guard()`
+  - Method `.test_the_guarded_scan_returns_no_interaction()`
+  - Method `.test_a_non_leaky_planted_pair_still_survives()`
+  - Method `.test_the_family_is_empty_on_the_leaky_fixture()`
+
+**Functions:**
+- `def _leak_fixture(n, seed, levels)` - *A leak column that determines the target, plus independent noise.*
+- `def _planted(n, decoys, seed)` - *The non-leaky XOR pair that the family-wise scan keeps.*
 
 ---
 
@@ -3941,7 +3964,7 @@
 ### [`tests/test_wiring_independence.py`](tests/test_wiring_independence.py)
 > *Wiring the modules makes them independent, and then anti-synchronous.*
 
-**Size**: `131` lines (`5756` bytes)
+**Size**: `132` lines (`5826` bytes)
 
 **Classes:**
 - `class TestWiringIndependence`
@@ -3949,8 +3972,8 @@
   - Method `.test_wiring_makes_every_column_vary()`
   - Method `.test_wiring_does_not_reduce_dependence()`
   - Method `.test_wiring_produces_independent_pairs()`
-  - Method `.test_every_independent_pair_is_anti_synchronous()`
-  - Method `.test_no_anti_correlation_is_distinguishable_at_correct_n()`
+  - Method `.test_every_independent_pair_is_refused_as_a_target_leak()`
+  - Method `.test_every_independent_pair_has_no_single_pair_null()`
   - Method `.test_no_interaction_under_either_configuration()`
   - Method `.test_anti_interactions_are_empty_at_correct_n()`
 

@@ -4904,6 +4904,34 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 155 - a feature that determines the target is not an interaction partner
+
+- **Baseline** (commit 6913625):
+  - canonical gate: 852 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the target-column gate refused an identical column but accepted a deterministic function of the target. The `bins=64` joint / `bins=8` marginal split can report a positive gap for such a leak.
+  - measured fixture (`n=256`, `seed=1`, 16 interleaved leak levels): the leak column maps every value to one target bit, `_dependent(leak, noise)` is False, `pair_report(leak, noise)` reads `syn +0.0542` at per-pair `p_upper 0.010`, and `interactions` returns `[[0,1]]` at family `p_upper 0.0149`.
+  - on `T3_navigate:15` wired the three remaining feature pairs `(4,5)/(4,7)/(6,7)` were accepted; in one episode the step counters determine the sparse reward.
+- **Gap**: a column that determines the target is not an interaction partner; accepting it lets the bin split manufacture a positive-family verdict.
+- **Target delta**: refuse either scope column when the target is a deterministic function of it, and leave a non-leaky planted interaction intact.
+- **Falsifier**: the leak pair survives; the planted pair is lost; a structural reason (`constant-scope-column`, `dependent-columns`, `target-column`) is replaced by `target-leak-column`; or a shipped interaction appears.
+- **Change**: `evals/pair_scan.py` adds `_target_leak(values, target)` and refuses a pair with reason `target-leak-column`; the check runs after the constant and dependent gates; `guard_target=False` disables both target gates and is the executable ablation; `tests/test_pair_scan_target_leak.py` (7 tests); re-baseline `test_wiring_independence`/`test_pair_conclusions` from three anti-synchronous pairs to three target-leak refusals.
+- **After** (same traces):
+  - leak fixture: guarded `pair_report` `ok False` / `target-leak-column`, guarded `interactions` `[]`; unguarded `interactions` `[[0,1]]` at family `p_upper 0.0149`.
+  - non-leaky planted XOR: `[[0,1]]` at family `p_upper 0.005` under the guard.
+  - `T3_navigate:15` wired: 28 reports, **0 valid**, no family; `(4,5)/(4,7)/(6,7)` refused `target-leak-column` with `syn -0.1243/-0.2309/-0.0632`; `interactions` and `anti_interactions` empty.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `guard_target=False` returns the leak pair and the target pairs; `guard_target=True` refuses them. The guard is the integration point; removing it restores the false positive, restoring it removes it while keeping the planted XOR.
+- **Verdict**: criteria hardening. The measured delta is "a deterministic function of the target passes and yields a family-significant pair" -> "it is refused, and a one-episode trace honestly has no testable feature pair". Boundary: the gate catches target = f(column), not column = f(target) for non-injective f; and step counters are perfect sample-specific predictors of a single sparse reward, so the three feature pairs are refused rather than reported as weak anti-correlations. Multi-episode pooling is the next measurement step.
+- **Gates**: unittest 859/859 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_pair_scan_target_leak` -> before: 3 failures; after: 7 OK.
+  - `python ..\..\scratch\probe_155.py` -> leak guarded `[]`, unguarded `[[0,1]]` family `p_upper 0.0149`; wired guarded 28/0/None; planted `[[0,1]]`.
+  - `python -m unittest tests.test_wiring_independence tests.test_pair_conclusions tests.test_pair_scan tests.test_pair_scan_fwer tests.test_pair_scan_target_column` -> 31 OK.
+  - `python -m unittest discover -s tests -t .` -> 859 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 156**: unittest 859 OK; aikit 5/5; leak fixture guarded `target-leak-column` / `syn 0.0542` / `interactions []`; unguarded `[[0,1]]` family `p_upper 0.0149`; planted XOR `[[0,1]]` family `p_upper 0.005`; wired guarded 28 reports / 0 valid / no family; `(4,5)/(4,7)/(6,7)` `target-leak-column` with `syn -0.1243/-0.2309/-0.0632`; interactions/anti empty; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 154 - the target column is not a feature
 
 - **Baseline** (commit 501d8f5):

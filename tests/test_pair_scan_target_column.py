@@ -17,6 +17,7 @@ pairs.
 
 import json
 import os
+import random
 import tempfile
 import unittest
 
@@ -50,6 +51,21 @@ def _wired(task="T3_navigate", seed=15):
     return padded, [row[-1] for row in padded]
 
 
+def _planted(n=24, decoys=6, seed=28):
+    """A non-leaky XOR pair with the target in the last column."""
+    rng = random.Random(seed)
+    rows, target = [], []
+    for _ in range(n):
+        first = rng.randint(0, 1)
+        second = rng.randint(0, 1)
+        outcome = first ^ second
+        rows.append([first, second]
+                    + [rng.randint(0, 1) for _ in range(decoys)]
+                    + [outcome])
+        target.append(outcome)
+    return rows, target
+
+
 class TestPairScanTargetColumn(unittest.TestCase):
     def test_the_last_column_is_the_target(self):
         rows, target = _wired()
@@ -70,8 +86,8 @@ class TestPairScanTargetColumn(unittest.TestCase):
         self.assertNotIn("null", report)
 
     def test_a_feature_pair_still_passes(self):
-        rows, target = _wired()
-        report = pair_report(rows, target, 4, 7, trials=60)
+        rows, target = _planted()
+        report = pair_report(rows, target, 0, 1, trials=60)
         self.assertTrue(report["ok"])
 
     def test_ablation_restores_the_target_pairs(self):
@@ -82,7 +98,7 @@ class TestPairScanTargetColumn(unittest.TestCase):
         self.assertTrue(any(last in report["columns"] for report in reports))
 
     def test_the_family_contains_only_feature_pairs(self):
-        rows, target = _wired()
+        rows, target = _planted()
         last = len(rows[0]) - 1
         reports = scan_pairs(rows, target, trials=60, family_wise=True)
         valid = [report for report in reports if report["ok"]]

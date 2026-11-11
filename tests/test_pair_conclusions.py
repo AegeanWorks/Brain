@@ -102,11 +102,13 @@ class TestPairConclusionsAtCorrectN(unittest.TestCase):
             b = pair_report(p_ded, t_ded, first, second, trials=25)["syn"]
             self.assertAlmostEqual(a, b, places=12)
 
-    def test_no_pair_is_distinguishable_at_correct_n(self):
+    def test_every_independent_pair_is_refused_by_the_target_gate(self):
         padded, target = _split(dedupe_rows(_raw("T3_navigate", 15, True)))
         for first, second in ((4, 5), (4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=150)
-            self.assertFalse(report["null"]["distinguishable"],
+            self.assertFalse(report["ok"])
+            self.assertEqual(report["reason"], "target-leak-column")
+            self.assertNotIn("null", report,
                              "cols(%d,%d)" % (first, second))
 
     def test_anti_interactions_are_empty_at_correct_n(self):

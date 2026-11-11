@@ -96,21 +96,22 @@ class TestWiringIndependence(unittest.TestCase):
                        if not _dependent(cols[i], cols[j])]
         self.assertEqual(independent, [(4, 5), (4, 7), (6, 7)])
 
-    def test_every_independent_pair_is_anti_synchronous(self):
+    def test_every_independent_pair_is_refused_as_a_target_leak(self):
         padded, target = _vectors(True)
         for first, second in ((4, 5), (4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=200)
-            self.assertTrue(report["ok"])
+            self.assertFalse(report["ok"])
+            self.assertEqual(report["reason"], "target-leak-column")
             self.assertLess(report["syn"], 0.0,
                             "cols(%d,%d)" % (first, second))
 
-    def test_no_anti_correlation_is_distinguishable_at_correct_n(self):
-        # Cycle 148 reported three of these as significant; at one
-        # observation per step none is. The gaps are unchanged.
+    def test_every_independent_pair_has_no_single_pair_null(self):
+        # A refused pair cannot carry a null; the three gaps are unchanged,
+        # but none is a testable anti-correlation at this sample size.
         padded, target = _vectors(True)
         for first, second in ((4, 5), (4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=200)
-            self.assertFalse(report["null"]["distinguishable"],
+            self.assertNotIn("null", report,
                              "cols(%d,%d)" % (first, second))
 
     def test_no_interaction_under_either_configuration(self):
