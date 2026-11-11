@@ -1111,6 +1111,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 888 tests OK; aikit check 5/5. The planted M/P pair is detected at `[[0,2]]` and replicates; without the signal block the reader returns no rows and both block subsets are empty. No production code changes and no standing numbers move (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: the control construction is the integration point; deleting `signals` from the records removes the rows and the detection.
 - **Boundary**: the control is a synthetic JSONL, not an agent-produced interaction. It proves the instrument can detect a known cross-module pair through the telemetry reader and replication gate; it does not claim the default substrate contains one. The next positive control should use an agent-produced signal path.
 
+### ADR-158: The signal block travels in the trace, not only in a log
+- **Date**: 2026-11-11
+- **Status**: Accepted
+- **Context**: ADR-152's signals were written only into telemetry action records. An in-memory `Agent.run_task` trace had no `signals` key, so `evals.module_state` needed temporary log files to scan a run; the trace itself was not a sufficient evidence object.
+- **Decision**: Compute the signal block once per step (outside the telemetry-log branch), attach it to the trace record when `module_signals=True`, and add `signals_from_trace(trace)` and `scan_traces(traces)` to `evals/module_state.py`. Add four tests: trace carries 7-column signal rows, disabled trace carries none, trace and log rows agree exactly, and ten in-memory traces scan to the same 6 valid pairs / empty module set as the log path.
+- **Consequences**: 892 tests OK; aikit check 5/5. `signals_from_trace` returns 13 rows on `T3_navigate:15`; the trace rows equal `read_signals(log)`; ten in-memory traces give 70 rows, 6 valid pairs and `module_interactions []` at 200 trials. Actions, rewards and step counts are unchanged; `module_signals=False` removes the trace block. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: the flag is the integration point; disabling it removes both the trace block and the rows, and restoring it returns parity with the log.
+- **Boundary**: the trace signal is a pre-action proxy, not a new interaction; it makes the evidence object self-contained and removes temp-log dependence. The in-memory scan is the same estimator, so its negative result is not independent evidence.
+
 
 
 

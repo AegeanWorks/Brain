@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
-- **Total Top-Level Functions**: `612`
-- **Total Class Methods**: `1155`
-- **Total Source Lines**: `29434`
+- **Total Top-Level Functions**: `614`
+- **Total Class Methods**: `1159`
+- **Total Source Lines**: `29491`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1671` lines (`69207` bytes)
+**Size**: `1675` lines (`69389` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -721,12 +721,14 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `88` lines (`2888` bytes)
+**Size**: `110` lines (`3591` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
 - `def read_signals(log_path)` - *Return one row per action record carrying a ``signals`` block.*
 - `def pool_signals(log_paths)` - *Concatenate the signal rows from several episode logs.*
+- `def signals_from_trace(trace)` - *Return one signal row per trace step that carries a signals block.*
+- `def scan_traces(traces, trials)` - *Scan pooled in-memory traces with the shared pair gate and family null.*
 - `def scan_module_states(log_paths, trials)` - *Scan pooled signal rows with the shared pair gate and family null.*
 - `def scan_module_state_blocks(log_paths, trials)` - *Return the pooled signal scan split into module and world pairs.*
 
@@ -2684,11 +2686,15 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `201` lines (`9200` bytes)
+**Size**: `232` lines (`10761` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
   - Method `.test_signals_are_emitted()`
+  - Method `.test_trace_carries_signals()`
+  - Method `.test_disabled_trace_has_no_signals()`
+  - Method `.test_trace_and_log_signals_agree()`
+  - Method `.test_in_memory_scan_matches_the_log_path()`
   - Method `.test_module_signals_can_be_disabled()`
   - Method `.test_signal_scan_has_more_testable_module_pairs_than_legacy()`
   - Method `.test_the_s_block_is_independent()`

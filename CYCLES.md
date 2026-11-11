@@ -4904,6 +4904,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 163 - the signal block travels in the trace, not only in a log
+
+- **Baseline** (commit 7573417):
+  - canonical gate: 888 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the six module-state signals were written only into telemetry action records; an in-memory `Agent.run_task` trace had no `signals` key.
+  - `evals.module_state` needed temporary log files to scan a run; the trace was not a sufficient evidence object.
+- **Gap**: the module-state evidence path depended on the file log, and the in-memory trace could not be scanned.
+- **Target delta**: carry the same six values in the trace, add an in-memory reader/scan, and prove exact parity with the log path without changing an action.
+- **Falsifier**: trace and log rows differ; an action moves; the disabled trace still carries signals; the in-memory scan disagrees with the log scan.
+- **Change**: `agent.py` computes `_signals` once per step outside the telemetry branch and attaches it to the trace when `module_signals=True`; `evals/module_state.py` adds `signals_from_trace` and `scan_traces`; `tests/test_module_signals.py` adds four tests (trace block, disabled trace, log parity, in-memory scan).
+- **After**:
+  - `T3_navigate:15` trace: 13 steps, all carry `signals`; `signals_from_trace` returns 13 seven-column rows equal to `read_signals(log)`.
+  - ten in-memory traces: 70 rows, 6 valid pairs, `module_interactions []` at 200 trials.
+  - disabled trace: no `signals` key, `signals_from_trace []`.
+  - actions, rewards and step counts unchanged; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `module_signals=False` removes both the trace block and the reader rows; restoring it returns parity with the log. The flag is the integration point; the in-memory path dies with the cut and returns with the restore.
+- **Verdict**: telemetry capability. The measured delta is "module-state scan requires a temp log" -> "the trace carries the same rows and scans in memory with exact log parity". Boundary: the trace signal is a pre-action proxy, not a new interaction; the in-memory scan uses the same estimator, so it is not independent evidence.
+- **Gates**: unittest 892/892 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_signals` -> 17 OK.
+  - `python -m unittest discover -s tests -t .` -> 892 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 164**: unittest 892 OK; aikit 5/5; `T3_navigate:15` trace 13 rows / log parity; in-memory ten-trace scan 70 rows / 6 valid / module `[]`; disabled trace no signals; planted signal M/P `[[0,2]]` detected and replicated; stability candidate p100 0.0495 / p200 0.0547 / stable False / selected `[]` / ablation `[[0,4]]`; keys mode 70 / 6 / S False; seen mode 70 / 5 / S True; signal rows 70 / 5 cross-module; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 162 - the module-state pipeline needs a positive control
 
 - **Baseline** (commit f07f69e):

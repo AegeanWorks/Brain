@@ -24,7 +24,8 @@ import unittest
 from agent import Agent
 from evals.module_state import (pool_signals, read_signals,
                                 scan_module_state_blocks,
-                                scan_module_states)
+                                scan_module_states, scan_traces,
+                                signals_from_trace)
 from evals.replication import scan_with_holdout
 from evals.pair_scan import _dependent, module_interactions, scan_pairs
 from evals.recompute import _vec_row, dedupe_rows
@@ -79,6 +80,36 @@ class TestModuleSignals(unittest.TestCase):
         self.assertEqual(len(rows), 13)
         self.assertTrue(all(len(row) == 7 for row in rows))
         self.assertTrue(all(row[4] >= 0.0 for row in rows))
+
+    def test_trace_carries_signals(self):
+        trace = Agent(module_signals=True).run_task("T3_navigate", 15)
+        self.assertEqual(len(trace), 13)
+        self.assertTrue(all("signals" in step for step in trace))
+        rows = signals_from_trace(trace)
+        self.assertEqual(len(rows), 13)
+        self.assertTrue(all(len(row) == 7 for row in rows))
+
+    def test_disabled_trace_has_no_signals(self):
+        trace = Agent(module_signals=False).run_task("T3_navigate", 15)
+        self.assertTrue(all("signals" not in step for step in trace))
+        self.assertEqual(signals_from_trace(trace), [])
+
+    def test_trace_and_log_signals_agree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "trace.jsonl")
+            trace = Agent(module_signals=True).run_task_logged(
+                "T3_navigate", 15, max_steps=200, log_path=path)
+            self.assertEqual(signals_from_trace(trace), read_signals(path))
+
+    def test_in_memory_scan_matches_the_log_path(self):
+        traces = [Agent(module_signals=True).run_task("T3_navigate", seed)
+                  for seed in range(10)]
+        reports = scan_traces(traces, trials=200)
+        self.assertEqual(sum(1 for report in reports if report["ok"]), 6)
+        self.assertEqual(module_interactions(
+            [row for trace in traces for row in signals_from_trace(trace)],
+            [step["reward"] for trace in traces for step in trace],
+            trials=200), [])
 
     def test_module_signals_can_be_disabled(self):
         with tempfile.TemporaryDirectory() as directory:

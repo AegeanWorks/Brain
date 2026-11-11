@@ -71,6 +71,28 @@ def pool_signals(log_paths):
     return rows
 
 
+def signals_from_trace(trace):
+    """Return one signal row per trace step that carries a signals block."""
+    rows = []
+    for step in trace:
+        if not isinstance(step, dict):
+            continue
+        row = _row({"signals": step.get("signals"),
+                    "reward": step.get("reward", 0.0)})
+        if row is not None:
+            rows.append(row)
+    return rows
+
+
+def scan_traces(traces, trials=200):
+    """Scan pooled in-memory traces with the shared pair gate and family null."""
+    rows = []
+    for trace in traces:
+        rows.extend(signals_from_trace(trace))
+    target = [row[-1] for row in rows]
+    return scan_pairs(rows, target, trials=trials, family_wise=True)
+
+
 def scan_module_states(log_paths, trials=200):
     """Scan pooled signal rows with the shared pair gate and family null."""
     rows = pool_signals(log_paths)

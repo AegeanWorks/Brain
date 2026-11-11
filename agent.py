@@ -1505,6 +1505,10 @@ class Agent:
                 except Exception:
                     self._substrate_errors["self_model"] += 1
             m_vec, p_vec, s_vec, hub_vec = self._step_vectors(i, new_state, reward, memories)
+            _signals = None
+            if self._emit_module_signals:
+                _signals = self._module_signals(
+                    memories, _learned, _keys, _seen)
             if self.telemetry_log is not None:
                 args = {
                     "action": action,
@@ -1518,9 +1522,8 @@ class Agent:
                 probe = getattr(self.planner, "last_probe", None)
                 if isinstance(probe, dict):
                     args["probe"] = copy.deepcopy(probe)
-                if self._emit_module_signals:
-                    args["signals"] = self._module_signals(
-                        memories, _learned, _keys, _seen)
+                if _signals is not None:
+                    args["signals"] = _signals
                 try:
                     self.telemetry_log.append_action(
                         i + 1, "step", args,
@@ -1532,10 +1535,11 @@ class Agent:
                     )
                 except Exception:
                     self._substrate_errors["telemetry_log"] += 1
-            trace.append(
-                {"step": i, "state": copy.deepcopy(new_state), "action": action,
-                 "reward": reward, "done": done}
-            )
+            record = {"step": i, "state": copy.deepcopy(new_state),
+                      "action": action, "reward": reward, "done": done}
+            if _signals is not None:
+                record["signals"] = _signals
+            trace.append(record)
             state = new_state
             if done:
                 break
