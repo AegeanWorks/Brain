@@ -29,8 +29,13 @@ the null, so ``interactions`` returns nothing — which is the honest answer
 for a substrate whose trace carries one variable in nine columns.
 """
 
+import random
+
 from evals.estimators import synergy, synergy_scope
 from evals.synergy_null import synergy_verdict
+
+#: Family-wise tail for a scan that tests every valid pair at once.
+ALPHA = 0.05
 
 
 def _dependent(first, second):
@@ -54,13 +59,14 @@ def _dependent(first, second):
     return True
 
 
-def pair_report(rows, target, first, second, trials=200):
+def pair_report(rows, target, first, second, trials=200, with_null=True):
     """Score one column pair, refusing artifacts before scoring.
 
     Returns ``syn``/``syn_n``/``ok`` plus the scope verdict. ``ok`` is false
     when the pair cannot decide (constant, duplicate or functionally
     dependent columns), in which case the gap is reported but must not be
-    read as interaction.
+    read as interaction. ``with_null=False`` omits the single-pair null for
+    callers that will apply a family-wise null across all pairs instead.
     """
     pair = [[row[first], row[second]] for row in rows]
     scope = synergy_scope(pair, target)
@@ -76,16 +82,63 @@ def pair_report(rows, target, first, second, trials=200):
         "ok": reason is None,
         "reason": reason,
     }
-    if report["ok"]:
+    if report["ok"] and with_null:
         report["null"] = synergy_verdict(pair, target, trials=trials)
     return report
 
 
-def scan_pairs(rows, target, trials=200):
+def _family_wise(rows, target, reports, trials=200, seed=0):
+    """Attach a max/min-statistic null to every pair that passed the gate.
+
+    ``synergy_verdict`` tests one pre-registered pair. A scan tests many, so
+    the per-pair 5% tails accumulate: a 28-pair scan expects a false positive
+    by construction. This null keeps the trace fixed and shuffles the target
+    once per trial, scores every valid pair against the *same* shuffled
+    target, and records the largest and smallest gap in that trial. Each
+    observed gap is then compared with that family's extreme, so the scan's
+    multiplicity is paid by one corrected tail rather than by a divisor.
+    """
+    if isinstance(trials, bool) or not isinstance(trials, int) or trials < 1:
+        raise ValueError(
+            "Why: trials must be a positive int. "
+            "Fix: pass trials=200 or another positive int.")
+    valid = [report for report in reports if report["ok"]]
+    if not valid:
+        return
+    pairs = [(report["columns"][0], report["columns"][1])
+             for report in valid]
+    matrices = [[[row[first], row[second]] for row in rows]
+                for first, second in pairs]
+    rng = random.Random(seed)
+    pool = list(target)
+    maxima = []
+    minima = []
+    for _ in range(trials):
+        rng.shuffle(pool)
+        shuffled = list(pool)
+        gaps = [synergy(matrix, shuffled)[0] for matrix in matrices]
+        maxima.append(max(gaps))
+        minima.append(min(gaps))
+    for report in valid:
+        observed = report["syn"]
+        report["family"] = {
+            "trials": trials,
+            "family_size": len(valid),
+            "p_upper": (1 + sum(1 for value in maxima
+                                if value >= observed)) / (trials + 1),
+            "p_lower": (1 + sum(1 for value in minima
+                                if value <= observed)) / (trials + 1),
+        }
+
+
+def scan_pairs(rows, target, trials=200, family_wise=True, seed=0):
     """Return every column pair's report, sorted by gap descending.
 
     Pairs that fail the gate sort last regardless of their gap, so a caller
-    reading the head of the list never sees an artifact first.
+    reading the head of the list never sees an artifact first. With
+    ``family_wise=True`` every valid pair carries a ``family`` block holding
+    the scan-corrected tails; ``family_wise=False`` restores the per-pair
+    null only and is the executable ablation.
     """
     if not rows:
         return []
@@ -93,31 +146,51 @@ def scan_pairs(rows, target, trials=200):
     reports = []
     for first in range(width):
         for second in range(first + 1, width):
-            reports.append(pair_report(rows, target, first, second, trials))
+            reports.append(pair_report(rows, target, first, second, trials,
+                                       with_null=not family_wise))
     reports.sort(key=lambda r: (r["ok"], r["syn"]), reverse=True)
+    if family_wise:
+        _family_wise(rows, target, reports, trials=trials, seed=seed)
     return reports
 
 
-def interactions(rows, target, trials=200):
-    """Return only the pairs that pass the gate AND beat their null upward.
+def interactions(rows, target, trials=200, family_wise=True, seed=0):
+    """Return only the pairs that pass the gate AND beat their family upward.
 
     This is the honest answer to "which two modules interact": empty when no
-    pair both varies independently and exceeds its permutation null on the
-    positive side. A pair that is distinguishable only *below* its null is
-    anti-interacting (the joint carries less than its marginals), which is a
-    different claim and is returned separately by :func:`anti_interactions`.
+    pair both varies independently and clears the scan-corrected positive
+    tail. A pair that is distinguishable only *below* its family is
+    anti-interacting (the joint carries less than its marginals), a different
+    claim returned by :func:`anti_interactions`.
     """
-    return [report for report in scan_pairs(rows, target, trials)
-            if report["ok"] and report["null"]["distinguishable"]
-            and report["syn"] > 0.0]
+    selected = []
+    for report in scan_pairs(rows, target, trials, family_wise=family_wise,
+                             seed=seed):
+        if not report["ok"] or report["syn"] <= 0.0:
+            continue
+        if family_wise:
+            if report["family"]["p_upper"] <= ALPHA:
+                selected.append(report)
+        elif report["null"]["distinguishable"]:
+            selected.append(report)
+    return selected
 
 
-def anti_interactions(rows, target, trials=200):
-    """Return pairs that pass the gate and sit significantly *below* the null.
+def anti_interactions(rows, target, trials=200, family_wise=True, seed=0):
+    """Return pairs that pass the gate and sit below their family null.
 
     Kept separate from :func:`interactions` so a caller counting
-    "interactions" is never handed a negative gap.
+    "interactions" is never handed a negative gap. The same family-wise
+    correction applies to the lower tail.
     """
-    return [report for report in scan_pairs(rows, target, trials)
-            if report["ok"] and report["null"]["distinguishable"]
-            and report["syn"] < 0.0]
+    selected = []
+    for report in scan_pairs(rows, target, trials, family_wise=family_wise,
+                             seed=seed):
+        if not report["ok"] or report["syn"] >= 0.0:
+            continue
+        if family_wise:
+            if report["family"]["p_lower"] <= ALPHA:
+                selected.append(report)
+        elif report["null"]["distinguishable"]:
+            selected.append(report)
+    return selected

@@ -231,7 +231,9 @@ a permutation null (`p_upper`/`p_lower`, `distinguishable`);
 `recompute` and each battery slot carry both; `dedupe_rows` collapses the
 paired action/result record so `n` counts steps. Equal scope columns mean
 no independent second signal: `duplicate-scope-column`; a constant reads
-`constant-scope-column`. Nothing shipped beats its null.
+`constant-scope-column`. `evals.pair_scan` applies a family-wise max/min-statistic null to a
+multi-pair scan (`family_wise=False` is the per-pair ablation).
+Nothing shipped beats its null.
 
 ## 🧪 Lesion Detectability
 
@@ -447,15 +449,13 @@ intact/tampered/missing meta.
 records with Brier, log loss, base rate, skill, five reliability bins
 and small-sample / over-confidence warnings.
 `outcome=None` is ignored and reflected in coverage.
-`SelfModel.calibration()` scores the pairs the self-model records.
+`SelfModel.calibration()` scores those pairs.
 `record_prediction` forms the confidence *before* the action, so the
 score is a real forecast (skill +0.935 over six pinned episodes); the
 older `record` uses `1.0` rewarded or `0.5` otherwise, a function of
 the outcome, and the readout appends a `confidence-is-outcome`
-warning. The scorer never applies that diagnosis, so a perfect
-forecast is not flagged.
-`python -m evals.calibration` shows perfect, calibrated, inverted and
-small-sample readouts.
+warning. The scorer never applies that diagnosis.
+`python -m evals.calibration` shows all four fixtures.
 
 `calibration_store.py` makes forecasts durable across runs.
 `append_forecasts` validates each record, refuses duplicate ids, and
@@ -521,8 +521,7 @@ verdict history (`proposed` with none, otherwise the last verdict's
 status); a claim or snapshot whose status contradicts that history is
 rejected, even when its checksum was recomputed. Verdict evidence and
 timestamps are validated on load too. Declared confidence does not decide
-the verdict. `python -m evals.claims` judges six T3 claims (3 supported, 2
-refuted, 1 inconclusive) with unchanged runs.
+the verdict. `python -m evals.claims` judges six T3 claims (3/2/1).
 
 `claims_store.py` makes the ledger durable. `save_ledger(ledger,
 path)` writes one checksummed snapshot atomically, keeps the previous

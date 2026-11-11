@@ -4904,6 +4904,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 153 - a scan of many pairs needs a family-wise null
+
+- **Baseline** (commit 3a43908):
+  - canonical gate: 838 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `pair_scan.interactions` returned every pair outside its own 5% permutation tail; a 28-pair scan therefore expected about 1.4 positives at `alpha=0.05` before any interaction existed.
+  - measured on a synthetic trace with a planted XOR pair and six independent binary decoys (`n=24`, `seed=28`, 200 trials): `(0,1)` `syn +0.6337` per-pair `p_upper 0.000`; `(0,6)` `syn +0.1368` per-pair `p_upper 0.020`; both were returned, and `anti_interactions` returned 3 negative pairs.
+- **Gap**: the pair scan paid a per-pair tail for every pair it tested, so its "interaction" set was expected to contain false positives by construction. The criterion was easier to fool than its single-pair null suggested.
+- **Target delta**: a scan-level null whose multiplicity is paid once, a planted interaction that survives it, and a decoy that does not.
+- **Falsifier**: the planted pair is lost; the decoy survives; the correction is nondeterministic; or a shipped interaction appears that the per-pair scan did not report.
+- **Change**: `evals/pair_scan.py` adds `_family_wise` and `ALPHA`; `scan_pairs(..., family_wise=True)` scores one target permutation against every valid pair per trial and attaches a `family` block (`trials`, `family_size`, `p_upper`, `p_lower`) computed from the trial maximum and minimum gaps; `interactions`/`anti_interactions` select from those corrected tails; `family_wise=False` is the executable ablation; `pair_report(..., with_null=False)` skips the unused single-pair null inside a corrected scan; `tests/test_pair_scan_fwer.py` (8 tests).
+- **After** (same fixture):
+  - uncorrected `interactions`: `[[0,1],[0,6]]`; corrected: `[[0,1]]`.
+  - `(0,1)` survives at family `p_upper 0.005`; `(0,6)` is refused at `0.5522` with `family_size 28`.
+  - uncorrected `anti_interactions`: 3 pairs; corrected: 0.
+  - every shipped trace remains empty under both settings; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `family_wise=False` returns the decoy `(0,6)` and 3 anti pairs; `family_wise=True` returns only the planted `(0,1)` and no anti pairs. The correction is the integration point; removing it restores the false positives and restoring it removes them.
+- **Verdict**: criteria hardening. The measured delta is "per-pair tails that expect a false positive per scan" -> "a family-wise null that keeps the planted interaction and refuses the decoy". Boundary: the null still permutes the target only, so serial/autocorrelated alternatives are untested; and it does not gate target leakage (a column that determines the target can still enter a pair), which is the next falsifier.
+- **Gates**: unittest 846/846 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_pair_scan_fwer` -> before: 8 errors; after: 8 OK.
+  - `python ..\..\scratch\ablate_153.py` -> uncorrected 2 positives / 3 anti; corrected 1 positive / 0 anti.
+  - `python -m unittest tests.test_pair_scan tests.test_pair_conclusions tests.test_wiring_independence` -> 31 OK.
+  - `python -m unittest discover -s tests -t .` -> 846 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> `.aikit\codebase_map.md` updated; no other finding.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 154**: unittest 846 OK; aikit 5/5; planted fixture (`n=24`, `seed=28`) `(0,1)` `syn 0.6337` family `p_upper 0.005`; `(0,6)` `syn 0.1368` family `p_upper 0.5522`; `family_size 28`; uncorrected `interactions` 2, corrected 1; uncorrected `anti_interactions` 3, corrected 0; shipped `interactions` empty under both settings; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 152 - a registry nobody can reach is not pluggable
 
 - **Baseline** (commit 125e7da):

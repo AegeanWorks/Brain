@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `208`
-- **Total Classes**: `215`
-- **Total Top-Level Functions**: `583`
-- **Total Class Methods**: `1104`
-- **Total Source Lines**: `28204`
+- **Total Python Modules**: `209`
+- **Total Classes**: `216`
+- **Total Top-Level Functions**: `586`
+- **Total Class Methods**: `1112`
+- **Total Source Lines**: `28402`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`208` module(s))
+- **Indexed**: python (`209` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -720,14 +720,15 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `123` lines (`5107` bytes)
+**Size**: `196` lines (`8237` bytes)
 
 **Functions:**
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
-- `def pair_report(rows, target, first, second, trials)` - *Score one column pair, refusing artifacts before scoring.*
-- `def scan_pairs(rows, target, trials)` - *Return every column pair's report, sorted by gap descending.*
-- `def interactions(rows, target, trials)` - *Return only the pairs that pass the gate AND beat their null upward.*
-- `def anti_interactions(rows, target, trials)` - *Return pairs that pass the gate and sit significantly *below* the null.*
+- `def pair_report(rows, target, first, second, trials, with_null)` - *Score one column pair, refusing artifacts before scoring.*
+- `def _family_wise(rows, target, reports, trials, seed)` - *Attach a max/min-statistic null to every pair that passed the gate.*
+- `def scan_pairs(rows, target, trials, family_wise, seed)` - *Return every column pair's report, sorted by gap descending.*
+- `def interactions(rows, target, trials, family_wise, seed)` - *Return only the pairs that pass the gate AND beat their family upward.*
+- `def anti_interactions(rows, target, trials, family_wise, seed)` - *Return pairs that pass the gate and sit below their family null.*
 
 ---
 
@@ -2780,6 +2781,28 @@
   - Method `.test_an_empty_trace_degrades()`
 
 **Functions:**
+- `def _shipped(task, seed)`
+
+---
+
+### [`tests/test_pair_scan_fwer.py`](tests/test_pair_scan_fwer.py)
+> *Scanning every pair needs a family-wise null, not per-pair tails.*
+
+**Size**: `125` lines (`5470` bytes)
+
+**Classes:**
+- `class TestPairScanFamilyWise`
+  - Method `.test_uncorrected_scan_flags_a_decoy_pair()`
+  - Method `.test_corrected_scan_keeps_the_planted_pair()`
+  - Method `.test_corrected_scan_refuses_the_decoy_pair()`
+  - Method `.test_correction_reduces_the_selected_set()`
+  - Method `.test_anti_interactions_use_the_same_correction()`
+  - Method `.test_family_size_is_the_valid_pair_count()`
+  - Method `.test_the_correction_is_deterministic()`
+  - Method `.test_no_shipped_pair_survives_the_correction()`
+
+**Functions:**
+- `def _planted(n, decoys, seed)` - *One XOR pair plus independent binary decoys; no world, no agent.*
 - `def _shipped(task, seed)`
 
 ---
