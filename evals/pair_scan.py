@@ -68,6 +68,11 @@ def _target_column(values, target):
     return list(values) == list(target)
 
 
+def _target_derived(values, target):
+    """True when the column is a deterministic function of the target."""
+    return _function(target, values)
+
+
 def _target_leak(values, target):
     """True when the target is a deterministic function of the column."""
     mapping = {}
@@ -179,6 +184,10 @@ def pair_report(rows, target, first, second, trials=200, with_null=True,
             _target_leak(first_values, target)
             or _target_leak(second_values, target)):
         reason = "target-leak-column"
+    elif guard_target and scope["sufficient"] and (
+            _target_derived(first_values, target)
+            or _target_derived(second_values, target)):
+        reason = "target-derived-column"
     report = {
         "columns": [first, second],
         "blocks": [block_for(first, width), block_for(second, width)],

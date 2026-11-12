@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
-- **Total Top-Level Functions**: `631`
-- **Total Class Methods**: `1207`
-- **Total Source Lines**: `30427`
+- **Total Top-Level Functions**: `632`
+- **Total Class Methods**: `1208`
+- **Total Source Lines**: `30448`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -741,13 +741,14 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `384` lines (`15734` bytes)
+**Size**: `393` lines (`16083` bytes)
 
 **Functions:**
 - `def _function(first, second)` - *True when every value of ``first`` maps to one value of ``second``.*
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
 - `def _bijective(first, second)` - *True when both columns determine each other (one equivalence).*
 - `def _target_column(values, target)` - *True when a column is identical to the target.*
+- `def _target_derived(values, target)` - *True when the column is a deterministic function of the target.*
 - `def _target_leak(values, target)` - *True when the target is a deterministic function of the column.*
 - `def block_for(column, width)` - *Return the M/P/S/hub block a column belongs to.*
 - `def column_classes(rows, exclude_target)` - *Group feature columns that are functionally dependent on each other.*
@@ -2941,10 +2942,11 @@
 ### [`tests/test_pair_scan.py`](tests/test_pair_scan.py)
 > *A pair search must refuse artifacts before it reports a gap.*
 
-**Size**: `116` lines (`4971` bytes)
+**Size**: `128` lines (`5517` bytes)
 
 **Classes:**
 - `class TestPairScan`
+  - Method `.test_a_target_derived_column_is_refused()`
   - Method `.test_a_constant_partner_is_refused()`
   - Method `.test_the_artifact_has_a_large_gap_and_no_mi()`
   - Method `.test_identical_partners_give_identical_gaps()`

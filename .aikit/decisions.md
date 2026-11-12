@@ -1279,6 +1279,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 933 tests OK; coverage is unchanged. Deterministic cache evidence: `_episode` 30 hits / 10 misses, `_vectors` 8 / 2, `_raw` 4 / 4, and four replication pools; the same assertions run with 30 fewer full-wiring episode builds. The full gate measured 198.7s versus 255.7s on two runs, but wall time is load-sensitive and is not the proof. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: disabling the caches turns the 30 hits into rebuilds; coverage and assertions are unchanged.
 - **Boundary**: this is test-only. The caches assume deterministic `Agent` rows and no test mutating the cached lists; a mutating test must copy the rows before editing.
 
+### ADR-179: Refuse a column that is a function of the target
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: `_target_leak` refused a column when the target was a deterministic function of it (`target = f(column)`). ADR-152 left the opposite direction open: a column that is a deterministic function of the target (`column = f(target)`) with a non-injective mapping passed. On the binary production target such a column is constant, identical or bijective and the other gates catch it, but a generic or multi-valued target can carry a derived feature. A synthetic three-valued target with `column=[0,0,1]` for target `0,1,2` passed `pair_report` before this fix.
+- **Decision**: add `_target_derived(values, target) = _function(target, values)` and refuse a pair with reason `target-derived-column` after the target-leak gate. Tests: `test_a_target_derived_column_is_refused` (synthetic three-valued target; `ok False`, no null).
+- **Consequences**: 934 tests OK; aikit check 5/5. Production signal counts, selected anti pairs, block splits and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`), because the binary target already made the direction redundant there. Ablation: removing the gate makes the synthetic pair `ok True`; restoring it refuses it as `target-derived-column`.
+- **Boundary**: for the current binary reward the new gate adds no refusals beyond the existing exact/target-leak/scope gates; it closes the generic-target hole. A target-derived column is still reported with its `syn` for diagnostics, but not testable.
+
 
 
 

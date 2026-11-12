@@ -44,6 +44,18 @@ def _shipped(task, seed):
 
 
 class TestPairScan(unittest.TestCase):
+    def test_a_target_derived_column_is_refused(self):
+        import random
+        rng = random.Random(5)
+        target = [index % 3 for index in range(30)]
+        derived = [0 if outcome < 2 else 1 for outcome in target]
+        noise = [rng.randint(0, 1) for _ in range(30)]
+        rows = [[d, n] for d, n in zip(derived, noise)]
+        report = pair_report(rows, target, 0, 1, trials=50)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["reason"], "target-derived-column")
+        self.assertNotIn("null", report)
+
     def test_a_constant_partner_is_refused(self):
         rows, target = _shipped("T1_forage", 71)
         # Column 2 is constant on this trace.
