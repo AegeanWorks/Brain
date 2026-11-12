@@ -25,6 +25,13 @@ EXIT_FINDING = 1
 #: Names a module must reference to count as adopting the contract.
 CONTRACT_MARKERS = ("battery_result", "exit_code_for")
 
+#: Pure libraries/helpers that are not batteries by design.
+LIBRARY_MODULES = frozenset({
+    "estimators", "lesion_audit", "module_state", "pair_scan",
+    "phi_diagnosis", "recompute", "replication", "synergy_null",
+    "vector_audit",
+})
+
 
 def exit_code_for(findings):
     """Return the process exit code for one battery's findings."""
@@ -65,12 +72,15 @@ def audit_batteries(root):
     so a regression there is invisible to a scripted gate.
     """
     directory = Path(root) / "evals"
-    with_contract, without_contract = [], []
+    with_contract, without_contract, libraries = [], [], []
     if not directory.is_dir():
         return {"total": 0, "with_contract": [], "without_contract": [],
-                "contract": list(CONTRACT_MARKERS)}
+                "libraries": [], "contract": list(CONTRACT_MARKERS)}
     for path in sorted(directory.glob("*.py")):
         if path.stem == "__init__":
+            continue
+        if path.stem in LIBRARY_MODULES:
+            libraries.append(path.stem)
             continue
         try:
             source = path.read_text(encoding="utf-8")
@@ -85,9 +95,10 @@ def audit_batteries(root):
                 covered = False
         (with_contract if covered else without_contract).append(path.stem)
     return {
-        "total": len(with_contract) + len(without_contract),
+        "total": len(with_contract) + len(without_contract) + len(libraries),
         "with_contract": with_contract,
         "without_contract": without_contract,
+        "libraries": libraries,
         "contract": list(CONTRACT_MARKERS),
     }
 
@@ -98,9 +109,12 @@ def main():
 
     root = Path(__file__).resolve().parent.parent
     report = audit_batteries(root)
-    print("batteries: %d, with a self-check: %d, none: %d"
-          % (report["total"], len(report["with_contract"]),
+    print("batteries: %d, libraries: %d, with a self-check: %d, none: %d"
+          % (len(report["with_contract"]) + len(report["without_contract"]),
+             len(report["libraries"]), len(report["with_contract"]),
              len(report["without_contract"])))
+    for name in report["libraries"]:
+        print("  LIBRARY: %s" % name)
     for name in report["without_contract"]:
         print("  NO SELF-CHECK: %s" % name)
     sys.exit(exit_code_for(report["without_contract"]))

@@ -9,8 +9,8 @@
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
 - **Total Top-Level Functions**: `629`
-- **Total Class Methods**: `1200`
-- **Total Source Lines**: `30281`
+- **Total Class Methods**: `1202`
+- **Total Source Lines**: `30319`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -328,7 +328,7 @@
 ### [`evals/battery_check.py`](evals/battery_check.py)
 > *One exit-code contract for the eval batteries.*
 
-**Size**: `110` lines (`3950` bytes)
+**Size**: `124` lines (`4551` bytes)
 
 **Functions:**
 - `def exit_code_for(findings)` - *Return the process exit code for one battery's findings.*
@@ -721,7 +721,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `172` lines (`5959` bytes)
+**Size**: `180` lines (`6280` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
@@ -1579,7 +1579,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `112` lines (`4647` bytes)
+**Size**: `117` lines (`4786` bytes)
 
 **Classes:**
 - `class TestBatteryContract`
@@ -1591,7 +1591,8 @@
   - Method `.test_a_battery_exits_non_zero_when_it_reports_a_finding()`
 - `class TestBatteryAudit`
   - Method `.test_audit_reports_the_shipped_batteries()`
-  - Method `.test_audit_still_names_the_uncovered_batteries()`
+  - Method `.test_audit_still_names_the_libraries()`
+  - Method `.test_no_battery_is_missing_a_contract()`
   - Method `.test_audit_finds_both_populations()`
   - Method `.test_audit_of_a_missing_directory_degrades()`
 
@@ -2725,7 +2726,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `419` lines (`19988` bytes)
+**Size**: `430` lines (`20570` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2756,6 +2757,7 @@
   - Method `.test_signals_do_not_change_actions()`
   - Method `.test_block_split_includes_the_anti_module_pairs()`
   - Method `.test_trace_block_split_matches_the_log_path()`
+  - Method `.test_block_split_reports_metadata()`
   - Method `.test_disabled_trace_block_split_is_empty()`
   - Method `.test_anti_block_filters_are_complementary()`
   - Method `.test_block_split_reaches_module_and_world()`

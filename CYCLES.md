@@ -4904,6 +4904,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 177 - a library is not a battery without a self-check
+
+- **Baseline** (commit da4d93f):
+  - canonical gate: 927 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `python -m evals.battery_check` counted 42 eval modules as batteries and exited 1, naming estimators, module_state, phi_diagnosis, recompute and vector_audit as batteries without a self-check, although they are pure libraries/helpers.
+  - a permanently failing audit cannot gate anything.
+- **Gap**: the audit conflated libraries with batteries and had no honest green state.
+- **Target delta**: classify the known libraries, keep them visible, and exit non-zero only for actual batteries without a contract.
+- **Falsifier**: a library is hidden; a battery without a contract is missed; the total no longer decomposes; or the audit still exits 1 with no missing battery.
+- **Change**: `evals/battery_check.py` adds `LIBRARY_MODULES` (9 names), returns a `libraries` list, and exits only on battery gaps; `tests/test_battery_contract.py` checks libraries, no missing battery, and three-population totals.
+- **After**:
+  - audit: 33 batteries / 9 libraries / 0 missing; exit 0.
+  - each library is printed; no battery is missing a contract.
+  - no production behavior changed; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: removing `LIBRARY_MODULES` makes the five libraries fail again and exits 1; restoring it returns 0 with libraries visible. The classification is the integration point.
+- **Verdict**: audit honesty. The measured delta is "a permanent exit-1 audit that miscounts libraries" -> "33 batteries covered, 9 libraries named, exit 0". Boundary: the list is explicit and must be maintained; `recompute` is a library despite a CLI per ADR-118.
+- **Gates**: unittest 928/928 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m evals.battery_check` -> 33 batteries / 9 libraries / 0 missing, exit 0.
+  - `python -m unittest tests.test_battery_contract` -> 11 OK.
+  - `python -m unittest discover -s tests -t .` -> 928 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 178**: unittest 928 OK; aikit 5/5; battery audit 33/9/0 exit 0; block metadata version 2 / M turns / P alternatives / S keys; disabled split metadata None; XOR control selected (0,2)/(1,2)/(2,5) positive stable replicated; noise control empty; metadata persistent_fields 2 cold, 0 warm / store_reads 1 cold, 0 warm; T3->T1 block selected two P-S anti with matches (3,5)/(3,4) p_lower 0.0099; T3->T1 column []; T3->T2 block []; positive (0,4) rejected; trace/log block parity; anti_module [(2,5),(2,4)]; signal dedupe 11 reports / 10 valid / family 10; raw 15 / 14 / 14; selected (2,5),(2,4) negative p_lower 0.0099; legacy hub 5 raw -> 1 unique; classes [0,1,2,2,4,5]; signed both/negative selected two; positive-only selected []; positive candidate p100 0.0495 / p200 0.0547; alternatives keys 14 valid / 12 cross / P0 leak false; alternatives seen 13 / 12; distance keys 10 / 8 / P0 leak true; distance seen 9 / 8; turns 14 valid / 12 cross; revisits 9 valid; `module_interactions []`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 14 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 176 - the block split must carry the signal provenance
 
 - **Baseline** (commit 7e84bb9):

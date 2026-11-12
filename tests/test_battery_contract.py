@@ -83,29 +83,34 @@ class TestBatteryAudit(unittest.TestCase):
         self.assertIn("contract", report)
         self.assertGreater(report["total"], 20)
 
-    def test_audit_still_names_the_uncovered_batteries(self):
-        # The audit is only useful while it keeps naming the gap.
+    def test_audit_still_names_the_libraries(self):
+        # Libraries are visible, but they are not batteries.
         report = audit_batteries(BRAIN)
-        self.assertTrue(report["without_contract"])
-        for name in ("estimators", "recompute", "vector_audit"):
-            self.assertIn(name, report["without_contract"])
+        for name in ("estimators", "recompute", "vector_audit",
+                     "module_state", "pair_scan", "replication"):
+            self.assertIn(name, report["libraries"])
         for name in ("calibration", "progress_guard", "header_reader",
                      "prompt_budget", "execution_budget"):
-            self.assertNotIn(name, report["without_contract"])
+            self.assertNotIn(name, report["libraries"])
+
+    def test_no_battery_is_missing_a_contract(self):
+        report = audit_batteries(BRAIN)
+        self.assertEqual(report["without_contract"], [])
 
     def test_audit_finds_both_populations(self):
         report = audit_batteries(BRAIN)
-        # Some batteries already refuse malformed input, so they are counted.
         self.assertTrue(report["with_contract"])
-        self.assertTrue(report["without_contract"])
+        self.assertTrue(report["libraries"])
         self.assertEqual(
-            len(report["with_contract"]) + len(report["without_contract"]),
+            len(report["with_contract"]) + len(report["without_contract"])
+            + len(report["libraries"]),
             report["total"])
 
     def test_audit_of_a_missing_directory_degrades(self):
         report = audit_batteries(os.path.join(BRAIN, "no-such-dir"))
         self.assertEqual(report["total"], 0)
         self.assertEqual(report["without_contract"], [])
+        self.assertEqual(report["libraries"], [])
 
 
 if __name__ == "__main__":

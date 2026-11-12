@@ -1223,6 +1223,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 927 tests OK; aikit check 5/5. Block results carry `version 2 / M turns / P alternatives / S keys`; trace and log metadata agree; a disabled trace split carries `None`. Pair lists, rows, actions and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: removing the metadata key fails the provenance test while the pair lists and actions are identical.
 - **Boundary**: the result records the first record's provenance, not a per-step history; a run with a mid-run mode change would need per-step metadata. Old logs without `signals_meta` return `None` while still producing rows.
 
+### ADR-172: A library is not a battery without a self-check
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: `audit_batteries` treated every `evals/*.py` module as a battery. It therefore exited 1 forever and named `estimators`, `module_state`, `phi_diagnosis`, `recompute` and `vector_audit` as batteries without a self-check, although they are pure libraries/helpers; `pair_scan`, `replication`, `lesion_audit` and `synergy_null` were counted as covered for incidental reasons. A permanently failing audit cannot gate anything.
+- **Decision**: add the explicit `LIBRARY_MODULES` set (estimators, lesion_audit, module_state, pair_scan, phi_diagnosis, recompute, replication, synergy_null, vector_audit); `audit_batteries` returns a separate `libraries` list and `main` exits 1 only for actual batteries without a self-check. Tests: libraries stay named, no battery is missing a contract, totals include the three populations.
+- **Consequences**: 928 tests OK; aikit check 5/5. `python -m evals.battery_check` reports 33 batteries / 9 libraries / 0 missing and exits 0. The audit still lists every library and every uncovered battery; no production behavior changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing `LIBRARY_MODULES` makes the five libraries fail the audit again and exits 1; restoring it returns 0 with the libraries visible.
+- **Boundary**: the list is explicit and must be maintained; a new library is audited as a battery until added, and `recompute` is classified as a library despite exposing a CLI because ADR-118 already calls it a pure helper.
+
 
 
 
