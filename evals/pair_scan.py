@@ -39,6 +39,15 @@ from evals.synergy_null import synergy_verdict
 ALPHA = 0.05
 
 
+def _function(first, second):
+    """True when every value of ``first`` maps to one value of ``second``."""
+    forward = {}
+    for a, b in zip(first, second):
+        if forward.setdefault(a, b) != b:
+            return False
+    return True
+
+
 def _dependent(first, second):
     """True when one column is a deterministic function of the other.
 
@@ -46,18 +55,12 @@ def _dependent(first, second):
     so ``I(joint)`` cannot exceed the marginal and any positive gap is a
     re-binning artifact rather than interaction.
     """
-    forward = {}
-    for a, b in zip(first, second):
-        if forward.setdefault(a, b) != b:
-            forward = None
-            break
-    if forward is not None:
-        return True
-    backward = {}
-    for b, a in zip(second, first):
-        if backward.setdefault(a, b) != b:
-            return False
-    return True
+    return _function(first, second) or _function(second, first)
+
+
+def _bijective(first, second):
+    """True when both columns determine each other (one equivalence)."""
+    return _function(first, second) and _function(second, first)
 
 
 def _target_column(values, target):
@@ -128,7 +131,7 @@ def column_classes(rows, exclude_target=True):
             other = set(columns[second])
             if len(other) <= 1 or len(other) == n_rows:
                 continue
-            if _dependent(columns[first], columns[second]):
+            if _bijective(columns[first], columns[second]):
                 union(first, second)
     return [find(index) for index in range(width)]
 

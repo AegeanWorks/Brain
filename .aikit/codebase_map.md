@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
-- **Total Top-Level Functions**: `629`
-- **Total Class Methods**: `1205`
-- **Total Source Lines**: `30373`
+- **Total Top-Level Functions**: `631`
+- **Total Class Methods**: `1206`
+- **Total Source Lines**: `30387`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -741,10 +741,12 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `381` lines (`15579` bytes)
+**Size**: `384` lines (`15734` bytes)
 
 **Functions:**
+- `def _function(first, second)` - *True when every value of ``first`` maps to one value of ``second``.*
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
+- `def _bijective(first, second)` - *True when both columns determine each other (one equivalence).*
 - `def _target_column(values, target)` - *True when a column is identical to the target.*
 - `def _target_leak(values, target)` - *True when the target is a deterministic function of the column.*
 - `def block_for(column, width)` - *Return the M/P/S/hub block a column belongs to.*
@@ -2897,7 +2899,7 @@
 ### [`tests/test_pair_conclusions.py`](tests/test_pair_conclusions.py)
 > *Pair-level conclusions must be re-derived at one observation per step.*
 
-**Size**: `125` lines (`5556` bytes)
+**Size**: `126` lines (`5542` bytes)
 
 **Classes:**
 - `class TestPairConclusionsAtCorrectN`
@@ -2918,11 +2920,12 @@
 ### [`tests/test_pair_equivalence.py`](tests/test_pair_equivalence.py)
 > *Equivalent pairs are one piece of evidence, not two.*
 
-**Size**: `110` lines (`4627` bytes)
+**Size**: `120` lines (`5085` bytes)
 
 **Classes:**
 - `class TestPairEquivalence`
   - Method `.test_dependent_planner_columns_share_a_class()`
+  - Method `.test_one_way_dependencies_do_not_transitively_merge()`
   - Method `.test_unique_pairs_collapses_equivalent_reports()`
   - Method `.test_signed_selection_collapses_to_two_evidence_pairs()`
   - Method `.test_the_ablation_restores_the_four_entries()`
@@ -4163,13 +4166,13 @@
 ### [`tests/test_wiring_independence.py`](tests/test_wiring_independence.py)
 > *Wiring the modules makes them independent, and then anti-synchronous.*
 
-**Size**: `132` lines (`5826` bytes)
+**Size**: `132` lines (`5762` bytes)
 
 **Classes:**
 - `class TestWiringIndependence`
   - Method `.test_the_defaults_leave_columns_constant()`
   - Method `.test_wiring_makes_every_column_vary()`
-  - Method `.test_wiring_does_not_reduce_dependence()`
+  - Method `.test_wiring_reduces_constant_dependence()`
   - Method `.test_wiring_produces_independent_pairs()`
   - Method `.test_every_independent_pair_is_refused_as_a_target_leak()`
   - Method `.test_every_independent_pair_has_no_single_pair_null()`

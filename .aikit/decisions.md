@@ -1255,6 +1255,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 931 tests OK; aikit check 5/5. Block split `family_size` 10 (deduped) versus 14 (raw); anti list remains two unique P-S pairs; positive subsets empty; metadata and standing numbers unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: `dedupe=False` reports the raw family 14 and the duplicate aliases; `dedupe=True` reports 10.
 - **Boundary**: generic `interactions`/`anti_interactions` still default raw for compatibility; the block split and eval choose true. The block split remains a family-membership correction, not a new interaction.
 
+### ADR-176: Dependence must check both directions, and classes must be bijective
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: `_dependent` checked the forward mapping, then its backward loop iterated `zip(second, first)` but keyed `backward.setdefault(a, b)` on the first column, so it re-checked the same direction and never tested `second -> first`. A pair where only the second column determined the first (for example wired columns 4/5) was classified independent. Corrected measurements: defaults 34 of 36 dependent pairs, wired 32 of 36, and wired feature-independent pairs `(4,7)`/`(6,7)`; the prior 32/34 and three-pair readings were artifacts. Separately, `column_classes` unioned one-way dependencies transitively, so a chain A->B->C merged a finer A with a coarser C.
+- **Decision**: add `_function(first, second)`, define `_dependent` as `_function(first, second) or _function(second, first)`, and define `_bijective` as both directions; `column_classes` unions only bijective columns. Tests: `test_one_way_dependencies_do_not_transitively_merge` and the re-baselined wiring/pair-conclusion tests.
+- **Consequences**: 932 tests OK; aikit check 5/5. The default/wired dependence counts are 34/32 (not 32/34), and the wired independent feature pairs are `(4,7)`/`(6,7)`; `(4,5)` is dependent with `syn -0.1243` unchanged. Signal counts, selected anti pairs, block splits and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: restoring the old backward loop returns 32/34 and the three-pair set and fails the wiring test; unioning one-way dependencies merges the A/B/C fixture and fails the class test.
+- **Boundary**: pair refusal still uses the symmetric `_dependent` (one-way determination is enough to make a pair non-independent), while class identity requires bijection (both directions). This is intentionally stricter for collapsing evidence than for refusing a pair.
+
 
 
 

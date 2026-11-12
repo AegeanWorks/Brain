@@ -4,13 +4,13 @@ Rung 3's prerequisite was "modules must emit genuinely independent state".
 Tested: they can, but only when the modules are actually supplied.
 
     configuration        distinct per column                    dependent pairs
-    defaults             [13,13, 1, 1, 1,13, 6, 8, 2]          22 of 36
-    fully wired          [13,13,13,13,12,13, 6, 8, 2]          31 of 36
+    defaults             [13,13, 1, 1, 1,13, 6, 8, 2]          34 of 36
+    fully wired          [13,13,13,13,12,13, 6, 8, 2]          32 of 36
 
-The wired counters advance with the step, so more columns vary while *more*
-pairs are dependent (22 -> 31). The three feature pairs that are not dependent are:
+The default constants make every pair containing one of them dependent; wiring
+varies those columns and *reduces* dependence (34 -> 32). The two feature pairs
+that are not dependent are:
 
-    cols(4,5) syn -0.1243  p_upper 0.610  not distinguishable
     cols(4,7) syn -0.2309  p_upper 0.890  not distinguishable
     cols(6,7) syn -0.0632  p_upper 0.640  not distinguishable
 
@@ -76,17 +76,17 @@ class TestWiringIndependence(unittest.TestCase):
         self.assertTrue(all(len(set(c)) > 1 for c in cols),
                         [len(set(c)) for c in cols])
 
-    def test_wiring_does_not_reduce_dependence(self):
-        # More distinct values, same collinearity: dependence rises, it does
-        # not fall. This is the counter-intuitive result worth pinning.
+    def test_wiring_reduces_constant_dependence(self):
+        # Defaults have constant columns, which are dependent with every
+        # other column; wiring varies them and lowers the dependence count.
         def count(padded):
             width = len(padded[0])
             cols = [[r[j] for r in padded] for j in range(width)]
             return sum(1 for i in range(width) for j in range(i + 1, width)
                        if _dependent(cols[i], cols[j]))
 
-        self.assertGreater(count(_vectors(True)[0]),
-                           count(_vectors(False)[0]))
+        self.assertLess(count(_vectors(True)[0]),
+                        count(_vectors(False)[0]))
 
     def test_wiring_produces_independent_pairs(self):
         padded, _ = _vectors(True)
@@ -94,11 +94,11 @@ class TestWiringIndependence(unittest.TestCase):
         cols = [[r[j] for r in padded] for j in range(width)]
         independent = [(i, j) for i in range(width) for j in range(i + 1, width)
                        if not _dependent(cols[i], cols[j])]
-        self.assertEqual(independent, [(4, 5), (4, 7), (6, 7)])
+        self.assertEqual(independent, [(4, 7), (6, 7)])
 
     def test_every_independent_pair_is_refused_as_a_target_leak(self):
         padded, target = _vectors(True)
-        for first, second in ((4, 5), (4, 7), (6, 7)):
+        for first, second in ((4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=200)
             self.assertFalse(report["ok"])
             self.assertEqual(report["reason"], "target-leak-column")
@@ -109,7 +109,7 @@ class TestWiringIndependence(unittest.TestCase):
         # A refused pair cannot carry a null; the three gaps are unchanged,
         # but none is a testable anti-correlation at this sample size.
         padded, target = _vectors(True)
-        for first, second in ((4, 5), (4, 7), (6, 7)):
+        for first, second in ((4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=200)
             self.assertNotIn("null", report,
                              "cols(%d,%d)" % (first, second))

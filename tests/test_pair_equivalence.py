@@ -48,6 +48,16 @@ class TestPairEquivalence(unittest.TestCase):
         self.assertEqual(classes[2], classes[3])
         self.assertNotEqual(classes[4], classes[5])
 
+    def test_one_way_dependencies_do_not_transitively_merge(self):
+        first = [0, 0, 1, 1, 2, 2, 3, 3]
+        second = [0, 0, 0, 0, 1, 1, 1, 1]
+        third = [0, 0, 0, 0, 0, 0, 1, 1]
+        rows = [[a, b, c, 0] for a, b, c in zip(first, second, third)]
+        classes = column_classes(rows)
+        self.assertNotEqual(classes[0], classes[1])
+        self.assertNotEqual(classes[1], classes[2])
+        self.assertNotEqual(classes[0], classes[2])
+
     def test_unique_pairs_collapses_equivalent_reports(self):
         reports = [
             {"columns": [2, 5]},

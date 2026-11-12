@@ -12,9 +12,10 @@ Re-measured with and without dedupe:
 
   T3_navigate:15 fully wired — gaps UNCHANGED, significance NOT
     pair       syn       p_upper @2T   p_upper @T   distinguishable @T
-    (4,5)     -0.1243     0.860          0.610      False
     (4,7)     -0.2309     0.975          0.890      False
     (6,7)     -0.0632     0.915          0.640      False
+
+    (4,5) is dependent once the reverse function check is honored.
 
     anti_interactions: 3 -> 0
 
@@ -90,21 +91,21 @@ class TestPairConclusionsAtCorrectN(unittest.TestCase):
         cols = [[r[j] for r in rows] for j in range(width)]
         independent = [(i, j) for i in range(width) for j in range(i + 1, width)
                        if not _dependent(cols[i], cols[j])]
-        self.assertEqual(independent, [(4, 5), (4, 7), (6, 7)])
+        self.assertEqual(independent, [(4, 7), (6, 7)])
 
     def test_the_gaps_are_unchanged_by_dedupe(self):
         raw, deduped = _raw("T3_navigate", 15, wired=True), None
         deduped = dedupe_rows(raw)
         p_raw, t_raw = _split(raw)
         p_ded, t_ded = _split(deduped)
-        for first, second in ((4, 5), (4, 7), (6, 7)):
+        for first, second in ((4, 7), (6, 7)):
             a = pair_report(p_raw, t_raw, first, second, trials=25)["syn"]
             b = pair_report(p_ded, t_ded, first, second, trials=25)["syn"]
             self.assertAlmostEqual(a, b, places=12)
 
     def test_every_independent_pair_is_refused_by_the_target_gate(self):
         padded, target = _split(dedupe_rows(_raw("T3_navigate", 15, True)))
-        for first, second in ((4, 5), (4, 7), (6, 7)):
+        for first, second in ((4, 7), (6, 7)):
             report = pair_report(padded, target, first, second, trials=150)
             self.assertFalse(report["ok"])
             self.assertEqual(report["reason"], "target-leak-column")
