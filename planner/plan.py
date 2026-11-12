@@ -9,7 +9,7 @@ picks the action whose learned reward probability is highest, so the agent
 can use what it learned to *act* instead of only to predict.
 """
 
-from self_model.online import context_feature_key
+from self_model.online import context_feature_key, feature_key
 
 #: Action order used to break ties, so the policy is deterministic.
 DEFAULT_ACTIONS = ("left", "right")
@@ -93,11 +93,13 @@ class LearnedPlanner:
     over actions, which is the blind baseline.
     """
 
-    def __init__(self, actions=None, use_context=True, task_id=None):
+    def __init__(self, actions=None, use_context=True, task_id=None,
+                 backoff=False):
         self._actions = tuple(actions) if actions else DEFAULT_ACTIONS
         self._use_context = bool(use_context)
         self._task_id = task_id
         self._predictor = None
+        self._backoff = bool(backoff)
         self.last_probe = {}
 
     def bind_predictor(self, predictor):
@@ -111,16 +113,24 @@ class LearnedPlanner:
         return context if isinstance(context, (list, tuple)) else None
 
     def scores(self, state):
-        """Return ``{action: probability}`` for the current state."""
+        """Return ``{action: probability}`` for the current state.
+
+        ``backoff=True`` falls back to the context-free key when the exact
+        context has never been observed, so an unseen context is scored by
+        the learned marginal instead of the uniform prior.
+        """
         context = self._context(state)
         task = self._task_id or (state.get("task") if isinstance(state, dict) else None)
         scores = {}
         for action in self._actions:
             if self._predictor is None:
                 scores[action] = 0.5
-            else:
-                key = context_feature_key(task, state, action, context)
-                scores[action] = self._predictor.predict(key)
+                continue
+            key = context_feature_key(task, state, action, context)
+            if (self._backoff and context is not None
+                    and self._predictor.seen(key) == 0):
+                key = feature_key(task, state, action)
+            scores[action] = self._predictor.predict(key)
         return scores
 
     def plan(self, state, memories):

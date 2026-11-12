@@ -26,14 +26,31 @@ class DualWorld:
 
     task_id = "T4_dual"
 
-    def __init__(self, seed):
+    def __init__(self, seed, latents=None):
         if not isinstance(seed, int):
             raise TypeError("seed must be int")
         self.seed = seed
         self.i = 0
+        self._pinned = None
+        if latents is not None:
+            pairs = []
+            for pair in latents:
+                if len(pair) != 2:
+                    raise ValueError(
+                        "Why: each latent pair must have two values. "
+                        "Fix: pass [(a, b), ...].")
+                pairs.append((int(pair[0]), int(pair[1])))
+            if not pairs:
+                raise ValueError(
+                    "Why: pinned latents must not be empty. "
+                    "Fix: pass one (a, b) pair per phase.")
+            self._pinned = pairs
         self._build()
 
     def _build(self):
+        if self._pinned is not None:
+            self.latents = list(self._pinned)
+            return
         first = random.Random(self.seed * 2 + 1)
         second = random.Random(self.seed * 2 + 2)
         self.latents = [(first.randrange(2), second.randrange(2))

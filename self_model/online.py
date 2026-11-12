@@ -99,3 +99,64 @@ class OnlinePredictor:
     def seen(self, key):
         """Return how many outcomes have been recorded for ``key``."""
         return self._trials.get(key, 0)
+
+
+def _logit(hits, trials):
+    """Laplace-smoothed log-odds of one component."""
+    import math
+
+    return math.log((hits + 1.0) / (trials - hits + 1.0))
+
+
+class AdditivePredictor:
+    """A predictor that adds per-feature evidence instead of memorising a key.
+
+    ``OnlinePredictor`` learns one probability per complete key, so it needs
+    one exposure per joint context. This class is the natural alternative an
+    engineer reaches for: sum the evidence each *part* of the key carries.
+    ``predict`` takes the same key shape as ``context_feature_key`` — the
+    tuple ``(task, action, bucket, context)`` — decomposes the context into
+    one component per value plus a ``(task, action, bucket)`` component, and
+    returns ``sigmoid(sum of component log-odds)``.
+
+    It cannot represent an XOR: each component is symmetric over the two
+    outcomes, so the summed evidence is the same for both actions and the
+    model predicts 0.5. That is the point — the interaction has to be in the
+    representation, not in the number of features.
+    """
+
+    def __init__(self):
+        self._hits = {}
+        self._trials = {}
+
+    def _components(self, key):
+        parts = [key[:3]]
+        if len(key) > 3 and isinstance(key[3], tuple):
+            for index, value in enumerate(key[3]):
+                parts.append((key[1], "f%d" % index, value))
+        return parts
+
+    def predict(self, key):
+        import math
+
+        total = 0.0
+        for component in self._components(key):
+            total += _logit(self._hits.get(component, 0),
+                            self._trials.get(component, 0))
+        return 1.0 / (1.0 + math.exp(-total))
+
+    def observe(self, key, outcome):
+        for component in self._components(key):
+            self._hits[component] = self._hits.get(component, 0) + (1 if outcome else 0)
+            self._trials[component] = self._trials.get(component, 0) + 1
+        return self.seen(key)
+
+    def table(self):
+        return {key: self.predict(key) for key in sorted(self._trials)}
+
+    def keys(self):
+        return sorted(self._trials)
+
+    def seen(self, key):
+        return sum(self._trials.get(component, 0)
+                   for component in self._components(key))

@@ -1233,6 +1233,28 @@ class Agent:
         """
         return self._online.table()
 
+    def online_predictor(self):
+        """Return the active predictor object (for freezing or swapping)."""
+        return self._online
+
+    def use_predictor(self, predictor):
+        """Install a predictor and rebind the planner; return the old one.
+
+        The predictor is the agent's learned-reward model, so a caller may
+        replace it (a frozen wrapper, an alternative learner) without
+        reaching into a private attribute. Rebinding the planner keeps the
+        policy reading whatever is installed.
+        """
+        previous = self._online
+        self._online = predictor
+        bind = getattr(self.planner, "bind_predictor", None)
+        if callable(bind):
+            try:
+                bind(predictor)
+            except Exception:
+                self._substrate_errors["bind"] += 1
+        return previous
+
     def _persistent_layout(self):
         """Return the persisted initial state for this world, or None.
 

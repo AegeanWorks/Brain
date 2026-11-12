@@ -4904,6 +4904,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 190 - the learned policy memorises; XOR needs a joint representation
+
+- **Baseline** (commit efbc362): 961 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: ADR-184's policy keys on the joint context, so two questions were untested: does it carry to a joint context it never saw, and does the joint key matter or would per-feature evidence suffice?
+- **ANALYZE**: both are measurable without new tasks. Pin latents (train on values 0/1, test on pairs containing 2/3) and freeze the table for zero-shot; swap in an additive learner over the same key for the representation ablation.
+- **IMPLEMENT**: `DualWorld`/`ChoiceDualWorld(latents=...)`; `LearnedPlanner(backoff=...)`; `self_model.online.AdditivePredictor` (per-component log-odds); `evals.context_channel`: `_FrozenPredictor`, `TRAIN_CODES`/`EVAL_CODES`, `measure_choice_generalization(predictor="joint"|"additive")`; `tests/test_choice_generalization.py` (13). ADR-185.
+- **After** (one trained table, 10-40 train episodes, 8-20 eval episodes):
+  - joint: in-distribution **1.0**; zero-shot **0.25** (= the blind tie-break baseline on that pool); first exposure **0.25**; adapted **1.0**; 20 keys.
+  - `backoff=True`: every one of the five numbers identical, because the marginal actions are balanced.
+  - additive: in-distribution **0.50**; adapted 0.236; 14 keys — it cannot express XOR at any sample size.
+  - `python -m evals.context_channel` now also exits 0 only when joint in-distribution > 0.9, zero-shot < 0.35, adapted > 0.9, additive < 0.65.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the frozen table (learning off) is the zero-shot probe, and the additive predictor is the representation probe; both return the claimed values while the joint unfrozen table returns 1.0.
+- **Verdict**: a negative result that constrains the next step. The measured delta is a fast learned policy becoming a characterised one: **1.0 with one exposure per context, 0.25 without it, and 0.5 for an additive model**. Boundary: the learner is a lookup, so "generalisation" here means unseen joint contexts only; closing the gap needs a factorised interaction feature, which is a new learner.
+- **Gates**: unittest 976/976 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -c "measure_choice_generalization(backoff=...)"` -> joint 1.0/0.25/0.25/1.0; backoff identical.
+  - `python -c "AdditivePredictor ..."` -> train 0.48125, in-distribution 0.5.
+  - `python -m evals.context_channel` -> exit 0 with all six blocks.
+  - `python -m unittest tests.test_choice_generalization` -> 13 OK.
+  - `python -m unittest discover -s tests -t .` -> 976 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 191**: unittest 976 OK; aikit 5/5; joint in-distribution 1.0 / zero-shot 0.25 / first-exposure 0.25 / adapted 1.0 / 20 keys; backoff changes no number; additive in-distribution 0.50 / adapted 0.236 / 14 keys; `TRAIN_CODES` values {0,1} and no train pair in `EVAL_CODES`; pinned latents survive reset and are validated; `_FrozenPredictor.observe` is a no-op; no-predictor planner scores 0.5/0.5; learned last-half 1.0 vs blind 0.4875; all cycle 189 pins unchanged.
+
 ## Cycle 189 - learn to act on an interaction, not only to predict it
 
 - **Baseline** (commit c5275ea): 949 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

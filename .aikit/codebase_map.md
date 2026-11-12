@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `223`
-- **Total Classes**: `236`
-- **Total Top-Level Functions**: `638`
-- **Total Class Methods**: `1256`
-- **Total Source Lines**: `31165`
+- **Total Python Modules**: `224`
+- **Total Classes**: `244`
+- **Total Top-Level Functions**: `642`
+- **Total Class Methods**: `1287`
+- **Total Source Lines**: `31543`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`223` module(s))
+- **Indexed**: python (`224` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1776` lines (`73973` bytes)
+**Size**: `1798` lines (`74814` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -64,6 +64,8 @@
   - Method `.get_hub()` - *Return a copy of the shared hub mapping.*
   - Method `._reset_episode()`
   - Method `.online_predictions()` - *Return the outcomes learned online so far, keyed by feature.*
+  - Method `.online_predictor()` - *Return the active predictor object (for freezing or swapping).*
+  - Method `.use_predictor(predictor)` - *Install a predictor and rebind the planner; return the old one.*
   - Method `._persistent_layout()` - *Return the persisted initial state for this world, or None.*
   - Method `._layout_complete(state)` - *True when a state carries every goal field its task consumes.*
   - Method `._remember_layout(state)` - *Persist the initial state once; never store an incomplete one.*
@@ -518,12 +520,23 @@
 ### [`evals/context_channel.py`](evals/context_channel.py)
 > *Measure a world-provided context channel against the pair gate.*
 
-**Size**: `105` lines (`4262` bytes)
+**Size**: `210` lines (`8622` bytes)
+
+**Classes:**
+- `class _FrozenPredictor` - *A predictor that predicts from its counts but learns nothing new.*
+  - Method `.__init__(inner)`
+  - Method `.predict(key)`
+  - Method `.observe(key, outcome)`
+  - Method `.table()`
+  - Method `.keys()`
+  - Method `.seen(key)`
 
 **Functions:**
 - `def collect_rows(world_factory, seeds, include_context)` - *Run one agent per seed and return extended signal rows plus targets.*
 - `def measure(world_class, train_seeds, holdout_seeds, trials, include_context)` - *Return the signed holdout result for a world class.*
 - `def measure_choice(use_context, episodes, phases)` - *Learn to *act* on the XOR: the rewarded action needs both latents.*
+- `def _run_pinned(agent, codes, episodes)` - *Run episodes over a fixed cycle of latent codes; return step rewards.*
+- `def measure_choice_generalization(train_episodes, eval_episodes, backoff, predictor)` - *Train on one set of latent codes and test on a disjoint set.*
 - `def main()`
 
 ---
@@ -1173,7 +1186,7 @@
 ### [`planner/plan.py`](planner/plan.py)
 > *Ordered step tracker with explicit ok/fail marks and recovery.*
 
-**Size**: `139` lines (`5278` bytes)
+**Size**: `149` lines (`5745` bytes)
 
 **Classes:**
 - `class Planner` - *Track a linear sequence of named operations.*
@@ -1185,7 +1198,7 @@
   - Method `.recover()` - *Skip failed entries and return the next viable step or None.*
   - Method `.state()` - *Return cursor plus per-step status list.*
 - `class LearnedPlanner` - *Choose the action with the highest learned reward probability.*
-  - Method `.__init__(actions, use_context, task_id)`
+  - Method `.__init__(actions, use_context, task_id, backoff)`
   - Method `.bind_predictor(predictor)` - *Bind the online predictor this policy reads estimates from.*
   - Method `._context(state)`
   - Method `.scores(state)` - *Return ``{action: probability}`` for the current state.*
@@ -1245,7 +1258,7 @@
 ### [`self_model/online.py`](self_model/online.py)
 > *Learn the reward probability from error, without being told the rule.*
 
-**Size**: `101` lines (`3738` bytes)
+**Size**: `162` lines (`5968` bytes)
 
 **Classes:**
 - `class OnlinePredictor` - *Laplace-smoothed outcome frequencies that improve with every step.*
@@ -1255,11 +1268,20 @@
   - Method `.table()` - *Return the learned probabilities, keyed by feature.*
   - Method `.keys()` - *Return the feature keys seen so far.*
   - Method `.seen(key)` - *Return how many outcomes have been recorded for ``key``.*
+- `class AdditivePredictor` - *A predictor that adds per-feature evidence instead of memorising a key.*
+  - Method `.__init__()`
+  - Method `._components(key)`
+  - Method `.predict(key)`
+  - Method `.observe(key, outcome)`
+  - Method `.table()`
+  - Method `.keys()`
+  - Method `.seen(key)`
 
 **Functions:**
 - `def distance_bucket(state, task)` - *Pre-action distance to the nearest goal, capped at 3 (``9`` = none).*
 - `def feature_key(task, state, action)` - *The key this predictor learns over: nothing but observable inputs.*
 - `def context_feature_key(task, state, action, context)` - *Append a pre-action world context to the feature key.*
+- `def _logit(hits, trials)` - *Laplace-smoothed log-odds of one component.*
 
 ---
 
@@ -1872,6 +1894,40 @@
 **Functions:**
 - `def _log(path, records)`
 - `def _truncate(path, keep)`
+
+---
+
+### [`tests/test_choice_generalization.py`](tests/test_choice_generalization.py)
+> *A joint lookup memorises a context; an additive model cannot express it.*
+
+**Size**: `163` lines (`7440` bytes)
+
+**Classes:**
+- `class TestPinnedLatents`
+  - Method `.test_a_pinned_world_rebuilds_the_same_latents_on_reset()`
+  - Method `.test_pinned_latents_are_validated()`
+- `class TestFrozenPredictor`
+  - Method `.test_observe_is_a_no_op_but_predictions_survive()`
+- `class TestBackoff`
+  - Method `.test_backoff_reads_the_marginal_for_an_unseen_context()`
+  - Method `.test_without_backoff_an_unseen_context_is_the_prior()`
+- `class TestGeneralization`
+  - Method `.setUpClass()`
+  - Method `.test_the_joint_table_memorises_the_training_contexts()`
+  - Method `.test_the_joint_table_does_not_generalise_to_unseen_contexts()`
+  - Method `.test_one_exposure_per_context_closes_the_gap()`
+  - Method `.test_the_backoff_changes_no_number()`
+  - Method `.test_the_additive_model_cannot_represent_the_interaction()`
+  - Method `.test_the_additive_model_does_not_gain_from_the_context()`
+- `class TestPredictorSwap`
+  - Method `.test_use_predictor_installs_and_returns_the_previous()`
+  - Method `.test_a_swapped_predictor_persists_no_frozen_learning()`
+- `class TestCodePools`
+  - Method `.test_no_eval_pair_was_seen_in_training()`
+  - Method `.test_the_unseenness_is_joint_not_marginal()`
+
+**Functions:**
+- `def _blind_baseline(codes)` - *Accuracy of the deterministic tie-break on a pool of latent codes.*
 
 ---
 
@@ -4327,11 +4383,11 @@
 ### [`worlds/dual.py`](worlds/dual.py)
 > *A deterministic world whose reward is an interaction of two independent bits.*
 
-**Size**: `129` lines (`4060` bytes)
+**Size**: `146` lines (`4762` bytes)
 
 **Classes:**
 - `class DualWorld` - *Two independent latents per phase; reward is their XOR.*
-  - Method `.__init__(seed)`
+  - Method `.__init__(seed, latents)`
   - Method `._build()`
   - Method `._phase()`
   - Method `._state()`

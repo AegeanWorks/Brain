@@ -15,7 +15,7 @@ import json
 from agent import Agent
 from evals.module_state import signals_from_trace
 from evals.replication import scan_with_holdout
-from worlds.dual import DualWorld, NoiseDualWorld
+from worlds.dual import ChoiceDualWorld, DualWorld, NoiseDualWorld
 
 
 def collect_rows(world_factory, seeds, include_context=True):
@@ -86,18 +86,123 @@ def measure_choice(use_context=True, episodes=40, phases=4):
     }
 
 
+#: Latent pairs the policy trains on: every value is 0 or 1.
+TRAIN_CODES = ((0, 0), (0, 1), (1, 0), (1, 1))
+
+#: Latent pairs it is tested on: every value is >= 2, so no context key
+#: seen in training can match one of them.
+EVAL_CODES = ((2, 0), (2, 1), (2, 2), (2, 3),
+              (3, 0), (3, 1), (3, 2), (3, 3))
+
+
+def _run_pinned(agent, codes, episodes):
+    """Run episodes over a fixed cycle of latent codes; return step rewards."""
+    rewards = []
+    for episode in range(episodes):
+        batch = [codes[(episode * 4 + index) % len(codes)] for index in range(4)]
+        agent.world = ChoiceDualWorld(episode, latents=batch)
+        trace = agent.run(max_steps=4)
+        rewards.extend(float(step.get("reward", 0.0)) for step in trace)
+    return rewards
+
+
+class _FrozenPredictor:
+    """A predictor that predicts from its counts but learns nothing new.
+
+    Freezing separates two questions the learned policy can answer: does the
+    table carry to an unseen context at all (zero-shot), and how fast does
+    the same policy pick a new context up once it sees the outcome?
+    """
+
+    def __init__(self, inner):
+        self._inner = inner
+
+    def predict(self, key):
+        return self._inner.predict(key)
+
+    def observe(self, key, outcome):
+        return self._inner.seen(key), self._inner.seen(key)
+
+    def table(self):
+        return self._inner.table()
+
+    def keys(self):
+        return self._inner.keys()
+
+    def seen(self, key):
+        return self._inner.seen(key)
+
+
+def measure_choice_generalization(train_episodes=40, eval_episodes=20,
+                                  backoff=False, predictor="joint"):
+    """Train on one set of latent codes and test on a disjoint set.
+
+    The learned key is a lookup on the observed context, so the question is
+    whether the policy carries to contexts it never saw. ``EVAL_CODES`` use
+    latent values 2 and 3 while ``TRAIN_CODES`` use only 0 and 1, so every
+    evaluation row is an unseen key. Three readings come out of one trained
+    table: ``frozen`` accuracy on the training codes (control), ``frozen``
+    accuracy on the unseen codes (zero-shot), and the learning curve on the
+    unseen codes split into first exposure and everything after it.
+
+    ``predictor="additive"`` swaps in ``AdditivePredictor``, which sums
+    per-feature evidence instead of memorising the joint key. It is the
+    representation ablation: an additive model cannot express XOR.
+    """
+    from agent import Agent
+    from planner.plan import LearnedPlanner
+    from self_model.online import AdditivePredictor, OnlinePredictor
+
+    agent = Agent(planner=LearnedPlanner(backoff=backoff), learn_context=True)
+    if predictor == "additive":
+        agent.use_predictor(AdditivePredictor())
+    elif predictor != "joint":
+        raise ValueError(
+            "Why: predictor must be joint or additive. "
+            "Fix: pass predictor='joint'.")
+    train_rewards = _run_pinned(agent, TRAIN_CODES, train_episodes)
+    trained = agent.online_predictor()
+
+    agent.use_predictor(_FrozenPredictor(trained))
+    control = _run_pinned(agent, TRAIN_CODES, eval_episodes)
+    zero_shot = _run_pinned(agent, EVAL_CODES, eval_episodes)
+
+    agent.use_predictor(trained)
+    curve = _run_pinned(agent, EVAL_CODES, eval_episodes)
+    first_cycle = 8
+    return {
+        "world": ChoiceDualWorld.task_id,
+        "predictor": predictor,
+        "backoff": backoff,
+        "train_steps": len(train_rewards),
+        "train_accuracy": sum(train_rewards) / max(1, len(train_rewards)),
+        "in_distribution_accuracy": sum(control) / max(1, len(control)),
+        "zero_shot_accuracy": sum(zero_shot) / max(1, len(zero_shot)),
+        "first_exposure_accuracy": sum(curve[:first_cycle]) / first_cycle,
+        "adapted_accuracy": sum(curve[first_cycle:]) / max(1, len(curve) - first_cycle),
+        "held_out_steps": len(curve),
+        "learned_keys": len(trained.table()),
+    }
+
+
 def main():
     result = {
         "planted": measure(DualWorld),
         "noise": measure(NoiseDualWorld),
         "choice": measure_choice(),
         "choice_blind": measure_choice(use_context=False),
+        "generalization": measure_choice_generalization(),
+        "additive": measure_choice_generalization(predictor="additive"),
     }
     print(json.dumps(result, sort_keys=True))
     ok = (result["planted"]["g_pair_selected"]
           and result["noise"]["selected"] == []
           and result["choice"]["last_half_accuracy"] > 0.85
-          and result["choice_blind"]["last_half_accuracy"] < 0.65)
+          and result["choice_blind"]["last_half_accuracy"] < 0.65
+          and result["generalization"]["in_distribution_accuracy"] > 0.9
+          and result["generalization"]["zero_shot_accuracy"] < 0.35
+          and result["generalization"]["adapted_accuracy"] > 0.9
+          and result["additive"]["in_distribution_accuracy"] < 0.65)
     raise SystemExit(0 if ok else 1)
 
 

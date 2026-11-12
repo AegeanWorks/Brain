@@ -1,28 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-learned-action",
+    "task_id": "brain-learned-limits",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794511941.663567,
-    "owner": "kilo:brain189",
-    "started_by": "kilo:brain189",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794514486.83003,
+    "owner": "kilo:brain190",
+    "started_by": "kilo:brain190",
     "continuations": [],
-    "completed_at": 1794511942.2192795
+    "impact_assessment": {
+      "why": "ADR-184's joint lookup left two untested questions: does it carry to an unseen joint context, and does the joint key matter versus per-feature evidence",
+      "benefits": "a characterised learner: memorisation quantified at 0.25 zero-shot and the interaction shown to require a joint representation (additive 0.5)",
+      "risks": "contract: new public Agent.use_predictor/online_predictor, planner backoff flag, DualWorld latents param, AdditivePredictor; dependency: stdlib only; concurrency: none; state: default policy and keys unchanged",
+      "mitigation": "new APIs are additive and default-off; frozen probe and additive ablation both measured on the same trained table; failing-first tests pin every number"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push8-keyed-bridge",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] 11 bridge tests; keyed 13/13 0.230769 hmac true, wrong key rejected, no-path/invalid fail before log; final 449 tests; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794112582.3443723,
-      "timestamp_str": "2026-11-08 07:36:22",
-      "agent": "opencode:push8"
-    },
     {
       "task_id": "brain-push8-keyed-bridge",
       "phase": "in_progress",
@@ -256,6 +250,24 @@
       "timestamp": 1794511942.2192822,
       "timestamp_str": "2026-11-12 22:32:22",
       "agent": "kilo:brain189"
+    },
+    {
+      "task_id": "brain-learned-limits",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan + measure the learned policy's limits: pinned latents, frozen table zero-shot, additive representation ablation, LearnedPlanner(backoff), Agent.use_predictor public swap; joint 1.0 in-dist vs 0.25 zero-shot vs additive 0.5; checklists: passed (freshness/call-site/deps/platform checked, unittest 976 OK, aikit 5/5, secrets/compat clean)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794514486.83003,
+      "timestamp_str": "2026-11-12 23:14:46",
+      "agent": "kilo:brain190",
+      "impact_assessment": {
+        "why": "ADR-184's joint lookup left two untested questions: does it carry to an unseen joint context, and does the joint key matter versus per-feature evidence",
+        "benefits": "a characterised learner: memorisation quantified at 0.25 zero-shot and the interaction shown to require a joint representation (additive 0.5)",
+        "risks": "contract: new public Agent.use_predictor/online_predictor, planner backoff flag, DualWorld latents param, AdditivePredictor; dependency: stdlib only; concurrency: none; state: default policy and keys unchanged",
+        "mitigation": "new APIs are additive and default-off; frozen probe and additive ablation both measured on the same trained table; failing-first tests pin every number"
+      },
+      "plan_digest": "8ca67b51e3e7ccd02e9b5b7c35e5a9930db5c101a467d14a64755717352678c2"
     }
   ]
 }

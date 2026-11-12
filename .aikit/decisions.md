@@ -1327,6 +1327,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 40 episodes x 4 phases with one persistent table: learned accuracy 0.9875 overall (first half 0.9750, last half 1.0000, 6 keys); blind ablation 0.4375 (first half 0.3875, last half 0.4875, 2 keys). 961 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged; default keys stay three-part, so every earlier learning pin holds.
 - **Boundary**: the task is synthetic and the context is fully observed, so this is operant learning over a small deterministic table, not credit assignment through hidden state. It also does not make T1-T3 learnable: their reward depends on position, not on a context the policy can key on.
 
+### ADR-185: The learned policy memorises; the interaction must be in the representation
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-184's policy is a lookup keyed on the joint context, so two questions were open: does it carry to a joint context it never saw, and is the joint key necessary or would per-feature evidence do? Both are measurable on the same task.
+- **Decision**: `DualWorld`/`ChoiceDualWorld` accept pinned `latents`, `LearnedPlanner(backoff=...)` falls back to the context-free key when the exact context is unseen, `OnlinePredictor` gains no change, and `self_model.online.AdditivePredictor` sums per-component log-odds over the same key. `evals.context_channel.measure_choice_generalization` trains on latent values 0/1 and tests on pairs containing 2/3 with the table frozen (`_FrozenPredictor`) for zero-shot, then unfrozen for the adaptation curve.
+- **Consequences**: joint table: in-distribution 1.0; zero-shot 0.25, which equals the blind tie-break baseline on that pool; first exposure 0.25; adapted 1.0; 20 keys. `backoff=True` changes no number. Additive model: in-distribution 0.50, adapted 0.236, so it cannot represent XOR at any sample size. 976 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged.
+- **Boundary**: this is a negative result about the learner, not a defect fix: a joint lookup needs one exposure per context and an additive model cannot express an interaction. Closing it needs a representation that factorises the interaction (e.g. a product/AND feature), which is a new learner and a new re-baseline.
+
 
 
 
