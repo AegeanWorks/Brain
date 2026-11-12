@@ -4,7 +4,7 @@
 block into each action record:
 
     M = [distinct positions, turns] (revisits in the ablation)
-    P = [BFS distance, ties]
+    P = [alternatives count, ties] (distance in the ablation)
     S = [online probability, distinct feature keys seen]
 
 The six values use the same M/P/S block layout as the legacy vector, so a

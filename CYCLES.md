@@ -4904,6 +4904,33 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 166 - the P block should expose search breadth, not a target-leaky distance
+
+- **Baseline** (commit de747b8):
+  - canonical gate: 896 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `P=[BFS distance, ties]`; on `T3_navigate` the distance is 0 exactly on the rewarded step, so it target-leaks and every pair containing it is refused.
+  - signal scans: 10 valid pairs / 8 cross-module with keys S; 9 / 8 with seen S.
+- **Gap**: the P block's first value is target-leaky, so the block contributes one usable value and the scan loses cross-module pairs.
+- **Target delta**: replace the distance with planner search breadth, remove the leak, add cross-module valid pairs, and keep the old distance as the ablation.
+- **Falsifier**: alternatives still target-leak; distance does not; a cross-module pair is lost; an action moves; or a selected pair changes without a separate claim.
+- **Change**: `agent.py` adds `module_p_mode="alternatives"` (default) and `"distance"` (ablation); `P0` is `len(rule["alternatives"])`, `P1` stays ties; `tests/test_module_signals.py` adds three P-mode tests (24 total).
+- **After** (ten T3 episodes):
+  - alternatives + keys: 14 valid / 12 cross-module; + seen: 13 / 12.
+  - distance + keys: 10 / 8; + seen: 9 / 8; distance column leak true.
+  - alternatives column leak false; `module_interactions` empty at 200 trials.
+  - replication candidate `(0,4)` remains `0.0495` at 100 / `0.0547` at 200 and is rejected as unstable.
+  - actions, rewards and step counts unchanged; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `module_p_mode="distance"` restores the target-leaky P0 and 10 valid / 8 cross; `"alternatives"` removes the leak and yields 14 / 12. The mode is the integration point; restoring the old mode removes the extra pairs.
+- **Verdict**: substrate/telemetry capability. The measured delta is "the P distance target-leaks and the scan has 10 valid / 8 cross-module pairs" -> "search breadth is clean and the scan has 14 / 12, with no selected pair". Boundary: search breadth is planner geometry, not a learned interaction.
+- **Gates**: unittest 899/899 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_signals` -> 24 OK.
+  - `python ..\..\scratch\probe_166.py` -> alts keys 14/12, seen 13/12; distance keys 10/8, seen 9/8; candidate (0,4) p100 0.0495 / p200 0.0547; selected [].
+  - `python -m unittest discover -s tests -t .` -> 899 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 167**: unittest 899 OK; aikit 5/5; alternatives keys 14 valid / 12 cross / P0 leak false; alternatives seen 13 / 12; distance keys 10 / 8 / P0 leak true; distance seen 9 / 8; turns 14 valid / 12 cross; revisits 9 valid; `module_interactions []`; replication candidate `(0,4)` p100 0.0495 / p200 0.0547 / stable False / selected `[]` / ablation `[[0,4]]`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 14 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 165 - the M block needs a path-shape signal, not a constant revisit count
 
 - **Baseline** (commit 287869e):

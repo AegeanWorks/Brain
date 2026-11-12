@@ -237,7 +237,7 @@ no independent second signal: `duplicate-scope-column`; a constant reads
 M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
 shipped pair beats its null. `Agent(module_signals=True)` writes six
 pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
-8 gate-passing module pairs versus 0 legacy, none family-significant at
+12 cross-module pairs versus 0 legacy, none family-significant at
 200 trials). `evals.replication` requires a candidate to survive a higher-trial
 stability check and replicate on held-out episodes; the train-only signal
 pairs fail.

@@ -9,8 +9,8 @@
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
 - **Total Top-Level Functions**: `614`
-- **Total Class Methods**: `1163`
-- **Total Source Lines**: `29549`
+- **Total Class Methods**: `1166`
+- **Total Source Lines**: `29585`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1691` lines (`70084` bytes)
+**Size**: `1700` lines (`70635` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -58,7 +58,7 @@
   - Method `.events()`
   - Method `.clear()`
 - `class Agent` - *Closed loop over a GridWorld instance.*
-  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log, module_signals, module_s_mode, module_m_mode)`
+  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log, module_signals, module_s_mode, module_m_mode, module_p_mode)`
   - Property `.log_path` - *Return file path of telemetry_log when present, else None.*
   - Method `.hub_write(content)` - *Merge a dict into the shared hub and return a hub copy.*
   - Method `.get_hub()` - *Return a copy of the shared hub mapping.*
@@ -721,7 +721,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `110` lines (`3615` bytes)
+**Size**: `110` lines (`3648` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
@@ -2686,7 +2686,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `274` lines (`12796` bytes)
+**Size**: `301` lines (`14154` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2702,6 +2702,9 @@
   - Method `.test_turns_mode_varies_on_t3()`
   - Method `.test_revisits_mode_is_constant_on_t3()`
   - Method `.test_turns_mode_adds_testable_pairs()`
+  - Method `.test_alternatives_mode_removes_the_distance_leak()`
+  - Method `.test_distance_mode_is_target_leaky()`
+  - Method `.test_alternatives_mode_adds_cross_module_pairs()`
   - Method `.test_the_seen_mode_is_dependent()`
   - Method `.test_keys_mode_adds_one_testable_pair()`
   - Method `.test_module_interactions_are_empty_at_200_trials()`
@@ -2713,7 +2716,7 @@
   - Method `.test_malformed_signal_rows_are_ignored()`
 
 **Functions:**
-- `def _logs(directory, module_signals, seeds, task, module_s_mode, module_m_mode)`
+- `def _logs(directory, module_signals, seeds, task, module_s_mode, module_m_mode, module_p_mode)`
 - `def _cross_module_count(reports)`
 - `def _planted_log(directory, name, seed, n)` - *Write action records whose reward is an M/P XOR of the signals.*
 

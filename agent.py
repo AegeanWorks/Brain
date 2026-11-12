@@ -1110,7 +1110,7 @@ class Agent:
     def __init__(self, memory=None, planner=None, selfmodel=None, telemetry=None, world=None,
                  memory_store=None, planner_tracker=None, self_model=None, telemetry_log=None,
                  module_signals=True, module_s_mode="keys",
-                 module_m_mode="turns"):
+                 module_m_mode="turns", module_p_mode="alternatives"):
         self.memory = memory if memory is not None else Memory()
         self.planner = planner if planner is not None else Planner()
         self.selfmodel = selfmodel if selfmodel is not None else SelfModel()
@@ -1135,6 +1135,11 @@ class Agent:
                 "Why: module_m_mode must be 'turns' or 'revisits'. "
                 "Fix: pass module_m_mode='turns'.")
         self._module_m_mode = module_m_mode
+        if module_p_mode not in ("alternatives", "distance"):
+            raise ValueError(
+                "Why: module_p_mode must be 'alternatives' or 'distance'. "
+                "Fix: pass module_p_mode='alternatives'.")
+        self._module_p_mode = module_p_mode
         self._hub = {}
         self._steps_since_reward = 0
         #: Laplace-smoothed outcome frequencies, learned online from error
@@ -1331,7 +1336,8 @@ class Agent:
     def _module_signals(self, memories, learned, keys, seen):
         """Return pre-action M/P/S state that is not an elapsed-time counter.
 
-        M = [distinct positions, turns or revisits]; P = [BFS distance, ties];
+        M = [distinct positions, turns or revisits];
+        P = [alternatives count or BFS distance, ties];
         S = [online probability, distinct feature keys seen]. These are read from the
         memory contents, the planner's rule probe and the online predictor
         before the step, so they vary with the episode's geometry and
@@ -1367,6 +1373,9 @@ class Agent:
                 ties = int(rule.get("ties", 0))
             except (TypeError, ValueError):
                 ties = 0
+        if self._module_p_mode == "alternatives":
+            alternatives = rule.get("alternatives") if isinstance(rule, dict) else None
+            distance = len(alternatives) if isinstance(alternatives, list) else 0
         second = keys if self._module_s_mode == "keys" else seen
         second_m = turns if self._module_m_mode == "turns" else revisits
         return {

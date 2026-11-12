@@ -1135,6 +1135,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 896 tests OK; aikit check 5/5. On ten `T3_navigate` episodes the turns mode gives 10 valid pairs and 8 cross-module pairs (keys S), versus 6 valid and 5 cross-module for revisits; seen S gives 9 valid. `module_interactions` remains empty at 200 trials. The replication candidate `(0,4)` still reads `0.0495` at 100 / `0.0547` at 200 and is rejected as unstable. Actions, rewards and step counts are unchanged; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: revisits -> 1 distinct M1 value / 6 valid / 5 cross-module; turns -> 2 values / 10 valid / 8 cross-module; restoring the old mode removes the extra testable pairs.
 - **Boundary**: turns is path geometry, not a learned interaction; the cross-module count rises but no pair clears the family null. It makes the M block non-degenerate on T3; a signal that changes the pair set beyond aggregate geometry is the next substrate falsifier.
 
+### ADR-161: The P block should expose planner search breadth, not a target-leaky distance
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-160 left `P=[BFS distance, ties]`. On `T3_navigate` the distance is 0 exactly on the rewarded step, so it is target-leaky and every pair containing it is refused. Ten-episode signal scans therefore had 10 valid pairs / 8 cross-module with `keys` S and 9 / 8 with `seen` S. The P block had one target-leaky value and one useful value.
+- **Decision**: Add `module_p_mode="alternatives"` as the default: `P0` is `len(rule["alternatives"])` (the planner's candidate list before the step), with `P1=ties` unchanged. `module_p_mode="distance"` restores the old BFS distance and is the executable ablation. Both are pre-action and change no action. Tests: three new P-mode tests (24 total in the module-signal file).
+- **Consequences**: 899 tests OK; aikit check 5/5. Alternatives mode: 14 valid pairs / 12 cross-module (keys S), 13 / 12 (seen S). Distance mode: 10 / 8 and 9 / 8. The distance column target-leaks in distance mode and does not in alternatives mode. `module_interactions` remains empty at 200 trials; the replication candidate `(0,4)` remains `0.0495` at 100 / `0.0547` at 200 and is rejected as unstable. Actions, rewards and step counts are unchanged; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: distance -> 10 valid / 8 cross / P0 leak true; alternatives -> 14 / 12 / leak false; restoring the old mode removes the extra testable pairs.
+- **Boundary**: search breadth is planner geometry, not a learned interaction; more gate-passing pairs is not an emergence claim. The block still has no stable selected pair; a learned, non-geometric P signal is the next substrate falsifier.
+
 
 
 
