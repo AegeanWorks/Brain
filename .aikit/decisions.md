@@ -1191,6 +1191,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 917 tests OK; aikit check 5/5. On ten `T3_navigate` seeds the trace and log splits agree for all four keys; `anti_module` is `[[2,5],[2,4]]`, the positive subsets are empty, and a disabled-signal trace split is all-empty. No production behavior changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing `scan_trace_blocks` makes the parity test fail; disabling signals makes every subset empty.
 - **Boundary**: the in-memory split uses the same estimator and rows as the log path, so it is a reachability/parity improvement, not independent evidence; it removes the temp-log dependency for trace-based claims.
 
+### ADR-168: Module dependencies replicate at the block level, not the column index
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-167 made the block split reachable. The signed replication still matched exact columns on the holdout. The T3 P-S anti pairs `(2,5)/(2,4)` are refused on T1 (`pair_report` `ok False`), while T1 has its own P-S anti pairs `(3,5)/(3,4)` at `p_lower 0.0099`; T2 has no anti pairs. Column-level T3->T1 selected `[]`; block-level T3->T1 selected both T3 P-S candidates with T1 P-S holdout matches; T3->T2 block-level selected `[]`. A module dependency is a block-level claim, so exact-index replication understates transport.
+- **Decision**: add `level="column"|"block"` to `scan_with_holdout` (default `column`). Block level accepts any holdout pair with the same block set and requested sign, using the holdout family scan plus `unique_pairs`; candidates carry `holdout_matches`. Tests: `tests/test_replication.py` (15, four new).
+- **Consequences**: 921 tests OK; aikit check 5/5. T3->T1 block-level selected the two P-S anti candidates; holdout matches `(3,5)` `syn -0.0115` and `(3,4)` `syn -0.0484`, both `p_lower 0.0099`. T3->T1 column-level selected `[]`. T3->T2 block-level selected `[]`. The positive `(0,4)` candidate remains rejected. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `level="column"` hides the block-level transfer; `level="block"` reports it, while T2 still fails.
+- **Boundary**: the P-S anti dependency transports to one other task (T1) at block level and fails on T2; two tasks are not a universal claim. It is a negative dependency (redundancy), not positive emergence. Block matching intentionally ignores column identity, so it must not be read as the same feature pair.
+
 
 
 

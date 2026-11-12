@@ -12,10 +12,12 @@ when the higher-trial tail and the holdout tail agree.
 executable ablations.
 """
 
-from evals.pair_scan import (ALPHA, column_classes, pair_report,
-                            scan_pairs)
+from evals.pair_scan import (ALPHA, anti_interactions, column_classes,
+                            interactions, pair_report, scan_pairs,
+                            unique_pairs)
 
 DIRECTIONS = ("positive", "negative", "both")
+LEVELS = ("column", "block")
 
 
 def _direction_of(report, alpha, requested):
@@ -58,6 +60,18 @@ def _holdout_ok(report, direction, alpha):
             and null["p_lower"] <= alpha)
 
 
+def _block_holdout_matches(rows, target, blocks, direction, trials, alpha):
+    """Return holdout reports with the same block set and requested sign."""
+    if direction == "positive":
+        reports = interactions(rows, target, trials=trials)
+    else:
+        reports = anti_interactions(rows, target, trials=trials)
+    matches = [report for report in reports
+               if set(report["blocks"]) == set(blocks)]
+    classes = column_classes(rows)
+    return unique_pairs(matches, classes)
+
+
 def _unique_items(items, classes):
     """Keep the first candidate for each pair of dependent-column classes."""
     seen = set()
@@ -76,8 +90,9 @@ def _unique_items(items, classes):
 
 def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
                       trials=200, stability_trials=None, alpha=ALPHA,
-                      direction="both", require_replication=True,
-                      require_stability=True, unique=True, dedupe=True):
+                      direction="both", level="column",
+                      require_replication=True, require_stability=True,
+                      unique=True, dedupe=True):
     """Return signed train candidates with stability and holdout verdicts.
 
     ``stability_trials`` re-runs the train family scan at a higher trial
@@ -91,6 +106,10 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         raise ValueError(
             "Why: direction must be positive, negative or both. "
             "Fix: pass direction='both'.")
+    if level not in LEVELS:
+        raise ValueError(
+            "Why: level must be column or block. "
+            "Fix: pass level='block'.")
     if len(train_rows) != len(train_target):
         raise ValueError(
             "Why: train rows and target must align. "
@@ -131,14 +150,23 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         if require_stability and stable_map is not None:
             stability_report = stable_map.get((first, second))
             stable = _tail_ok(stability_report, candidate_direction, alpha)
-        holdout = pair_report(holdout_rows, holdout_target, first, second,
-                              trials=trials)
-        replicated = _holdout_ok(holdout, candidate_direction, alpha)
+        if level == "column":
+            holdout = pair_report(holdout_rows, holdout_target, first, second,
+                                  trials=trials)
+            holdout_matches = []
+            replicated = _holdout_ok(holdout, candidate_direction, alpha)
+        else:
+            holdout_matches = _block_holdout_matches(
+                holdout_rows, holdout_target, report["blocks"],
+                candidate_direction, trials, alpha)
+            holdout = holdout_matches[0] if holdout_matches else None
+            replicated = bool(holdout_matches)
         candidates.append({
             "candidate": report,
             "direction": candidate_direction,
             "stability": stability_report,
             "holdout": holdout,
+            "holdout_matches": holdout_matches,
             "stable": stable,
             "replicated": replicated,
         })
@@ -160,6 +188,7 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         "trials": trials,
         "stability_trials": stability_trials,
         "direction": direction,
+        "level": level,
         "unique": unique,
         "dedupe": dedupe,
     }

@@ -238,7 +238,7 @@ M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
 Legacy pairs select none. `Agent(module_signals=True)` writes six
 pre-action M/P/S signals plus versioned modes; `evals.module_state` pools them (ten T3 episodes:
 12 raw / 8 unique pairs versus 0 legacy). `evals.replication` requires signed candidates to survive stability
-and a held-out pool: the positive candidate fails, while two unique P-S anti-interactions replicate (negative).
+and a held-out pool: the positive candidate fails; the two P-S anti-interactions replicate on T1 only (negative).
 
 ## 🧪 Lesion Detectability
 

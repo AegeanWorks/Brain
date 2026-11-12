@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `217`
 - **Total Classes**: `222`
-- **Total Top-Level Functions**: `627`
-- **Total Class Methods**: `1184`
-- **Total Source Lines**: `30061`
+- **Total Top-Level Functions**: `628`
+- **Total Class Methods**: `1188`
+- **Total Source Lines**: `30126`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`217` module(s))
@@ -833,14 +833,15 @@
 ### [`evals/replication.py`](evals/replication.py)
 > *A scan candidate must survive a held-out pool.*
 
-**Size**: `165` lines (`6749` bytes)
+**Size**: `194` lines (`7983` bytes)
 
 **Functions:**
 - `def _direction_of(report, alpha, requested)` - *Return the candidate direction, or None when it does not clear.*
 - `def _tail_ok(report, direction, alpha)` - *True when a family-scan report clears the requested tail.*
 - `def _holdout_ok(report, direction, alpha)` - *True when a single-pair holdout report clears the requested tail.*
+- `def _block_holdout_matches(rows, target, blocks, direction, trials, alpha)` - *Return holdout reports with the same block set and requested sign.*
 - `def _unique_items(items, classes)` - *Keep the first candidate for each pair of dependent-column classes.*
-- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, direction, require_replication, require_stability, unique, dedupe)` - *Return signed train candidates with stability and holdout verdicts.*
+- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, direction, level, require_replication, require_stability, unique, dedupe)` - *Return signed train candidates with stability and holdout verdicts.*
 
 ---
 
@@ -3385,7 +3386,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `193` lines (`9246` bytes)
+**Size**: `229` lines (`11202` bytes)
 
 **Classes:**
 - `class TestHoldoutReplication`
@@ -3398,11 +3399,15 @@
   - Method `.test_a_replicated_anti_interaction_is_selected()`
   - Method `.test_positive_only_ignores_the_anti_interaction()`
   - Method `.test_negative_only_selects_the_anti_interaction()`
+  - Method `.test_block_level_holdout_replicates_p_s_on_t1()`
+  - Method `.test_column_level_holdout_does_not_replicate_across_t1()`
+  - Method `.test_block_level_holdout_fails_on_t2()`
+  - Method `.test_level_must_be_known()`
   - Method `.test_direction_must_be_known()`
   - Method `.test_the_holdout_result_is_deterministic()`
 
 **Functions:**
-- `def _signal_rows(seeds)`
+- `def _signal_rows(seeds, task)`
 - `def _planted(seed, n)` - *A non-leaky XOR between column 0 (M) and column 2 (P).*
 
 ---

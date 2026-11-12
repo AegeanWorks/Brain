@@ -27,14 +27,14 @@ from evals.module_state import pool_signals
 from evals.replication import scan_with_holdout
 
 
-def _signal_rows(seeds):
+def _signal_rows(seeds, task="T3_navigate"):
     rows = []
     with tempfile.TemporaryDirectory() as directory:
         paths = []
         for seed in seeds:
             path = os.path.join(directory, "run-%d.jsonl" % seed)
             Agent(module_signals=True).run_task_logged(
-                "T3_navigate", seed, max_steps=200, log_path=path)
+                task, seed, max_steps=200, log_path=path)
             paths.append(path)
         rows = pool_signals(paths)
     return rows, [row[-1] for row in rows]
@@ -169,6 +169,42 @@ class TestHoldoutReplication(unittest.TestCase):
                             for item in result["selected"]))
         self.assertTrue(all(item["candidate"]["syn"] < 0.0
                             for item in result["selected"]))
+
+    def test_block_level_holdout_replicates_p_s_on_t1(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10), task="T1_forage")
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="both", level="block")
+        self.assertTrue(result["selected"])
+        for item in result["selected"]:
+            self.assertEqual(item["direction"], "negative")
+            self.assertEqual(set(item["candidate"]["blocks"]), {"P", "S"})
+            self.assertTrue(item["holdout_matches"])
+
+    def test_column_level_holdout_does_not_replicate_across_t1(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10), task="T1_forage")
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="both", level="column")
+        self.assertEqual([item["candidate"]["columns"]
+                          for item in result["selected"]], [])
+
+    def test_block_level_holdout_fails_on_t2(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(
+            range(10), task="T2_delayed_match")
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="both", level="block")
+        self.assertEqual([item["candidate"]["columns"]
+                          for item in result["selected"]], [])
+
+    def test_level_must_be_known(self):
+        rows, target = _planted(6)
+        with self.assertRaises(ValueError):
+            scan_with_holdout(rows, target, rows, target, level="cell")
 
     def test_direction_must_be_known(self):
         rows, target = _planted(5)
