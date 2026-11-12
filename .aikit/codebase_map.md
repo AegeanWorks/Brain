@@ -9,8 +9,8 @@
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
 - **Total Top-Level Functions**: `629`
-- **Total Class Methods**: `1203`
-- **Total Source Lines**: `30341`
+- **Total Class Methods**: `1204`
+- **Total Source Lines**: `30363`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -721,7 +721,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `180` lines (`6280` bytes)
+**Size**: `190` lines (`6700` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
@@ -730,8 +730,8 @@
 - `def read_signal_metadata(log_path)` - *Return the first action record's signals metadata, or None.*
 - `def signals_meta_from_trace(trace)` - *Return the first trace step's signals metadata, or None.*
 - `def signals_from_trace(trace)` - *Return one signal row per trace step that carries a signals block.*
-- `def scan_traces(traces, trials)` - *Scan pooled in-memory traces with the shared pair gate and family null.*
-- `def scan_module_states(log_paths, trials)` - *Scan pooled signal rows with the shared pair gate and family null.*
+- `def scan_traces(traces, trials, dedupe)` - *Scan pooled in-memory traces with the shared pair gate and family null.*
+- `def scan_module_states(log_paths, trials, dedupe)` - *Scan pooled signal rows with the shared pair gate and family null.*
 - `def _split_blocks(rows, target, trials, unique)`
 - `def scan_module_state_blocks(log_paths, trials, unique)` - *Return the pooled log signal scan split into positive and anti pairs.*
 - `def scan_trace_blocks(traces, trials, unique)` - *Return the in-memory trace signal scan split into positive/anti pairs.*
@@ -2726,7 +2726,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `430` lines (`20570` bytes)
+**Size**: `442` lines (`21241` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2750,13 +2750,14 @@
   - Method `.test_turns_mode_adds_testable_pairs()`
   - Method `.test_alternatives_mode_removes_the_distance_leak()`
   - Method `.test_distance_mode_is_target_leaky()`
-  - Method `.test_alternatives_mode_adds_cross_module_pairs()`
+  - Method `.test_alternatives_mode_removes_the_leak_without_new_unique_pairs()`
   - Method `.test_the_seen_mode_is_dependent()`
-  - Method `.test_keys_mode_adds_one_testable_pair()`
+  - Method `.test_keys_mode_adds_testable_pairs()`
   - Method `.test_module_interactions_are_empty_at_200_trials()`
   - Method `.test_signals_do_not_change_actions()`
   - Method `.test_block_split_includes_the_anti_module_pairs()`
   - Method `.test_trace_block_split_matches_the_log_path()`
+  - Method `.test_module_state_scan_dedupes_the_family()`
   - Method `.test_block_split_reports_metadata()`
   - Method `.test_disabled_trace_block_split_is_empty()`
   - Method `.test_anti_block_filters_are_complementary()`

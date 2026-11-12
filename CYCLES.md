@@ -4904,6 +4904,31 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 179 - the module-state eval must use the deduped family
+
+- **Baseline** (commit cfe3e27):
+  - canonical gate: 929 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-169 applied dedupe only in the replication path; `scan_module_states`/`scan_traces` still used the raw family (`family_size 14`).
+  - with dedupe: keys 10 valid / 8 cross (raw 14/12), seen 6/5 (13/12), turns 10/8 (14/12), revisits 6/5 (9/5), alternatives 10/8 and distance 10/8 (14/12 and 10/8).
+  - the P alternatives +4 cross pairs were duplicate aliases; unique cross is 8 in both modes.
+- **Gap**: the eval path's family count contradicted the signed replication path and retained duplicate evidence.
+- **Target delta**: make `scan_module_states`/`scan_traces` default to the deduped family, keep the raw counts behind the ablation, and correct the P-mode claim.
+- **Falsifier**: the eval still reports 14; a real unique pair is lost; the raw counts cannot be restored; or the selected set changes.
+- **Change**: `evals/module_state.py` adds `dedupe=True` to both scans; `tests/test_module_signals.py` updates counts, adds `test_module_state_scan_dedupes_the_family`, and replaces the alternatives "adds cross pairs" assertion with equal unique cross counts (36 total).
+- **After**:
+  - deduped keys 10/8, seen 6/5, turns 10/8, revisits 6/5, alternatives 10/8, distance 10/8.
+  - raw `dedupe=False`: 14 valid / 12 cross for the default signal trace.
+  - selected anti pairs and standing numbers unchanged.
+- **Ablation**: `dedupe=False` restores the raw family and duplicate aliases; `dedupe=True` removes them. The eval default is the integration point.
+- **Verdict**: family honesty and a correction to ADR-161/cycle 166. The measured delta is "the eval family is 14 and the P mode appears to add 4 cross pairs" -> "the eval family is 10 and the P mode adds no unique cross pairs; its gain is leak removal". Boundary: generic `scan_pairs` still defaults raw; unique counts are evidence counts, raw counts include aliases.
+- **Gates**: unittest 930/930 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_signals` -> 36 OK.
+  - `python -m unittest discover -s tests -t .` -> 930 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 180**: unittest 930 OK; aikit 5/5; eval dedupe keys 10/8, seen 6/5, turns 10/8, revisits 6/5, alternatives 10/8, distance 10/8; raw 14/12; block-level T3->T1 selected one P-S anti; raw two; T3->T1 column []; T3->T2 block []; XOR control selected three column-level pairs; battery audit 33/9/0 exit 0; block metadata version 2 / M turns / P alternatives / S keys; disabled split metadata None; metadata persistent_fields 2 cold, 0 warm / store_reads 1 cold, 0 warm; signal dedupe 11 reports / 10 valid / family 10; selected (2,5),(2,4) negative p_lower 0.0099; legacy hub 5 raw -> 1 unique; classes [0,1,2,2,4,5]; signed both/negative selected two; positive-only selected []; positive candidate p100 0.0495 / p200 0.0547; `module_interactions []`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 10 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 178 - a block-level dependency is one selected entry, not one per feature pair
 
 - **Baseline** (commit 13c5541):

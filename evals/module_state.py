@@ -120,20 +120,30 @@ def signals_from_trace(trace):
     return rows
 
 
-def scan_traces(traces, trials=200):
-    """Scan pooled in-memory traces with the shared pair gate and family null."""
+def scan_traces(traces, trials=200, dedupe=True):
+    """Scan pooled in-memory traces with the shared pair gate and family null.
+
+    ``dedupe=True`` removes dependent-column aliases before the family null;
+    ``dedupe=False`` restores the raw family and is the executable ablation.
+    """
     rows = []
     for trace in traces:
         rows.extend(signals_from_trace(trace))
     target = [row[-1] for row in rows]
-    return scan_pairs(rows, target, trials=trials, family_wise=True)
+    return scan_pairs(rows, target, trials=trials, family_wise=True,
+                      dedupe=dedupe)
 
 
-def scan_module_states(log_paths, trials=200):
-    """Scan pooled signal rows with the shared pair gate and family null."""
+def scan_module_states(log_paths, trials=200, dedupe=True):
+    """Scan pooled signal rows with the shared pair gate and family null.
+
+    ``dedupe=True`` removes dependent-column aliases before the family null;
+    ``dedupe=False`` restores the raw family and is the executable ablation.
+    """
     rows = pool_signals(log_paths)
     target = [row[-1] for row in rows]
-    return scan_pairs(rows, target, trials=trials, family_wise=True)
+    return scan_pairs(rows, target, trials=trials, family_wise=True,
+                      dedupe=dedupe)
 
 
 def _split_blocks(rows, target, trials=200, unique=True):

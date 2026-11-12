@@ -114,7 +114,7 @@ class TestModuleSignals(unittest.TestCase):
         traces = [Agent(module_signals=True).run_task("T3_navigate", seed)
                   for seed in range(10)]
         reports = scan_traces(traces, trials=200)
-        self.assertEqual(sum(1 for report in reports if report["ok"]), 14)
+        self.assertEqual(sum(1 for report in reports if report["ok"]), 10)
         self.assertEqual(module_interactions(
             [row for trace in traces for row in signals_from_trace(trace)],
             [step["reward"] for trace in traces for step in trace],
@@ -220,7 +220,7 @@ class TestModuleSignals(unittest.TestCase):
                                       for line in handle) if row]))
             target = [row[-1] for row in legacy_rows]
             legacy_reports = scan_pairs(legacy_rows, target, trials=200)
-        self.assertEqual(_cross_module_count(signal_reports), 12)
+        self.assertEqual(_cross_module_count(signal_reports), 8)
         self.assertEqual(_cross_module_count(legacy_reports), 0)
 
     def test_the_s_block_is_independent(self):
@@ -250,8 +250,8 @@ class TestModuleSignals(unittest.TestCase):
             revisits = scan_module_states(_logs(directory, True,
                                                 module_m_mode="revisits"),
                                           trials=50)
-        self.assertEqual(sum(1 for report in turns if report["ok"]), 14)
-        self.assertEqual(sum(1 for report in revisits if report["ok"]), 9)
+        self.assertEqual(sum(1 for report in turns if report["ok"]), 10)
+        self.assertEqual(sum(1 for report in revisits if report["ok"]), 6)
 
     def test_alternatives_mode_removes_the_distance_leak(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -266,7 +266,7 @@ class TestModuleSignals(unittest.TestCase):
         self.assertTrue(_target_leak([row[2] for row in rows],
                                      [row[-1] for row in rows]))
 
-    def test_alternatives_mode_adds_cross_module_pairs(self):
+    def test_alternatives_mode_removes_the_leak_without_new_unique_pairs(self):
         with tempfile.TemporaryDirectory() as directory:
             alternatives = scan_module_states(
                 _logs(directory, True, module_p_mode="alternatives"),
@@ -274,7 +274,7 @@ class TestModuleSignals(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             distance = scan_module_states(
                 _logs(directory, True, module_p_mode="distance"), trials=50)
-        self.assertEqual(_cross_module_count(alternatives), 12)
+        self.assertEqual(_cross_module_count(alternatives), 8)
         self.assertEqual(_cross_module_count(distance), 8)
 
     def test_the_seen_mode_is_dependent(self):
@@ -285,15 +285,15 @@ class TestModuleSignals(unittest.TestCase):
         self.assertTrue(_dependent([row[4] for row in rows],
                                    [row[5] for row in rows]))
 
-    def test_keys_mode_adds_one_testable_pair(self):
+    def test_keys_mode_adds_testable_pairs(self):
         with tempfile.TemporaryDirectory() as directory:
             keys = scan_module_states(_logs(directory, True,
                                             module_s_mode="keys"), trials=50)
         with tempfile.TemporaryDirectory() as directory:
             seen = scan_module_states(_logs(directory, True,
                                             module_s_mode="seen"), trials=50)
-        self.assertEqual(sum(1 for report in keys if report["ok"]), 14)
-        self.assertEqual(sum(1 for report in seen if report["ok"]), 13)
+        self.assertEqual(sum(1 for report in keys if report["ok"]), 10)
+        self.assertEqual(sum(1 for report in seen if report["ok"]), 6)
 
     def test_module_interactions_are_empty_at_200_trials(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -343,6 +343,18 @@ class TestModuleSignals(unittest.TestCase):
         self.assertEqual([report["columns"]
                           for report in from_traces["anti_module"]],
                          [[2, 5], [2, 4]])
+
+    def test_module_state_scan_dedupes_the_family(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            deduped = scan_module_states(paths, trials=50)
+            full = scan_module_states(paths, trials=50, dedupe=False)
+        deduped_valid = [report for report in deduped if report["ok"]]
+        full_valid = [report for report in full if report["ok"]]
+        self.assertEqual(len(deduped_valid), 10)
+        self.assertEqual(len(full_valid), 14)
+        self.assertEqual(deduped_valid[0]["family"]["family_size"], 10)
+        self.assertEqual(full_valid[0]["family"]["family_size"], 14)
 
     def test_block_split_reports_metadata(self):
         with tempfile.TemporaryDirectory() as directory:

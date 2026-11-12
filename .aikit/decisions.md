@@ -1239,6 +1239,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 929 tests OK; aikit check 5/5. T3->T1 block level now selects one P-S anti dependency; raw `unique=False` selects two; column level still selects none and T2 block selects none. The positive control still selects three column-level pairs. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `unique=False` restores the two feature-pair entries; `unique=True` collapses them.
 - **Boundary**: block-level collapsing intentionally discards which feature pair realized the dependency; column level remains the feature-specific view. The selected count is a dependency count, not a pair count.
 
+### ADR-174: The module-state eval must use the deduped family
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-169 applied dedupe only in the replication path. `scan_module_states`/`scan_traces` still called `scan_pairs` with its raw default, so the eval path reported `family_size 14` while the signed path used 10. Re-measured with dedupe: keys 10 valid / 8 cross (versus raw 14/12), seen 6/5 (raw 13/12), turns 10/8 (raw 14/12), revisits 6/5 (raw 9/5), alternatives 10/8 and distance 10/8 (raw 14/12 and 10/8). The alternatives mode's apparent +4 cross pairs were duplicate aliases; the unique cross count is 8 in both modes. That corrects the ADR-161/cycle 166 reading.
+- **Decision**: `scan_module_states` and `scan_traces` now default `dedupe=True` and accept `dedupe=False` as the executable ablation. Tests update the counts and replace the P-mode "adds cross pairs" assertion with "same unique cross count"; `test_module_state_scan_dedupes_the_family` pins 10 versus 14 (36 tests in the module-signal file).
+- **Consequences**: 930 tests OK; aikit check 5/5. The eval family and the replication family now agree at 10 for the default signal trace; keys adds 3 unique cross pairs over seen (8 vs 5), turns adds 3 over revisits (8 vs 5), and alternatives adds no unique cross pairs over distance (8 vs 8) while removing the P0 target leak. Selected anti pairs and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: `dedupe=False` restores the raw family (14 valid / 12 cross) and the duplicate alias count.
+- **Boundary**: generic `scan_pairs` still defaults to `dedupe=False` for compatibility; the eval path chooses true. Unique counts are evidence counts; raw counts include dependent aliases.
+
 
 
 
