@@ -4904,6 +4904,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 183 - cache deterministic fixtures in the slow test modules
+
+- **Baseline** (commit 53e116f):
+  - canonical gate: 933 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the gate took 255.7s (396s under load); the slowest tests were 8-9s because `test_module_pair_scan`, `test_replication`, `test_wiring_independence` and `test_pair_conclusions` rebuilt the same deterministic full-wiring episode pools per test.
+- **Gap**: repeated deterministic fixture construction dominated the test gate.
+- **Target delta**: memoize deterministic fixtures, keep every assertion and the test count unchanged, and show fewer fixture rebuilds.
+- **Falsifier**: a cached row is mutated; coverage drops; a test becomes order-dependent; or the cache reports no hits.
+- **Change**: memoize `_episode(seed)`, `_vectors(full_wiring)`, `_raw(task, seed, wired)` and the `_signal_rows` pool; tests only read the rows. No production code changed.
+- **After**:
+  - deterministic cache evidence: `_episode` 30 hits / 10 misses, `_vectors` 8 / 2, `_raw` 4 / 4, and four replication pools; 30 full-wiring episode builds avoided.
+  - the full gate measured 198.7s versus 255.7s on two runs; wall time is load-sensitive and is not the proof.
+  - 933 tests; coverage unchanged; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: disabling the caches turns the 30 hits into rebuilds; enabling them avoids them. Coverage and assertions are unchanged.
+- **Verdict**: test-fixture efficiency. The measured delta is "the slow modules rebuild the same episode pools per test" -> "10 builds with 30 cache hits, same 933 assertions". Boundary: test-only; caches assume deterministic Agent rows and no mutation.
+- **Gates**: unittest 933/933 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest discover -s tests -t . --durations 10` -> 933 OK, 198.7s.
+  - `python ..\..\scratch\cache_info.py` -> module tests OK; `_episode` 30 hits / 10 misses, `_vectors` 8/2, `_raw` 4/4, four replication pools.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 184**: unittest 933 OK; aikit 5/5; cache hits `_episode` 30/10, `_vectors` 8/2, `_raw` 4/4, replication 4 pools; full gate 198.7s/255.7s load-sensitive; T3 block holdout match family 10 vs raw 14; selected block dependency unchanged; T1 classes distinct; default/wired dependence 34/32; wired independent features (4,7)/(6,7); (4,5) dependent syn -0.1243; block split family 10 vs raw 14; eval dedupe keys 10/8, seen 6/5, turns 10/8, revisits 6/5, alternatives 10/8, distance 10/8; raw 14/12; block-level T3->T1 selected one P-S anti; raw two; T3->T1 column []; T3->T2 block []; XOR control selected three column-level pairs; battery audit 33/9/0 exit 0; block metadata version 2 / M turns / P alternatives / S keys; disabled split metadata None; metadata persistent_fields 2 cold, 0 warm / store_reads 1 cold, 0 warm; signal dedupe 11 reports / 10 valid / family 10; selected (2,5),(2,4) negative p_lower 0.0099; legacy hub 5 raw -> 1 unique; classes [0,1,2,2,4,5]; signed both/negative selected two; positive-only selected []; positive candidate p100 0.0495 / p200 0.0547; `module_interactions []`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 10 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 182 - the block-level holdout must honor the dedupe flag
 
 - **Baseline** (commit 4cd4a9b):

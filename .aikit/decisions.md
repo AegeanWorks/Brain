@@ -1271,6 +1271,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 933 tests OK; aikit check 5/5. The T3 block holdout match family is 10 under dedupe and 14 under `dedupe=False`; selected candidates and the block-level count are unchanged. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `dedupe=False` restores the raw holdout family; `dedupe=True` returns 10.
 - **Boundary**: this is a family-membership consistency fix in the holdout path; it does not change the selected dependency, and T1's classes are all distinct so its raw/deduped holdout families already agree.
 
+### ADR-178: Cache deterministic fixtures in the slow test modules
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: the 933-test gate took 255.7s (later 396s under load). The slowest tests were 8-9s because `test_module_pair_scan`, `test_replication`, `test_wiring_independence` and `test_pair_conclusions` rebuilt the same deterministic full-wiring episode pools per test.
+- **Decision**: memoize the deterministic fixtures: `_episode(seed)` in module-pair tests, `_vectors(full_wiring)`, `_raw(task, seed, wired)` and the `_signal_rows` pool; tests only read the rows. No production code changed.
+- **Consequences**: 933 tests OK; coverage is unchanged. Deterministic cache evidence: `_episode` 30 hits / 10 misses, `_vectors` 8 / 2, `_raw` 4 / 4, and four replication pools; the same assertions run with 30 fewer full-wiring episode builds. The full gate measured 198.7s versus 255.7s on two runs, but wall time is load-sensitive and is not the proof. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: disabling the caches turns the 30 hits into rebuilds; coverage and assertions are unchanged.
+- **Boundary**: this is test-only. The caches assume deterministic `Agent` rows and no test mutating the cached lists; a mutating test must copy the rows before editing.
+
 
 
 

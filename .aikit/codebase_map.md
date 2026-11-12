@@ -10,7 +10,7 @@
 - **Total Classes**: `227`
 - **Total Top-Level Functions**: `631`
 - **Total Class Methods**: `1207`
-- **Total Source Lines**: `30407`
+- **Total Source Lines**: `30427`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -2704,7 +2704,7 @@
 ### [`tests/test_module_pair_scan.py`](tests/test_module_pair_scan.py)
 > *A module interaction needs two module blocks, not the world hub.*
 
-**Size**: `142` lines (`5735` bytes)
+**Size**: `144` lines (`5787` bytes)
 
 **Classes:**
 - `class TestModulePairScan`
@@ -2899,7 +2899,7 @@
 ### [`tests/test_pair_conclusions.py`](tests/test_pair_conclusions.py)
 > *Pair-level conclusions must be re-derived at one observation per step.*
 
-**Size**: `126` lines (`5542` bytes)
+**Size**: `128` lines (`5594` bytes)
 
 **Classes:**
 - `class TestPairConclusionsAtCorrectN`
@@ -3422,7 +3422,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `262` lines (`13015` bytes)
+**Size**: `276` lines (`13398` bytes)
 
 **Classes:**
 - `class TestHoldoutReplication`
@@ -3445,7 +3445,7 @@
   - Method `.test_the_holdout_result_is_deterministic()`
 
 **Functions:**
-- `def _signal_rows(seeds, task)`
+- `def _signal_rows(seeds, task)` - *Return deterministic signal rows, cached across tests.*
 - `def _planted(seed, n)` - *A non-leaky XOR between column 0 (M) and column 2 (P).*
 
 ---
@@ -4167,7 +4167,7 @@
 ### [`tests/test_wiring_independence.py`](tests/test_wiring_independence.py)
 > *Wiring the modules makes them independent, and then anti-synchronous.*
 
-**Size**: `132` lines (`5762` bytes)
+**Size**: `134` lines (`5811` bytes)
 
 **Classes:**
 - `class TestWiringIndependence`

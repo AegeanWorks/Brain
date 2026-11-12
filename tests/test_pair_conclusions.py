@@ -26,6 +26,7 @@ quantities — the permutation null's spread and any tail — change. So cycle
 147/148's *point estimates* were right and their *significance* was not.
 """
 
+import functools
 import json
 import os
 import tempfile
@@ -41,6 +42,7 @@ from planner.plan import Planner as TrackerPlanner
 from self_model.model import SelfModel as PersistentSelfModel
 
 
+@functools.lru_cache(maxsize=None)
 def _raw(task, seed, wired=False):
     with tempfile.TemporaryDirectory() as d:
         log = os.path.join(d, "run.jsonl")

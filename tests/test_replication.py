@@ -27,7 +27,19 @@ from evals.module_state import pool_signals
 from evals.replication import scan_with_holdout
 
 
+_SIGNAL_CACHE = {}
+
+
 def _signal_rows(seeds, task="T3_navigate"):
+    """Return deterministic signal rows, cached across tests.
+
+    The cache is safe because every test only reads the rows; the temporary
+    logs are closed before the result is stored.
+    """
+    seeds = tuple(seeds)
+    key = (task, seeds)
+    if key in _SIGNAL_CACHE:
+        return _SIGNAL_CACHE[key]
     rows = []
     with tempfile.TemporaryDirectory() as directory:
         paths = []
@@ -37,7 +49,9 @@ def _signal_rows(seeds, task="T3_navigate"):
                 task, seed, max_steps=200, log_path=path)
             paths.append(path)
         rows = pool_signals(paths)
-    return rows, [row[-1] for row in rows]
+    result = (rows, [row[-1] for row in rows])
+    _SIGNAL_CACHE[key] = result
+    return result
 
 
 def _planted(seed, n=64):

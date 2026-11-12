@@ -18,6 +18,7 @@ pooled trace. A synthetic XOR across the M and P blocks is still detected,
 so the filter does not erase real cross-module candidates.
 """
 
+import functools
 import json
 import os
 import random
@@ -33,6 +34,7 @@ from planner.plan import Planner as TrackerPlanner
 from self_model.model import SelfModel as PersistentSelfModel
 
 
+@functools.lru_cache(maxsize=None)
 def _episode(seed):
     with tempfile.TemporaryDirectory() as directory:
         log = os.path.join(directory, "run.jsonl")

@@ -21,6 +21,7 @@ on duplicated rows; see cycle 150. `interactions` and
 `anti_interactions` both return nothing on either configuration.
 """
 
+import functools
 import json
 import os
 import tempfile
@@ -35,6 +36,7 @@ from planner.plan import Planner as TrackerPlanner
 from self_model.model import SelfModel as PersistentSelfModel
 
 
+@functools.lru_cache(maxsize=2)
 def _vectors(full_wiring):
     with tempfile.TemporaryDirectory() as d:
         log = os.path.join(d, "run.jsonl")
