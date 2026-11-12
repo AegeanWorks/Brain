@@ -77,7 +77,7 @@ def _unique_items(items, classes):
 def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
                       trials=200, stability_trials=None, alpha=ALPHA,
                       direction="both", require_replication=True,
-                      require_stability=True, unique=True):
+                      require_stability=True, unique=True, dedupe=True):
     """Return signed train candidates with stability and holdout verdicts.
 
     ``stability_trials`` re-runs the train family scan at a higher trial
@@ -112,12 +112,12 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
             "Why: stability_trials must be an int >= trials. "
             "Fix: pass stability_trials=200.")
     reports = scan_pairs(train_rows, train_target, trials=trials,
-                         family_wise=True)
+                         family_wise=True, dedupe=dedupe)
     stable_map = None
     if require_stability and stability_trials > trials:
         stable_reports = scan_pairs(train_rows, train_target,
                                     trials=stability_trials,
-                                    family_wise=True)
+                                    family_wise=True, dedupe=dedupe)
         stable_map = {tuple(report["columns"]): report
                       for report in stable_reports if report["ok"]}
     candidates = []
@@ -161,4 +161,5 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         "stability_trials": stability_trials,
         "direction": direction,
         "unique": unique,
+        "dedupe": dedupe,
     }

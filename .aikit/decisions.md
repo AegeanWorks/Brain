@@ -1159,6 +1159,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 908 tests OK; aikit check 5/5. On the signal train/holdout pools the classes are `[0,1,2,2,4,5]`: P0/P1 share class 2, S0/S1 are distinct. `unique=True` selects `(2,5)` and `(2,4)`, both negative with train `p_lower 0.0099` and holdout `p_lower 0.0`; the positive `(0,4)` remains rejected. `unique=False` restores the four entries. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the collapse returns four selected entries for two evidence pairs; restoring it returns two.
 - **Boundary**: this is report-level collapsing. The family null still scores the dependent pairs, so its correction is conservative rather than wrong; deduping before the family null is a separate p-value change. The two selected pairs remain a negative P-S dependency, not positive emergence.
 
+### ADR-164: Dedupe dependent column pairs before the family null
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-163 collapsed duplicate entries after selection, but `scan_pairs` still scored every dependent-column alias in the family null and reported `family_size 14` for 10 unique pieces of evidence. On the pooled legacy trace the five hub interactions were five aliases of one M/P/S-vs-hub evidence pair; on the signal trace the raw scan had 15 reports / 14 valid / family 14 versus 11 / 10 / 10 after class dedupe.
+- **Decision**: Add `dedupe=False` to `scan_pairs`, which (when true) canonicalizes each pair to its column-class key before `pair_report`, so one alias per class pair enters the family. `column_classes` skips constant and all-unique columns so a degenerate column cannot merge real variables. `scan_with_holdout(dedupe=True)` is the default for the replication path; `dedupe=False` is the executable ablation. Tests: `tests/test_pair_equivalence.py` (6).
+- **Consequences**: 909 tests OK; aikit check 5/5. Signal trace: dedupe 11 reports / 10 valid / `family_size 10`; ablation 15 / 14 / 14. Selected anti pairs remain `(2,5)` and `(2,4)` with `p_lower 0.0099`; the positive `(0,4)` remains rejected. Legacy hub interactions: 5 raw -> 1 unique evidence pair. The p-values do not move because duplicate aliases share the same gap and do not change the max/min statistic; `family_size` and the tested set become honest. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `dedupe=False` restores the raw family and the five hub aliases.
+- **Boundary**: this is a family-membership/reporting correction, not a new interaction. The max-statistic is unchanged by aliases that share a gap, so the selected set is the same; only the count and family composition change. Generic `scan_pairs` keeps `dedupe=False` for compatibility; the replication path uses true.
+
 
 
 

@@ -77,12 +77,25 @@ class TestPairEquivalence(unittest.TestCase):
         holdout_rows, holdout_target = _rows(range(10, 20))
         result = scan_with_holdout(train_rows, train_target,
                                    holdout_rows, holdout_target, trials=100,
-                                   direction="both", unique=False)
+                                   direction="both", unique=False,
+                                   dedupe=False)
         selected = [item["candidate"]["columns"]
                     for item in result["selected"]]
         self.assertEqual(len(selected), 4)
         self.assertEqual({tuple(columns) for columns in selected},
                          {(2, 5), (3, 5), (2, 4), (3, 4)})
+
+    def test_family_dedupe_reduces_the_family_size(self):
+        from evals.pair_scan import scan_pairs
+        rows, target = _rows(range(10))
+        deduped = scan_pairs(rows, target, trials=50, dedupe=True)
+        full = scan_pairs(rows, target, trials=50, dedupe=False)
+        valid_deduped = [report for report in deduped if report["ok"]]
+        valid_full = [report for report in full if report["ok"]]
+        self.assertEqual(len(valid_deduped), 10)
+        self.assertEqual(len(valid_full), 14)
+        self.assertEqual(valid_deduped[0]["family"]["family_size"], 10)
+        self.assertEqual(valid_full[0]["family"]["family_size"], 14)
 
     def test_a_planted_independent_pair_is_not_collapsed(self):
         train_rows, train_target = _planted(1)

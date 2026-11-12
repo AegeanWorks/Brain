@@ -237,7 +237,7 @@ no independent second signal: `duplicate-scope-column`; a constant reads
 M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
 Legacy pairs select nothing. `Agent(module_signals=True)` writes six
 pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
-12 cross-module pairs versus 0 legacy). `evals.replication` requires signed
+12 raw / 8 unique cross pairs versus 0 legacy). `evals.replication` requires signed
 candidates to survive stability and a held-out pool: the positive train
 candidate fails, while two unique P-S anti-interactions replicate (negative).
 

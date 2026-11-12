@@ -119,8 +119,15 @@ def column_classes(rows, exclude_target=True):
             parent[right] = left
 
     columns = [[row[index] for row in rows] for index in range(width)]
+    n_rows = len(rows)
     for first in range(width):
+        values = set(columns[first])
+        if len(values) <= 1 or len(values) == n_rows:
+            continue
         for second in range(first + 1, width):
+            other = set(columns[second])
+            if len(other) <= 1 or len(other) == n_rows:
+                continue
             if _dependent(columns[first], columns[second]):
                 union(first, second)
     return [find(index) for index in range(width)]
@@ -227,7 +234,7 @@ def _family_wise(rows, target, reports, trials=200, seed=0):
 
 
 def scan_pairs(rows, target, trials=200, family_wise=True, seed=0,
-               guard_target=True):
+               guard_target=True, dedupe=False):
     """Return every feature-column pair's report, sorted by gap descending.
 
     Rows are full block rows with the target in the last column, matching
@@ -237,7 +244,10 @@ def scan_pairs(rows, target, trials=200, family_wise=True, seed=0,
     regardless of their gap, so a caller reading the head of the list never
     sees an artifact first. With ``family_wise=True`` every valid pair
     carries a ``family`` block holding the scan-corrected tails;
-    ``family_wise=False`` restores the per-pair null only.
+    ``family_wise=False`` restores the per-pair null only. With
+    ``dedupe=True`` only one report per pair of dependent-column classes is
+    scored, so the family null does not count one piece of evidence twice;
+    ``dedupe=False`` is the executable ablation.
     """
     if not rows:
         return []
@@ -246,9 +256,17 @@ def scan_pairs(rows, target, trials=200, family_wise=True, seed=0,
         width -= 1
     if width < 2:
         return []
+    classes = (column_classes(rows, exclude_target=guard_target)
+               if dedupe else None)
+    seen = set()
     reports = []
     for first in range(width):
         for second in range(first + 1, width):
+            if classes is not None:
+                key = tuple(sorted((classes[first], classes[second])))
+                if key in seen:
+                    continue
+                seen.add(key)
             reports.append(pair_report(rows, target, first, second, trials,
                                        with_null=not family_wise,
                                        guard_target=guard_target))
