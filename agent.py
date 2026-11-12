@@ -16,7 +16,7 @@ agent (bind_hub) so all modules can read the same hub mapping.
 
 import copy
 
-SIGNALS_VERSION = 1
+SIGNALS_VERSION = 2
 import hashlib
 import itertools
 import json
@@ -1543,6 +1543,18 @@ class Agent:
                     "P": self._module_p_mode,
                     "S": self._module_s_mode,
                 }
+                _probe_meta = getattr(self.planner, "last_probe", None)
+                _persistent_fields = 0
+                _store_reads = 0
+                if isinstance(_probe_meta, dict):
+                    _persistent = _probe_meta.get("persistent")
+                    if isinstance(_persistent, list):
+                        _persistent_fields = len(_persistent)
+                    _reads = _probe_meta.get("store_reads")
+                    if isinstance(_reads, (int, float)) and not isinstance(_reads, bool):
+                        _store_reads = int(_reads)
+                _signals_meta["persistent_fields"] = _persistent_fields
+                _signals_meta["store_reads"] = _store_reads
             if self.telemetry_log is not None:
                 args = {
                     "action": action,

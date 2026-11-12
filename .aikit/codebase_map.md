@@ -9,8 +9,8 @@
 - **Total Python Modules**: `217`
 - **Total Classes**: `222`
 - **Total Top-Level Functions**: `628`
-- **Total Class Methods**: `1188`
-- **Total Source Lines**: `30126`
+- **Total Class Methods**: `1190`
+- **Total Source Lines**: `30161`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`217` module(s))
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1711` lines (`71051` bytes)
+**Size**: `1723` lines (`71758` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -2698,7 +2698,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `396` lines (`18907` bytes)
+**Size**: `419` lines (`19988` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2710,6 +2710,8 @@
   - Method `.test_coldstart_trace_carries_signals()`
   - Method `.test_signal_metadata_is_emitted()`
   - Method `.test_trace_signal_metadata_is_emitted()`
+  - Method `.test_cold_metadata_records_persistent_context()`
+  - Method `.test_warm_metadata_has_no_persistent_context()`
   - Method `.test_metadata_tracks_the_selected_modes()`
   - Method `.test_disabled_signals_have_no_metadata()`
   - Method `.test_module_signals_can_be_disabled()`

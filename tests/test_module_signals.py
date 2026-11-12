@@ -142,7 +142,7 @@ class TestModuleSignals(unittest.TestCase):
             Agent(module_signals=True).run_task_logged(
                 "T3_navigate", 15, max_steps=200, log_path=path)
             metadata = read_signal_metadata(path)
-        self.assertEqual(metadata["version"], 1)
+        self.assertEqual(metadata["version"], 2)
         self.assertEqual(metadata["M"], "turns")
         self.assertEqual(metadata["P"], "alternatives")
         self.assertEqual(metadata["S"], "keys")
@@ -150,10 +150,33 @@ class TestModuleSignals(unittest.TestCase):
     def test_trace_signal_metadata_is_emitted(self):
         trace = Agent(module_signals=True).run_task("T3_navigate", 15)
         metadata = signals_meta_from_trace(trace)
-        self.assertEqual(metadata["version"], 1)
+        self.assertEqual(metadata["version"], 2)
         self.assertEqual(metadata["M"], "turns")
         self.assertEqual(metadata["P"], "alternatives")
         self.assertEqual(metadata["S"], "keys")
+
+    def test_cold_metadata_records_persistent_context(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = MemoryStore(os.path.join(directory, "m.db"))
+            try:
+                warm_run(store, "T3_navigate", 15)
+                _, trace, _ = cold_run(
+                    store, "T3_navigate", 15,
+                    log_path=os.path.join(directory, "cold.jsonl"))
+            finally:
+                store.close()
+            metadata = read_signal_metadata(
+                os.path.join(directory, "cold.jsonl"))
+            trace_metadata = signals_meta_from_trace(trace)
+        self.assertEqual(metadata["persistent_fields"], 2)
+        self.assertGreaterEqual(metadata["store_reads"], 1)
+        self.assertEqual(trace_metadata, metadata)
+
+    def test_warm_metadata_has_no_persistent_context(self):
+        trace = Agent(module_signals=True).run_task("T3_navigate", 15)
+        metadata = signals_meta_from_trace(trace)
+        self.assertEqual(metadata["persistent_fields"], 0)
+        self.assertEqual(metadata["store_reads"], 0)
 
     def test_metadata_tracks_the_selected_modes(self):
         with tempfile.TemporaryDirectory() as directory:

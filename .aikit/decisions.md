@@ -1199,6 +1199,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 921 tests OK; aikit check 5/5. T3->T1 block-level selected the two P-S anti candidates; holdout matches `(3,5)` `syn -0.0115` and `(3,4)` `syn -0.0484`, both `p_lower 0.0099`. T3->T1 column-level selected `[]`. T3->T2 block-level selected `[]`. The positive `(0,4)` candidate remains rejected. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `level="column"` hides the block-level transfer; `level="block"` reports it, while T2 still fails.
 - **Boundary**: the P-S anti dependency transports to one other task (T1) at block level and fails on T2; two tasks are not a universal claim. It is a negative dependency (redundancy), not positive emergence. Block matching intentionally ignores column identity, so it must not be read as the same feature pair.
 
+### ADR-169: Signal metadata must expose the persistent memory context
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-165 version 1 recorded the M/P/S modes but not the memory context. A cold-start run loads two persistent layout fields and reads the store, while a warm run loads none; both produced the same `signals_meta`, so a reader could not tell that the signal rows came from a persistent-memory episode.
+- **Decision**: bump `SIGNALS_VERSION` to 2 and add `persistent_fields` and `store_reads` to `signals_meta`, read from the pre-action planner probe. Tests: `test_cold_metadata_records_persistent_context` and `test_warm_metadata_has_no_persistent_context` (34 total in the module-signal file); the version expectations move to 2.
+- **Consequences**: 923 tests OK; aikit check 5/5. Cold first-action metadata: `persistent_fields 2`, `store_reads 1`; warm: `0` and `0`; trace and log metadata agree. Signal rows, actions, rewards and step counts are unchanged; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the two fields fails the context tests while the rows and actions are identical; version 1 logs still read rows but carry no context.
+- **Boundary**: `read_signal_metadata` returns the first record's context, not a per-step summary; a reader that needs the cold-load event must scan records. The counts show that a persistent layout was used, not which fields were read.
+
 
 
 
