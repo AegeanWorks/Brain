@@ -22,10 +22,10 @@ import tempfile
 import unittest
 
 from agent import Agent
-from evals.module_state import (pool_signals, read_signals,
-                                scan_module_state_blocks,
+from evals.module_state import (pool_signals, read_signal_metadata,
+                                read_signals, scan_module_state_blocks,
                                 scan_module_states, scan_traces,
-                                signals_from_trace)
+                                signals_from_trace, signals_meta_from_trace)
 from evals.coldstart import cold_run, warm_run
 from evals.replication import scan_with_holdout
 from memory.store import MemoryStore
@@ -132,6 +132,46 @@ class TestModuleSignals(unittest.TestCase):
         self.assertEqual(len(rows), len(trace))
         self.assertEqual(rows, log_rows)
         self.assertTrue(scan_traces([trace], trials=100))
+
+    def test_signal_metadata_is_emitted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "meta.jsonl")
+            Agent(module_signals=True).run_task_logged(
+                "T3_navigate", 15, max_steps=200, log_path=path)
+            metadata = read_signal_metadata(path)
+        self.assertEqual(metadata["version"], 1)
+        self.assertEqual(metadata["M"], "turns")
+        self.assertEqual(metadata["P"], "alternatives")
+        self.assertEqual(metadata["S"], "keys")
+
+    def test_trace_signal_metadata_is_emitted(self):
+        trace = Agent(module_signals=True).run_task("T3_navigate", 15)
+        metadata = signals_meta_from_trace(trace)
+        self.assertEqual(metadata["version"], 1)
+        self.assertEqual(metadata["M"], "turns")
+        self.assertEqual(metadata["P"], "alternatives")
+        self.assertEqual(metadata["S"], "keys")
+
+    def test_metadata_tracks_the_selected_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "modes.jsonl")
+            Agent(module_signals=True, module_m_mode="revisits",
+                  module_p_mode="distance",
+                  module_s_mode="seen").run_task_logged(
+                      "T3_navigate", 15, max_steps=200, log_path=path)
+            metadata = read_signal_metadata(path)
+        self.assertEqual(metadata["M"], "revisits")
+        self.assertEqual(metadata["P"], "distance")
+        self.assertEqual(metadata["S"], "seen")
+
+    def test_disabled_signals_have_no_metadata(self):
+        trace = Agent(module_signals=False).run_task("T3_navigate", 15)
+        self.assertIsNone(signals_meta_from_trace(trace))
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "disabled.jsonl")
+            Agent(module_signals=False).run_task_logged(
+                "T3_navigate", 15, max_steps=200, log_path=path)
+            self.assertIsNone(read_signal_metadata(path))
 
     def test_module_signals_can_be_disabled(self):
         with tempfile.TemporaryDirectory() as directory:

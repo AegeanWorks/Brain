@@ -71,6 +71,40 @@ def pool_signals(log_paths):
     return rows
 
 
+def read_signal_metadata(log_path):
+    """Return the first action record's signals metadata, or None."""
+    with open(log_path, "r", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(record, dict) or record.get("type") != "action":
+                continue
+            args = record.get("args")
+            if not isinstance(args, dict) or not isinstance(
+                    args.get("signals"), dict):
+                continue
+            meta = args.get("signals_meta")
+            if isinstance(meta, dict):
+                return dict(meta)
+    return None
+
+
+def signals_meta_from_trace(trace):
+    """Return the first trace step's signals metadata, or None."""
+    for step in trace:
+        if not isinstance(step, dict):
+            continue
+        meta = step.get("signals_meta")
+        if isinstance(meta, dict):
+            return dict(meta)
+    return None
+
+
 def signals_from_trace(trace):
     """Return one signal row per trace step that carries a signals block."""
     rows = []

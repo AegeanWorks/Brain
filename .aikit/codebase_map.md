@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `217`
 - **Total Classes**: `222`
-- **Total Top-Level Functions**: `621`
-- **Total Class Methods**: `1176`
-- **Total Source Lines**: `29875`
+- **Total Top-Level Functions**: `623`
+- **Total Class Methods**: `1180`
+- **Total Source Lines**: `29960`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`217` module(s))
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1700` lines (`70635` bytes)
+**Size**: `1711` lines (`71051` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -721,12 +721,14 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `110` lines (`3648` bytes)
+**Size**: `144` lines (`4767` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
 - `def read_signals(log_path)` - *Return one row per action record carrying a ``signals`` block.*
 - `def pool_signals(log_paths)` - *Concatenate the signal rows from several episode logs.*
+- `def read_signal_metadata(log_path)` - *Return the first action record's signals metadata, or None.*
+- `def signals_meta_from_trace(trace)` - *Return the first trace step's signals metadata, or None.*
 - `def signals_from_trace(trace)` - *Return one signal row per trace step that carries a signals block.*
 - `def scan_traces(traces, trials)` - *Scan pooled in-memory traces with the shared pair gate and family null.*
 - `def scan_module_states(log_paths, trials)` - *Scan pooled signal rows with the shared pair gate and family null.*
@@ -2691,7 +2693,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `301` lines (`14154` bytes)
+**Size**: `341` lines (`16206` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2701,6 +2703,10 @@
   - Method `.test_trace_and_log_signals_agree()`
   - Method `.test_in_memory_scan_matches_the_log_path()`
   - Method `.test_coldstart_trace_carries_signals()`
+  - Method `.test_signal_metadata_is_emitted()`
+  - Method `.test_trace_signal_metadata_is_emitted()`
+  - Method `.test_metadata_tracks_the_selected_modes()`
+  - Method `.test_disabled_signals_have_no_metadata()`
   - Method `.test_module_signals_can_be_disabled()`
   - Method `.test_signal_scan_has_more_testable_module_pairs_than_legacy()`
   - Method `.test_the_s_block_is_independent()`

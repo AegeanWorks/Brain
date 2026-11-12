@@ -235,11 +235,10 @@ no independent second signal: `duplicate-scope-column`; a constant reads
 `target-column`/`target-leak-column`, and applies a family-wise max/min null
 (`family_wise=False`/`guard_target=False` are ablations). Pairs carry
 M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
-Legacy pairs select nothing. `Agent(module_signals=True)` writes six
-pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
-12 raw / 8 unique cross pairs versus 0 legacy). `evals.replication` requires signed
-candidates to survive stability and a held-out pool: the positive train
-candidate fails, while two unique P-S anti-interactions replicate (negative).
+Legacy pairs select none. `Agent(module_signals=True)` writes six
+pre-action M/P/S signals plus versioned modes; `evals.module_state` pools them (ten T3 episodes:
+12 raw / 8 unique pairs versus 0 legacy). `evals.replication` requires signed candidates to survive stability
+and a held-out pool: the positive candidate fails, while two unique P-S anti-interactions replicate (negative).
 
 ## 🧪 Lesion Detectability
 
@@ -452,7 +451,7 @@ intact/tampered/missing meta.
 ## 📐 Calibration Scoring
 
 `calibration.summary(forecasts, min_resolved=10)` scores forecast
-records with Brier, log loss, base rate, skill and five bins.
+records with Brier, log loss, base rate and five bins.
 `outcome=None` is ignored.
 `SelfModel.calibration()` scores them.
 `record_prediction` forms the confidence *before* the action, so the

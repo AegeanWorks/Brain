@@ -15,6 +15,8 @@ agent (bind_hub) so all modules can read the same hub mapping.
 """
 
 import copy
+
+SIGNALS_VERSION = 1
 import hashlib
 import itertools
 import json
@@ -1531,9 +1533,16 @@ class Agent:
                     self._substrate_errors["self_model"] += 1
             m_vec, p_vec, s_vec, hub_vec = self._step_vectors(i, new_state, reward, memories)
             _signals = None
+            _signals_meta = None
             if self._emit_module_signals:
                 _signals = self._module_signals(
                     memories, _learned, _keys, _seen)
+                _signals_meta = {
+                    "version": SIGNALS_VERSION,
+                    "M": self._module_m_mode,
+                    "P": self._module_p_mode,
+                    "S": self._module_s_mode,
+                }
             if self.telemetry_log is not None:
                 args = {
                     "action": action,
@@ -1549,6 +1558,7 @@ class Agent:
                     args["probe"] = copy.deepcopy(probe)
                 if _signals is not None:
                     args["signals"] = _signals
+                    args["signals_meta"] = dict(_signals_meta)
                 try:
                     self.telemetry_log.append_action(
                         i + 1, "step", args,
@@ -1564,6 +1574,7 @@ class Agent:
                       "action": action, "reward": reward, "done": done}
             if _signals is not None:
                 record["signals"] = _signals
+                record["signals_meta"] = dict(_signals_meta)
             trace.append(record)
             state = new_state
             if done:

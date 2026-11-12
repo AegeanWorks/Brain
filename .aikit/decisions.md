@@ -1167,6 +1167,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 909 tests OK; aikit check 5/5. Signal trace: dedupe 11 reports / 10 valid / `family_size 10`; ablation 15 / 14 / 14. Selected anti pairs remain `(2,5)` and `(2,4)` with `p_lower 0.0099`; the positive `(0,4)` remains rejected. Legacy hub interactions: 5 raw -> 1 unique evidence pair. The p-values do not move because duplicate aliases share the same gap and do not change the max/min statistic; `family_size` and the tested set become honest. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `dedupe=False` restores the raw family and the five hub aliases.
 - **Boundary**: this is a family-membership/reporting correction, not a new interaction. The max-statistic is unchanged by aliases that share a gap, so the selected set is the same; only the count and family composition change. Generic `scan_pairs` keeps `dedupe=False` for compatibility; the replication path uses true.
 
+### ADR-165: The signal block must say which modes produced it
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: the signal defaults changed three times in five cycles: S `seen` -> `keys` (ADR-154), M `revisits` -> `turns` (ADR-160), P `distance` -> `alternatives` (ADR-161). The action record and trace carried a bare `signals` dict with no version or mode names, so logs from different commits were indistinguishable; a reader could not tell whether `S[1]` was a trial count or a distinct-key count.
+- **Decision**: add `SIGNALS_VERSION = 1`; when `module_signals=True`, action args and trace steps carry `signals_meta = {"version": 1, "M": ..., "P": ..., "S": ...}`. Add `read_signal_metadata(log_path)` and `signals_meta_from_trace(trace)` to `evals/module_state.py`. Tests: four metadata tests in `tests/test_module_signals.py` (28 total).
+- **Consequences**: 913 tests OK; aikit check 5/5. Default metadata reads `version 1 / M turns / P alternatives / S keys`; a run with the ablation modes reports `revisits / distance / seen`; a disabled-signal run has no metadata and no signal rows. Signal rows, actions, rewards and step counts are unchanged; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the metadata fields fails the four tests; the values and actions are otherwise identical.
+- **Boundary**: version 1 is the only schema. The reader records the tag but does not migrate or reject unknown versions; an old log without `signals_meta` still reads signal rows, with no mode provenance.
+
 
 
 
