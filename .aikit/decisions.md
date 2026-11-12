@@ -1319,6 +1319,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: planted pair cols(6,7) `syn +0.6654`, family `p_upper 0.00498`, holdout `+0.6874` `p_upper 0.0`, selected as stable and replicated; `NoiseDualWorld` `+0.0001` `p_upper 0.9950` selects nothing; the reader ablation (`include_context=False`) selects nothing. 949 tests OK; aikit check 5/5. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` unchanged.
 - **Boundary**: the interaction is planted by construction in a synthetic task. It proves the channel and the scan recover a known interaction on shipped code; it does not show that T1-T3 contain one. Those tasks remain collinear, and a positive result there still needs independent state.
 
+### ADR-184: Learn to act on an interaction, not only to predict it
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-183 recovered a planted interaction in measurement, but the agent still acted with the fixed rule policy. ADR-141/146 learned reward *given* action and distance, which cannot separate two actions under the same bucket, so no learned policy could beat the base rate on a task whose reward depends on context.
+- **Decision**: `worlds.dual.ChoiceDualWorld` (`T5_choice`) rewards the action equal to the XOR of two independent pre-action latents (base rate 0.5). `self_model.online.context_feature_key` appends a world context to the learned key (identity when `None`), `Agent(learn_context=...)` supplies it from the world hook, and `planner.plan.LearnedPlanner` picks the argmax learned probability, binding the agent's predictor at construction. `evals.context_channel.measure_choice` scores it, with `use_context=False` as the executable ablation.
+- **Consequences**: 40 episodes x 4 phases with one persistent table: learned accuracy 0.9875 overall (first half 0.9750, last half 1.0000, 6 keys); blind ablation 0.4375 (first half 0.3875, last half 0.4875, 2 keys). 961 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged; default keys stay three-part, so every earlier learning pin holds.
+- **Boundary**: the task is synthetic and the context is fully observed, so this is operant learning over a small deterministic table, not credit assignment through hidden state. It also does not make T1-T3 learnable: their reward depends on position, not on a context the policy can key on.
+
 
 
 

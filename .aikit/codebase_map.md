@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `222`
-- **Total Classes**: `231`
-- **Total Top-Level Functions**: `636`
-- **Total Class Methods**: `1235`
-- **Total Source Lines**: `30869`
+- **Total Python Modules**: `223`
+- **Total Classes**: `236`
+- **Total Top-Level Functions**: `638`
+- **Total Class Methods**: `1256`
+- **Total Source Lines**: `31165`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`222` module(s))
+- **Indexed**: python (`223` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1751` lines (`72880` bytes)
+**Size**: `1776` lines (`73973` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -58,7 +58,7 @@
   - Method `.events()`
   - Method `.clear()`
 - `class Agent` - *Closed loop over a GridWorld instance.*
-  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log, module_signals, module_s_mode, module_m_mode, module_p_mode)`
+  - Method `.__init__(memory, planner, selfmodel, telemetry, world, memory_store, planner_tracker, self_model, telemetry_log, module_signals, module_s_mode, module_m_mode, module_p_mode, learn_context)`
   - Property `.log_path` - *Return file path of telemetry_log when present, else None.*
   - Method `.hub_write(content)` - *Merge a dict into the shared hub and return a hub copy.*
   - Method `.get_hub()` - *Return a copy of the shared hub mapping.*
@@ -68,6 +68,7 @@
   - Method `._layout_complete(state)` - *True when a state carries every goal field its task consumes.*
   - Method `._remember_layout(state)` - *Persist the initial state once; never store an incomplete one.*
   - Method `._module_signals(memories, learned, keys, seen)` - *Return pre-action M/P/S state that is not an elapsed-time counter.*
+  - Method `._learn_context_value(state)` - *Return the pre-action learned-context suffix, or None.*
   - Method `._world_context(state)` - *Return an optional world-provided context block for signals.*
   - Method `._step_vectors(idx, new_state, reward, memories)` - *Build numeric M/P/S/hub vectors for one step.*
   - Method `.run(max_steps, budget)` - *Run the loop; optionally install an execution budget.*
@@ -517,11 +518,12 @@
 ### [`evals/context_channel.py`](evals/context_channel.py)
 > *Measure a world-provided context channel against the pair gate.*
 
-**Size**: `69` lines (`2709` bytes)
+**Size**: `105` lines (`4262` bytes)
 
 **Functions:**
 - `def collect_rows(world_factory, seeds, include_context)` - *Run one agent per seed and return extended signal rows plus targets.*
 - `def measure(world_class, train_seeds, holdout_seeds, trials, include_context)` - *Return the signed holdout result for a world class.*
+- `def measure_choice(use_context, episodes, phases)` - *Learn to *act* on the XOR: the rewarded action needs both latents.*
 - `def main()`
 
 ---
@@ -1162,16 +1164,16 @@
 ---
 
 ### [`planner/__init__.py`](planner/__init__.py)
-> *Planner package: ordered step tracker with skip-on-error recovery.*
+> *Planner package: ordered step tracker with skip-on-error recovery, plus*
 
-**Size**: `4` lines (`129` bytes)
+**Size**: `6` lines (`257` bytes)
 
 ---
 
 ### [`planner/plan.py`](planner/plan.py)
 > *Ordered step tracker with explicit ok/fail marks and recovery.*
 
-**Size**: `74` lines (`2621` bytes)
+**Size**: `139` lines (`5278` bytes)
 
 **Classes:**
 - `class Planner` - *Track a linear sequence of named operations.*
@@ -1182,6 +1184,12 @@
   - Method `.mark_fail()` - *Mark the current step failed. Cursor holds for recover().*
   - Method `.recover()` - *Skip failed entries and return the next viable step or None.*
   - Method `.state()` - *Return cursor plus per-step status list.*
+- `class LearnedPlanner` - *Choose the action with the highest learned reward probability.*
+  - Method `.__init__(actions, use_context, task_id)`
+  - Method `.bind_predictor(predictor)` - *Bind the online predictor this policy reads estimates from.*
+  - Method `._context(state)`
+  - Method `.scores(state)` - *Return ``{action: probability}`` for the current state.*
+  - Method `.plan(state, memories)` - *Return the argmax action; ties follow ``ACTIONS`` order.*
 
 ---
 
@@ -1237,7 +1245,7 @@
 ### [`self_model/online.py`](self_model/online.py)
 > *Learn the reward probability from error, without being told the rule.*
 
-**Size**: `81` lines (`3058` bytes)
+**Size**: `101` lines (`3738` bytes)
 
 **Classes:**
 - `class OnlinePredictor` - *Laplace-smoothed outcome frequencies that improve with every step.*
@@ -1251,6 +1259,7 @@
 **Functions:**
 - `def distance_bucket(state, task)` - *Pre-action distance to the nearest goal, capped at 3 (``9`` = none).*
 - `def feature_key(task, state, action)` - *The key this predictor learns over: nothing but observable inputs.*
+- `def context_feature_key(task, state, action, context)` - *Append a pre-action world context to the feature key.*
 
 ---
 
@@ -1863,6 +1872,30 @@
 **Functions:**
 - `def _log(path, records)`
 - `def _truncate(path, keep)`
+
+---
+
+### [`tests/test_choice_learning.py`](tests/test_choice_learning.py)
+> *Learning to act on an interaction, not only to predict it.*
+
+**Size**: `117` lines (`5124` bytes)
+
+**Classes:**
+- `class TestChoiceWorld`
+  - Method `.test_the_correct_action_is_the_xor_of_the_latents()`
+  - Method `.test_a_wrong_action_scores_zero_and_the_right_one_scores_one()`
+  - Method `.test_context_is_the_pre_action_latent_pair()`
+- `class TestContextKey`
+  - Method `.test_no_context_returns_the_shipped_key()`
+  - Method `.test_context_appends_a_float_tuple()`
+  - Method `.test_unreadable_context_falls_back_to_the_plain_key()`
+  - Method `.test_learn_context_defaults_off_and_validates()`
+- `class TestLearnedPolicy`
+  - Method `.test_no_predictor_is_a_deterministic_prior()`
+  - Method `.test_agent_binds_the_predictor_to_the_planner()`
+  - Method `.test_the_learned_policy_beats_the_blind_policy()`
+  - Method `.test_learning_keys_carry_context_only_when_enabled()`
+  - Method `.test_default_agent_pins_are_unchanged()`
 
 ---
 
@@ -4287,14 +4320,14 @@
 ### [`worlds/__init__.py`](worlds/__init__.py)
 > *Brain grid worlds package: deterministic fixed-step 8x8 tasks.*
 
-**Size**: `7` lines (`399` bytes)
+**Size**: `7` lines (`435` bytes)
 
 ---
 
 ### [`worlds/dual.py`](worlds/dual.py)
 > *A deterministic world whose reward is an interaction of two independent bits.*
 
-**Size**: `98` lines (`3016` bytes)
+**Size**: `129` lines (`4060` bytes)
 
 **Classes:**
 - `class DualWorld` - *Two independent latents per phase; reward is their XOR.*
@@ -4308,6 +4341,10 @@
   - Method `.reset()`
   - Method `.step(action)`
 - `class NoiseDualWorld` - *Same latents and context, but the reward ignores both of them.*
+  - Method `.step(action)`
+- `class ChoiceDualWorld` - *The correct action is the XOR of the two latents.*
+  - Method `._state()`
+  - Method `.correct_action()` - *Return the rewarded action for the current phase.*
   - Method `.step(action)`
 
 ---

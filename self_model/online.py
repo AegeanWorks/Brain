@@ -44,6 +44,26 @@ def feature_key(task, state, action):
     return (str(task), str(action), distance_bucket(state, task))
 
 
+def context_feature_key(task, state, action, context):
+    """Append a pre-action world context to the feature key.
+
+    ``context=None`` returns exactly ``feature_key(...)``, so a caller that
+    opts out keeps the shipped key byte-identical. A tuple context becomes
+    a hashable suffix; a world context that cannot be read falls back to
+    the plain key rather than inventing a feature.
+    """
+    base = feature_key(task, state, action)
+    if context is None:
+        return base
+    try:
+        suffix = tuple(float(value) for value in context)
+    except (TypeError, ValueError):
+        return base
+    if not suffix:
+        return base
+    return base + (suffix,)
+
+
 class OnlinePredictor:
     """Laplace-smoothed outcome frequencies that improve with every step.
 

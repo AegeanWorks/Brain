@@ -24,7 +24,7 @@ from collections import deque
 
 from budget import BudgetExceeded, spend, use_budget
 from identity import input_digest
-from self_model.online import OnlinePredictor, feature_key
+from self_model.online import OnlinePredictor, context_feature_key, feature_key
 from self_model.prediction import predict_outcome
 from workspace import workspace_digest
 
@@ -1112,7 +1112,8 @@ class Agent:
     def __init__(self, memory=None, planner=None, selfmodel=None, telemetry=None, world=None,
                  memory_store=None, planner_tracker=None, self_model=None, telemetry_log=None,
                  module_signals=True, module_s_mode="keys",
-                 module_m_mode="turns", module_p_mode="alternatives"):
+                 module_m_mode="turns", module_p_mode="alternatives",
+                 learn_context=False):
         self.memory = memory if memory is not None else Memory()
         self.planner = planner if planner is not None else Planner()
         self.selfmodel = selfmodel if selfmodel is not None else SelfModel()
@@ -1142,6 +1143,11 @@ class Agent:
                 "Why: module_p_mode must be 'alternatives' or 'distance'. "
                 "Fix: pass module_p_mode='alternatives'.")
         self._module_p_mode = module_p_mode
+        if not isinstance(learn_context, bool):
+            raise ValueError(
+                "Why: learn_context must be a bool. "
+                "Fix: pass learn_context=True or False.")
+        self._learn_context = learn_context
         self._hub = {}
         self._steps_since_reward = 0
         #: Laplace-smoothed outcome frequencies, learned online from error
@@ -1170,6 +1176,12 @@ class Agent:
         if callable(bind_recall):
             try:
                 bind_recall(self._persistent_layout)
+            except Exception:
+                self._substrate_errors["bind"] += 1
+        bind_predictor = getattr(self.planner, "bind_predictor", None)
+        if callable(bind_predictor):
+            try:
+                bind_predictor(self._online)
             except Exception:
                 self._substrate_errors["bind"] += 1
 
@@ -1386,6 +1398,18 @@ class Agent:
             "S": [float(learned), int(second)],
         }
 
+    def _learn_context_value(self, state):
+        """Return the pre-action learned-context suffix, or None.
+
+        ``learn_context=True`` lets the predictor key on a world's context,
+        which is the only way a policy can act on state the distance bucket
+        cannot see. ``False`` returns None, so the shipped key is unchanged.
+        """
+        if not self._learn_context:
+            return None
+        context = self._world_context(state).get("G")
+        return context if context else None
+
     def _world_context(self, state):
         """Return an optional world-provided context block for signals.
 
@@ -1498,8 +1522,9 @@ class Agent:
             action = self.planner.plan(state, memories)  # plan
             prediction, prediction_basis = predict_outcome(
                 state, action, getattr(self.world, "task_id", None))
-            _learn_key = feature_key(getattr(self.world, "task_id", None),
-                                     state, action)
+            _learn_key = context_feature_key(
+                getattr(self.world, "task_id", None), state, action,
+                self._learn_context_value(state))
             _learned = self._online.predict(_learn_key)
             _keys = len(self._online.keys())
             _seen = self._online.seen(_learn_key)

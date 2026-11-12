@@ -3,7 +3,16 @@
 Pure logic, no I/O. Each step is a dict:
 {"name": str, "op": str, "status": "pending"|"ok"|"failed"}.
 The cursor idx points at the current step.
+
+``LearnedPlanner`` is the acting counterpart of the online predictor: it
+picks the action whose learned reward probability is highest, so the agent
+can use what it learned to *act* instead of only to predict.
 """
+
+from self_model.online import context_feature_key
+
+#: Action order used to break ties, so the policy is deterministic.
+DEFAULT_ACTIONS = ("left", "right")
 
 
 class Planner:
@@ -72,3 +81,59 @@ class Planner:
             "steps": [dict(s) for s in self._steps],
             "done": self._idx >= len(self._steps),
         }
+
+class LearnedPlanner:
+    """Choose the action with the highest learned reward probability.
+
+    The planner holds no knowledge of the reward rule. It asks a bound
+    ``OnlinePredictor`` for each candidate action's probability given the
+    current state (and, when ``use_context`` is true, the pre-action world
+    context) and returns the argmax in ``ACTIONS`` order. Without a bound
+    predictor or without a context the policy is the deterministic prior
+    over actions, which is the blind baseline.
+    """
+
+    def __init__(self, actions=None, use_context=True, task_id=None):
+        self._actions = tuple(actions) if actions else DEFAULT_ACTIONS
+        self._use_context = bool(use_context)
+        self._task_id = task_id
+        self._predictor = None
+        self.last_probe = {}
+
+    def bind_predictor(self, predictor):
+        """Bind the online predictor this policy reads estimates from."""
+        self._predictor = predictor
+
+    def _context(self, state):
+        if not self._use_context or not isinstance(state, dict):
+            return None
+        context = state.get("context")
+        return context if isinstance(context, (list, tuple)) else None
+
+    def scores(self, state):
+        """Return ``{action: probability}`` for the current state."""
+        context = self._context(state)
+        task = self._task_id or (state.get("task") if isinstance(state, dict) else None)
+        scores = {}
+        for action in self._actions:
+            if self._predictor is None:
+                scores[action] = 0.5
+            else:
+                key = context_feature_key(task, state, action, context)
+                scores[action] = self._predictor.predict(key)
+        return scores
+
+    def plan(self, state, memories):
+        """Return the argmax action; ties follow ``ACTIONS`` order."""
+        scores = self.scores(state)
+        best = None
+        for action in self._actions:
+            if best is None or scores[action] > scores[best]:
+                best = action
+        self.last_probe = {
+            "state": [], "memory": [], "persistent": [], "store_reads": 0,
+            "rule": {"distance": 0, "ties": 1, "alternatives": []},
+            "scores": dict(scores),
+            "context": self._context(state),
+        }
+        return best

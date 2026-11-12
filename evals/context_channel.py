@@ -54,14 +54,50 @@ def measure(world_class=DualWorld, train_seeds=range(20),
     }
 
 
+def measure_choice(use_context=True, episodes=40, phases=4):
+    """Learn to *act* on the XOR: the rewarded action needs both latents.
+
+    One agent runs every episode, so the online table persists and the
+    policy can improve. ``use_context=False`` keys the predictor on the
+    shipped ``(task, action, distance)`` feature and is the blind ablation:
+    the same planner, the same world, no context.
+    """
+    from agent import Agent
+    from planner.plan import LearnedPlanner
+    from worlds.dual import ChoiceDualWorld
+
+    planner = LearnedPlanner(use_context=use_context)
+    agent = Agent(planner=planner, learn_context=use_context)
+    per_episode = []
+    for seed in range(episodes):
+        agent.world = ChoiceDualWorld(seed)
+        trace = agent.run(max_steps=phases)
+        per_episode.append(sum(float(step.get("reward", 0.0))
+                               for step in trace) / max(1, len(trace)))
+    half = max(1, len(per_episode) // 2)
+    return {
+        "world": ChoiceDualWorld.task_id,
+        "episodes": episodes,
+        "steps": episodes * phases,
+        "accuracy": sum(per_episode) / len(per_episode),
+        "first_half_accuracy": sum(per_episode[:half]) / half,
+        "last_half_accuracy": sum(per_episode[-half:]) / half,
+        "learned_keys": len(agent.online_predictions()),
+    }
+
+
 def main():
     result = {
         "planted": measure(DualWorld),
         "noise": measure(NoiseDualWorld),
+        "choice": measure_choice(),
+        "choice_blind": measure_choice(use_context=False),
     }
     print(json.dumps(result, sort_keys=True))
     ok = (result["planted"]["g_pair_selected"]
-          and result["noise"]["selected"] == [])
+          and result["noise"]["selected"] == []
+          and result["choice"]["last_half_accuracy"] > 0.85
+          and result["choice_blind"]["last_half_accuracy"] < 0.65)
     raise SystemExit(0 if ok else 1)
 
 

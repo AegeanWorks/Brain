@@ -4904,6 +4904,28 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 189 - learn to act on an interaction, not only to predict it
+
+- **Baseline** (commit c5275ea): 949 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: ADR-183 recovers a planted interaction in *measurement*, but the agent still acts with the fixed rule; ADR-146's predictor learns reward given `(task, action, distance bucket)`, and two actions share a bucket, so it cannot separate them on a context-dependent task.
+- **ANALYZE**: the missing rung is acting, not predicting. A task whose rewarded action depends on both independent latents makes the gap measurable: a blind policy is pinned at 0.5, and only a predictor keyed on the context can beat it.
+- **IMPLEMENT**: `worlds/dual.ChoiceDualWorld` (`T5_choice`, rewarded action = latent XOR, other actions 0.0); `self_model.online.context_feature_key` (identity for `None`); `Agent(learn_context=...)` + planner `bind_predictor`; `planner.plan.LearnedPlanner` (argmax learned probability, deterministic tie order); `evals.context_channel.measure_choice`; `tests/test_choice_learning.py` (12). ADR-184.
+- **After** (40 episodes x 4 phases, one persistent online table):
+  - learned: accuracy 0.9875; first half 0.9750; last half **1.0000**; 6 keys.
+  - blind (`use_context=False`, same planner and world): accuracy 0.4375; first half 0.3875; last half **0.4875**; 2 keys.
+  - `python -m evals.context_channel` still selects planted `[[6,7]]`, noise `[]`, and now exits 0 only when the learned policy clears 0.85 and the blind one stays under 0.65.
+  - default `feature_key` is unchanged (three-part), so every earlier learning pin holds; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: dropping the context from the key (same planner, same world, same telemetry) returns the policy to 0.4875 accuracy, so the gain comes from the context-keyed learning, not from the planner class existing.
+- **Verdict**: first improvement in *action* rather than in measurement. The measured delta is "a learned policy cannot separate actions sharing a distance bucket" -> "0.4875 -> 1.0 last-half accuracy on a task whose reward is the XOR of two independent latents". Boundary: the context is fully observed and the table is tiny and deterministic; this is operant learning, not credit assignment through hidden state, and it does not make T1-T3 learnable.
+- **Gates**: unittest 961/961 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -c "measure_choice(...)"` -> learned 0.9875 / last half 1.0; blind 0.4375 / last half 0.4875.
+  - `python -m evals.context_channel` -> planted `[[6,7]]`, noise `[]`, learned and blind blocks, exit 0.
+  - `python -m unittest tests.test_choice_learning` -> 12 OK.
+  - `python -m unittest discover -s tests -t .` -> 961 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 190**: unittest 961 OK; aikit 5/5; `T5_choice` learned accuracy 0.9875 / first 0.9750 / last 1.0000 / 6 keys; blind 0.4375 / 0.3875 / 0.4875 / 2 keys; correct action `right` iff `a ^ b`; context is the pre-action latent pair; `context_feature_key(None)` equals `feature_key`; unreadable context falls back; `LearnedPlanner` with no predictor returns `left` with 0.5/0.5; learned keys 4 parts with context, 3 without; planted `T4_dual` cols(6,7) `syn +0.6654` / holdout `+0.6874`; noise selected `[]`; reader ablation selected `[]`; all cycle 188 pins unchanged.
+
 ## Cycle 188 - an independent-latent world carries a planted interaction
 
 - **Baseline** (commit 199bbb6): 936 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

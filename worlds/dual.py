@@ -96,3 +96,34 @@ class NoiseDualWorld(DualWorld):
         reward = 1.0 if index == 2 else 0.0
         self.i += 1
         return self._state(), reward, self.i >= PHASES
+
+
+class ChoiceDualWorld(DualWorld):
+    """The correct action is the XOR of the two latents.
+
+    Same latents and pre-action context as ``DualWorld``, but here the
+    agent can *act* on the pair: ``right`` is rewarded when ``a ^ b == 1``
+    and ``left`` when ``a ^ b == 0``. Every other action scores 0.0, so the
+    reward is not reachable without reading both latents, and the base rate
+    of a blind policy is 0.5.
+    """
+
+    task_id = "T5_choice"
+    ACTIONS = ("left", "right")
+
+    def _state(self):
+        state = super()._state()
+        state["context"] = [state["a"], state["b"]]
+        return state
+
+    def correct_action(self):
+        """Return the rewarded action for the current phase."""
+        a, b = self.latents[self._phase()]
+        return "right" if (a ^ b) else "left"
+
+    def step(self, action):
+        if self.i >= PHASES:
+            return self._state(), 0.0, True
+        reward = 1.0 if action == self.correct_action() else 0.0
+        self.i += 1
+        return self._state(), reward, self.i >= PHASES

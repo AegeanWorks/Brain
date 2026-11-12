@@ -224,24 +224,24 @@ first prompt hash.
 ## 📏 Synergy Column Scope
 
 `synergy` reads columns 0 and 1 only, so `syn` 0.0 cannot separate
-absence from signal outside them. `synergy_scope(...)` and
-`synergy_verdict(...)` expose what the pair can decide (constant/duplicate/
-sufficiency) and whether it beats a permutation null
-(`p_upper`/`p_lower`, `distinguishable`); `recompute` carries it; `dedupe_rows` collapses
-paired action/result rows so `n` counts steps. Equal scope columns mean no independent second signal
-(`duplicate-scope-column`); a constant reads `constant-scope-column`.
+absence from signal elsewhere. `synergy_scope(...)` and
+`synergy_verdict(...)` expose what the pair can decide
+(constant/duplicate/sufficiency) and whether it beats a permutation null
+(`p_upper`/`p_lower`); `recompute` carries it;
+`dedupe_rows` collapses paired action/result rows so `n` counts steps.
+Equal scope columns mean no second signal (`duplicate-scope-column`);
+a constant reads `constant-scope-column`.
 `evals.pair_scan` skips the target column, refuses `target-column`/
-`target-leak-column`, applies a family-wise max/min null. Pairs carry
-M/P/S/hub blocks. `Agent(module_signals=True)` writes six pre-action M/P/S
-signals plus modes; `evals.module_state` pools them.
-`evals.replication` requires signed candidates to survive stability and holdout.
-
-A world may expose `signal_context(state)`; the agent copies it to a
-pre-action `G` block (`include_context=True`). `worlds.dual`
-rewards two independent latents by XOR; `python -m
-evals.context_channel` selects `G` cols(6,7) `syn +0.6654` (family
-`p_upper 0.005`, holdout `+0.6874`) while its noise world selects
-none; dropping the block is the ablation.
+`target-leak-column`, applies a family-wise max/min null.
+`Agent(module_signals=True)` writes six pre-action M/P/S
+signals; `evals.module_state` pools them.
+`evals.replication` requires candidates to survive stability and holdout.
+A world may expose `signal_context(state)`, which the agent copies to a
+pre-action `G` block (`include_context=True`). `worlds.dual` rewards two
+independent latents by XOR: `evals.context_channel` selects `G` cols(6,7)
+`syn +0.6654` (holdout `+0.6874`) while a noise world selects none.
+`T5_choice` rewards the XOR action; `learn_context=True` plus
+`LearnedPlanner` reaches 1.0 last-half accuracy against 0.4875 blind.
 
 ## 🧪 Lesion Detectability
 
