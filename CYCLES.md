@@ -4904,6 +4904,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 168 - equivalent column pairs are one piece of evidence
+
+- **Baseline** (commit 9fdb89f):
+  - canonical gate: 903 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - the signed replication gate selected four negative P-S entries: `(2,4)/(3,4)` at `syn -0.0575` and `(2,5)/(3,5)` at `-0.052`.
+  - P0 and P1 are functionally dependent, so those four entries are two unique pieces of evidence; the count overstated the dependency.
+- **Gap**: report-level duplicates inflate the selected set and any later replication work.
+- **Target delta**: group dependent columns, collapse equivalent selected/rejected entries, and keep the four-entry set as the ablation.
+- **Falsifier**: independent columns collapse; the planted pair disappears; the unique set is not deterministic; or the four-entry ablation is not restored.
+- **Change**: `evals/pair_scan.py` adds `column_classes(rows)` and `unique_pairs(reports, classes)`; `scan_with_holdout(unique=True)` collapses selected/rejected by class pair; `unique=False` is the executable ablation; `tests/test_pair_equivalence.py` (5 tests).
+- **After** (same signal pools):
+  - classes `[0,1,2,2,4,5]`: P0/P1 share class 2; S0/S1 distinct.
+  - unique selected `(2,5)` and `(2,4)`, both negative, train `p_lower 0.0099`, holdout `p_lower 0.0`.
+  - positive `(0,4)` remains rejected; unique `False` restores four selected entries.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `unique=False` selects four entries for two evidence pairs; `unique=True` selects two; the planted independent M/P pair remains one entry. The collapse is the integration point; removing it doubles the count, restoring it halves it.
+- **Verdict**: criteria/reporting. The measured delta is "four selected entries for two unique P-S dependencies" -> "two selected entries, with the four-entry ablation preserved". Boundary: the family null still scores dependent pairs, so the correction is conservative; deduping before the family null is a separate p-value change.
+- **Gates**: unittest 908/908 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_pair_equivalence` -> 5 OK.
+  - `python ..\..\scratch\probe_168.py` -> classes [0,1,2,2,4,5]; unique selected [(2,5),(2,4)]; unique False four entries.
+  - `python -m unittest discover -s tests -t .` -> 908 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 169**: unittest 908 OK; aikit 5/5; classes [0,1,2,2,4,5]; unique selected [(2,5),(2,4)] negative train p_lower 0.0099 / holdout 0.0; unique False four entries; positive (0,4) rejected; signed both/negative selected two; positive-only selected []; positive candidate p100 0.0495 / p200 0.0547; alternatives keys 14 valid / 12 cross / P0 leak false; alternatives seen 13 / 12; distance keys 10 / 8 / P0 leak true; distance seen 9 / 8; turns 14 valid / 12 cross; revisits 9 valid; `module_interactions []`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 14 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 167 - replication must handle anti-interactions, not only positive gaps
 
 - **Baseline** (commit 1847ba4):

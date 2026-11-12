@@ -12,7 +12,8 @@ when the higher-trial tail and the holdout tail agree.
 executable ablations.
 """
 
-from evals.pair_scan import ALPHA, pair_report, scan_pairs
+from evals.pair_scan import (ALPHA, column_classes, pair_report,
+                            scan_pairs)
 
 DIRECTIONS = ("positive", "negative", "both")
 
@@ -57,10 +58,26 @@ def _holdout_ok(report, direction, alpha):
             and null["p_lower"] <= alpha)
 
 
+def _unique_items(items, classes):
+    """Keep the first candidate for each pair of dependent-column classes."""
+    seen = set()
+    unique = []
+    for item in items:
+        first, second = item["candidate"]["columns"]
+        key = tuple(sorted(
+            classes[column] if 0 <= column < len(classes) else column
+            for column in (first, second)))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique
+
+
 def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
                       trials=200, stability_trials=None, alpha=ALPHA,
                       direction="both", require_replication=True,
-                      require_stability=True):
+                      require_stability=True, unique=True):
     """Return signed train candidates with stability and holdout verdicts.
 
     ``stability_trials`` re-runs the train family scan at a higher trial
@@ -131,6 +148,10 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         and (not require_replication or item["replicated"])
     ]
     rejected = [item for item in candidates if item not in selected]
+    if unique:
+        classes = column_classes(train_rows)
+        selected = _unique_items(selected, classes)
+        rejected = _unique_items(rejected, classes)
     return {
         "candidates": candidates,
         "selected": selected,
@@ -139,4 +160,5 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         "trials": trials,
         "stability_trials": stability_trials,
         "direction": direction,
+        "unique": unique,
     }

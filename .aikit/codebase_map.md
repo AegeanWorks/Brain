@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `216`
-- **Total Classes**: `221`
-- **Total Top-Level Functions**: `616`
-- **Total Class Methods**: `1170`
-- **Total Source Lines**: `29675`
+- **Total Python Modules**: `217`
+- **Total Classes**: `222`
+- **Total Top-Level Functions**: `621`
+- **Total Class Methods**: `1175`
+- **Total Source Lines**: `29843`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`216` module(s))
+- **Indexed**: python (`217` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -737,13 +737,15 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `294` lines (`12161` bytes)
+**Size**: `343` lines (`13729` bytes)
 
 **Functions:**
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
 - `def _target_column(values, target)` - *True when a column is identical to the target.*
 - `def _target_leak(values, target)` - *True when the target is a deterministic function of the column.*
 - `def block_for(column, width)` - *Return the M/P/S/hub block a column belongs to.*
+- `def column_classes(rows, exclude_target)` - *Group feature columns that are functionally dependent on each other.*
+- `def unique_pairs(reports, classes)` - *Keep the first report for each pair of column classes.*
 - `def pair_report(rows, target, first, second, trials, with_null, guard_target)` - *Score one column pair, refusing artifacts before scoring.*
 - `def _family_wise(rows, target, reports, trials, seed)` - *Attach a max/min-statistic null to every pair that passed the gate.*
 - `def scan_pairs(rows, target, trials, family_wise, seed, guard_target)` - *Return every feature-column pair's report, sorted by gap descending.*
@@ -825,13 +827,14 @@
 ### [`evals/replication.py`](evals/replication.py)
 > *A scan candidate must survive a held-out pool.*
 
-**Size**: `142` lines (`5952` bytes)
+**Size**: `164` lines (`6680` bytes)
 
 **Functions:**
 - `def _direction_of(report, alpha, requested)` - *Return the candidate direction, or None when it does not clear.*
 - `def _tail_ok(report, direction, alpha)` - *True when a family-scan report clears the requested tail.*
 - `def _holdout_ok(report, direction, alpha)` - *True when a single-pair holdout report clears the requested tail.*
-- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, direction, require_replication, require_stability)` - *Return signed train candidates with stability and holdout verdicts.*
+- `def _unique_items(items, classes)` - *Keep the first candidate for each pair of dependent-column classes.*
+- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, direction, require_replication, require_stability, unique)` - *Return signed train candidates with stability and holdout verdicts.*
 
 ---
 
@@ -2861,6 +2864,25 @@
 **Functions:**
 - `def _raw(task, seed, wired)`
 - `def _split(rows)`
+
+---
+
+### [`tests/test_pair_equivalence.py`](tests/test_pair_equivalence.py)
+> *Equivalent pairs are one piece of evidence, not two.*
+
+**Size**: `97` lines (`3928` bytes)
+
+**Classes:**
+- `class TestPairEquivalence`
+  - Method `.test_dependent_planner_columns_share_a_class()`
+  - Method `.test_unique_pairs_collapses_equivalent_reports()`
+  - Method `.test_signed_selection_collapses_to_two_evidence_pairs()`
+  - Method `.test_the_ablation_restores_the_four_entries()`
+  - Method `.test_a_planted_independent_pair_is_not_collapsed()`
+
+**Functions:**
+- `def _rows(seeds)`
+- `def _planted(seed, n)`
 
 ---
 

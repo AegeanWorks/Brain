@@ -1151,6 +1151,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 903 tests OK; aikit check 5/5. With `direction="both"` the positive candidate `(0,4)` is unstable (`0.0495` at 100, `0.0547` at 200) and is not selected; the four negative P-S pairs are stable and replicated, so `selected` has four negative entries. `direction="positive"` selects none; `direction="negative"` selects the same four. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the negative path hides the only replicated cross-module dependency; restoring it reports it while the positive candidate still fails.
 - **Boundary**: a negative gap is redundancy (the joint carries less than its marginals), not positive emergence. P0/P1 dependence means the four selected entries are two unique evidence pairs; collapsing equivalent pairs is the next criteria step. The result is a stable cross-module dependency, not a claim that the substrate produces positive interaction.
 
+### ADR-163: Equivalent column pairs are one piece of evidence
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-162 selected four negative P-S pairs. P0 and P1 are functionally dependent, so `(2,4)` and `(3,4)` name the same joint and `(2,5)`/`(3,5)` name another; the four entries were two unique pieces of evidence. The selection count overstated the dependency and duplicated reporting work for any later falsifier.
+- **Decision**: Add `column_classes(rows)` (union-find over the feature columns using `_dependent`, target excluded) and `unique_pairs(reports, classes)` to `evals/pair_scan.py`. `scan_with_holdout(unique=True)` now collapses dependent-column-equivalent entries in `selected` and `rejected`; `unique=False` is the executable ablation. Tests: `tests/test_pair_equivalence.py` (5).
+- **Consequences**: 908 tests OK; aikit check 5/5. On the signal train/holdout pools the classes are `[0,1,2,2,4,5]`: P0/P1 share class 2, S0/S1 are distinct. `unique=True` selects `(2,5)` and `(2,4)`, both negative with train `p_lower 0.0099` and holdout `p_lower 0.0`; the positive `(0,4)` remains rejected. `unique=False` restores the four entries. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the collapse returns four selected entries for two evidence pairs; restoring it returns two.
+- **Boundary**: this is report-level collapsing. The family null still scores the dependent pairs, so its correction is conservative rather than wrong; deduping before the family null is a separate p-value change. The two selected pairs remain a negative P-S dependency, not positive emergence.
+
 
 
 

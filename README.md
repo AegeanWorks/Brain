@@ -239,7 +239,7 @@ Legacy pairs select nothing. `Agent(module_signals=True)` writes six
 pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
 12 cross-module pairs versus 0 legacy). `evals.replication` requires signed
 candidates to survive stability and a held-out pool: the positive train
-candidate fails, while a P-S anti-interaction replicates (negative).
+candidate fails, while two unique P-S anti-interactions replicate (negative).
 
 ## 🧪 Lesion Detectability
 

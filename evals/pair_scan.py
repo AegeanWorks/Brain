@@ -93,6 +93,55 @@ def block_for(column, width=None):
     return "c%d" % column
 
 
+def column_classes(rows, exclude_target=True):
+    """Group feature columns that are functionally dependent on each other.
+
+    Returns one class id per feature column. The target in the last column
+    is excluded by default, matching ``scan_pairs``. A pair whose two
+    columns fall in the same class carries one signal, not two.
+    """
+    if not rows:
+        return []
+    width = min(len(row) for row in rows)
+    if exclude_target:
+        width = max(0, width - 1)
+    parent = list(range(width))
+
+    def find(index):
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    def union(first, second):
+        left, right = find(first), find(second)
+        if left != right:
+            parent[right] = left
+
+    columns = [[row[index] for row in rows] for index in range(width)]
+    for first in range(width):
+        for second in range(first + 1, width):
+            if _dependent(columns[first], columns[second]):
+                union(first, second)
+    return [find(index) for index in range(width)]
+
+
+def unique_pairs(reports, classes):
+    """Keep the first report for each pair of column classes."""
+    seen = set()
+    unique = []
+    for report in reports:
+        columns = report.get("columns") or []
+        key = tuple(sorted(
+            classes[column] if 0 <= column < len(classes) else column
+            for column in columns))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(report)
+    return unique
+
+
 def pair_report(rows, target, first, second, trials=200, with_null=True,
                 guard_target=True):
     """Score one column pair, refusing artifacts before scoring.
