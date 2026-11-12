@@ -3,7 +3,7 @@
 ``Agent(module_signals=True)`` (the default) writes a pre-action ``signals``
 block into each action record:
 
-    M = [distinct positions, revisits]
+    M = [distinct positions, turns] (revisits in the ablation)
     P = [BFS distance, ties]
     S = [online probability, distinct feature keys seen]
 

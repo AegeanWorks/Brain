@@ -1127,6 +1127,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 893 tests OK; aikit check 5/5. The cold trace carries 13 signal rows, exactly equal to the log rows; the in-memory scan is reachable. No production code changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `module_signals=False` would remove both the trace block and the rows, so the parity assertion fails.
 - **Boundary**: one seed proves the path, not a cold-start interaction. It makes the cold trace an evidence object; it does not show that the persistent layout changes a module pair.
 
+### ADR-160: The M block needs a path-shape signal, not a constant revisit count
+- **Date**: 2026-11-11
+- **Status**: Accepted
+- **Context**: ADR-152 defined `M=[distinct positions, revisits]`. On `T3_navigate` the path has no repeated position, so `revisits` is constant 0; on `T1_forage` it has only 4 values. The M block had one varying signal, and `module_signals` valid pairs were 6 with `keys` S (5 with `seen`).
+- **Decision**: Add `module_m_mode="turns"` as the default: the second M value is the number of direction changes along the recalled positions. `module_m_mode="revisits"` restores the old value and is the executable ablation. Both are pre-action and do not change an action. Tests: `test_turns_mode_varies_on_t3`, `test_revisits_mode_is_constant_on_t3`, `test_turns_mode_adds_testable_pairs` (3 new; 21 total in the module-signal file).
+- **Consequences**: 896 tests OK; aikit check 5/5. On ten `T3_navigate` episodes the turns mode gives 10 valid pairs and 8 cross-module pairs (keys S), versus 6 valid and 5 cross-module for revisits; seen S gives 9 valid. `module_interactions` remains empty at 200 trials. The replication candidate `(0,4)` still reads `0.0495` at 100 / `0.0547` at 200 and is rejected as unstable. Actions, rewards and step counts are unchanged; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: revisits -> 1 distinct M1 value / 6 valid / 5 cross-module; turns -> 2 values / 10 valid / 8 cross-module; restoring the old mode removes the extra testable pairs.
+- **Boundary**: turns is path geometry, not a learned interaction; the cross-module count rises but no pair clears the family null. It makes the M block non-degenerate on T3; a signal that changes the pair set beyond aggregate geometry is the next substrate falsifier.
+
 
 
 

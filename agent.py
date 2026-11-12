@@ -1109,7 +1109,8 @@ class Agent:
 
     def __init__(self, memory=None, planner=None, selfmodel=None, telemetry=None, world=None,
                  memory_store=None, planner_tracker=None, self_model=None, telemetry_log=None,
-                 module_signals=True, module_s_mode="keys"):
+                 module_signals=True, module_s_mode="keys",
+                 module_m_mode="turns"):
         self.memory = memory if memory is not None else Memory()
         self.planner = planner if planner is not None else Planner()
         self.selfmodel = selfmodel if selfmodel is not None else SelfModel()
@@ -1129,6 +1130,11 @@ class Agent:
                 "Why: module_s_mode must be 'keys' or 'seen'. "
                 "Fix: pass module_s_mode='keys'.")
         self._module_s_mode = module_s_mode
+        if module_m_mode not in ("turns", "revisits"):
+            raise ValueError(
+                "Why: module_m_mode must be 'turns' or 'revisits'. "
+                "Fix: pass module_m_mode='turns'.")
+        self._module_m_mode = module_m_mode
         self._hub = {}
         self._steps_since_reward = 0
         #: Laplace-smoothed outcome frequencies, learned online from error
@@ -1325,7 +1331,7 @@ class Agent:
     def _module_signals(self, memories, learned, keys, seen):
         """Return pre-action M/P/S state that is not an elapsed-time counter.
 
-        M = [distinct positions, revisits]; P = [BFS distance, ties];
+        M = [distinct positions, turns or revisits]; P = [BFS distance, ties];
         S = [online probability, distinct feature keys seen]. These are read from the
         memory contents, the planner's rule probe and the online predictor
         before the step, so they vary with the episode's geometry and
@@ -1339,6 +1345,15 @@ class Agent:
             positions = []
         distinct = len(set(positions))
         revisits = len(positions) - distinct
+        last = None
+        turns = 0
+        for first, second in zip(positions, positions[1:]):
+            delta = (second[0] - first[0], second[1] - first[1])
+            if delta == (0, 0):
+                continue
+            if last is not None and delta != last:
+                turns += 1
+            last = delta
         probe = getattr(self.planner, "last_probe", None)
         rule = probe.get("rule") if isinstance(probe, dict) else None
         distance = -1
@@ -1353,8 +1368,9 @@ class Agent:
             except (TypeError, ValueError):
                 ties = 0
         second = keys if self._module_s_mode == "keys" else seen
+        second_m = turns if self._module_m_mode == "turns" else revisits
         return {
-            "M": [distinct, revisits],
+            "M": [distinct, second_m],
             "P": [distance, ties],
             "S": [float(learned), int(second)],
         }

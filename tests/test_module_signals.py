@@ -1,7 +1,7 @@
 """The module-state channel must add testable state without changing actions.
 
 ``Agent(module_signals=True)`` writes six pre-action values per step:
-M=[distinct positions, revisits], P=[BFS distance, ties],
+M=[distinct positions, turns], P=[BFS distance, ties],
 S=[online probability, distinct feature keys seen]. They use the same M/P/S layout as
 the legacy vector, so ``evals.module_state`` can pool them into seven-column
 rows (six signals plus reward) and feed ``evals.pair_scan`` directly.
@@ -34,12 +34,13 @@ from evals.recompute import _vec_row, dedupe_rows
 
 
 def _logs(directory, module_signals, seeds=range(10), task="T3_navigate",
-          module_s_mode="keys"):
+          module_s_mode="keys", module_m_mode="turns"):
     paths = []
     for seed in seeds:
         path = os.path.join(directory, "run-%s-%d.jsonl" % (task, seed))
         Agent(module_signals=module_signals,
-              module_s_mode=module_s_mode).run_task_logged(
+              module_s_mode=module_s_mode,
+              module_m_mode=module_m_mode).run_task_logged(
             task, seed, max_steps=200, log_path=path)
         paths.append(path)
     return paths
@@ -107,7 +108,7 @@ class TestModuleSignals(unittest.TestCase):
         traces = [Agent(module_signals=True).run_task("T3_navigate", seed)
                   for seed in range(10)]
         reports = scan_traces(traces, trials=200)
-        self.assertEqual(sum(1 for report in reports if report["ok"]), 6)
+        self.assertEqual(sum(1 for report in reports if report["ok"]), 10)
         self.assertEqual(module_interactions(
             [row for trace in traces for row in signals_from_trace(trace)],
             [step["reward"] for trace in traces for step in trace],
@@ -150,7 +151,7 @@ class TestModuleSignals(unittest.TestCase):
                                       for line in handle) if row]))
             target = [row[-1] for row in legacy_rows]
             legacy_reports = scan_pairs(legacy_rows, target, trials=200)
-        self.assertEqual(_cross_module_count(signal_reports), 5)
+        self.assertEqual(_cross_module_count(signal_reports), 8)
         self.assertEqual(_cross_module_count(legacy_reports), 0)
 
     def test_the_s_block_is_independent(self):
@@ -159,6 +160,29 @@ class TestModuleSignals(unittest.TestCase):
             rows = pool_signals(paths)
         self.assertFalse(_dependent([row[4] for row in rows],
                                     [row[5] for row in rows]))
+
+    def test_turns_mode_varies_on_t3(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            rows = pool_signals(paths)
+        self.assertGreater(len({row[1] for row in rows}), 1)
+
+    def test_revisits_mode_is_constant_on_t3(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True, module_m_mode="revisits")
+            rows = pool_signals(paths)
+        self.assertEqual(len({row[1] for row in rows}), 1)
+
+    def test_turns_mode_adds_testable_pairs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            turns = scan_module_states(_logs(directory, True,
+                                             module_m_mode="turns"), trials=50)
+        with tempfile.TemporaryDirectory() as directory:
+            revisits = scan_module_states(_logs(directory, True,
+                                                module_m_mode="revisits"),
+                                          trials=50)
+        self.assertEqual(sum(1 for report in turns if report["ok"]), 10)
+        self.assertEqual(sum(1 for report in revisits if report["ok"]), 6)
 
     def test_the_seen_mode_is_dependent(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -175,8 +199,8 @@ class TestModuleSignals(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             seen = scan_module_states(_logs(directory, True,
                                             module_s_mode="seen"), trials=50)
-        self.assertEqual(sum(1 for report in keys if report["ok"]), 6)
-        self.assertEqual(sum(1 for report in seen if report["ok"]), 5)
+        self.assertEqual(sum(1 for report in keys if report["ok"]), 10)
+        self.assertEqual(sum(1 for report in seen if report["ok"]), 9)
 
     def test_module_interactions_are_empty_at_200_trials(self):
         with tempfile.TemporaryDirectory() as directory:
