@@ -158,15 +158,23 @@ def scan_module_state_blocks(log_paths, trials=200, unique=True):
     split, matching the signed replication path; ``unique=False`` restores
     the raw entries.
     """
+    log_paths = list(log_paths)
     rows = pool_signals(log_paths)
-    return _split_blocks(rows, [row[-1] for row in rows],
-                         trials=trials, unique=unique)
+    result = _split_blocks(rows, [row[-1] for row in rows],
+                           trials=trials, unique=unique)
+    result["metadata"] = (read_signal_metadata(log_paths[0])
+                          if log_paths else None)
+    return result
 
 
 def scan_trace_blocks(traces, trials=200, unique=True):
     """Return the in-memory trace signal scan split into positive/anti pairs."""
+    traces = list(traces)
     rows = []
     for trace in traces:
         rows.extend(signals_from_trace(trace))
-    return _split_blocks(rows, [row[-1] for row in rows],
-                         trials=trials, unique=unique)
+    result = _split_blocks(rows, [row[-1] for row in rows],
+                           trials=trials, unique=unique)
+    result["metadata"] = (signals_meta_from_trace(traces[0])
+                          if traces else None)
+    return result

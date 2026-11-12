@@ -332,6 +332,7 @@ class TestModuleSignals(unittest.TestCase):
                     "T3_navigate", seed, max_steps=200, log_path=path))
             from_logs = scan_module_state_blocks(paths, trials=200)
             from_traces = scan_trace_blocks(traces, trials=200)
+        self.assertEqual(from_traces["metadata"], from_logs["metadata"])
         for key in ("module", "world", "anti_module", "anti_world"):
             self.assertEqual(
                 [(report["columns"], report["syn"])
@@ -343,12 +344,22 @@ class TestModuleSignals(unittest.TestCase):
                           for report in from_traces["anti_module"]],
                          [[2, 5], [2, 4]])
 
+    def test_block_split_reports_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            blocks = scan_module_state_blocks(paths, trials=100)
+        self.assertEqual(blocks["metadata"]["version"], 2)
+        self.assertEqual(blocks["metadata"]["M"], "turns")
+        self.assertEqual(blocks["metadata"]["P"], "alternatives")
+        self.assertEqual(blocks["metadata"]["S"], "keys")
+
     def test_disabled_trace_block_split_is_empty(self):
         traces = [Agent(module_signals=False).run_task("T3_navigate", seed)
                   for seed in range(2)]
         blocks = scan_trace_blocks(traces, trials=50)
         self.assertEqual(blocks, {"module": [], "world": [],
-                                  "anti_module": [], "anti_world": []})
+                                  "anti_module": [], "anti_world": [],
+                                  "metadata": None})
 
     def test_anti_block_filters_are_complementary(self):
         with tempfile.TemporaryDirectory() as directory:

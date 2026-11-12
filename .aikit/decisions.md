@@ -1215,6 +1215,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 926 tests OK; aikit check 5/5. The XOR control selects `(0,2)` `syn +0.2722`, `(1,2)` `+0.3352` and `(2,5)` `+0.3715`, all positive, stable and replicated; the noise control selects nothing; disabled signals yield no rows. No production code changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: changing the reward to a fixed step removes every selection; removing the signal block removes the rows.
 - **Boundary**: the world and planner are test fixtures, not production substrate. The control proves the instrument can detect a planted agent-path interaction; it does not show that the production tasks contain one. The production evidence remains the replicated P-S anti dependency.
 
+### ADR-171: The block split must carry the signal provenance
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-169 made `signals_meta` version 2 and the readers testable, but `scan_module_state_blocks`/`scan_trace_blocks` returned only the four pair lists. A reader of a block result could not tell which M/P/S modes, schema version or memory context produced it; the metadata was a leaf with no eval result carrying it.
+- **Decision**: attach `"metadata"` to both block-split results, read from the first log record or first trace step; an empty or missing source returns `None`. Tests: `test_block_split_reports_metadata`, plus metadata parity in the trace/log test and `metadata: None` in the disabled split (35 total in the module-signal file).
+- **Consequences**: 927 tests OK; aikit check 5/5. Block results carry `version 2 / M turns / P alternatives / S keys`; trace and log metadata agree; a disabled trace split carries `None`. Pair lists, rows, actions and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: removing the metadata key fails the provenance test while the pair lists and actions are identical.
+- **Boundary**: the result records the first record's provenance, not a per-step history; a run with a mid-run mode change would need per-step metadata. Old logs without `signals_meta` return `None` while still producing rows.
+
 
 
 
