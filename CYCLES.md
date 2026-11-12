@@ -4904,6 +4904,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 182 - the block-level holdout must honor the dedupe flag
+
+- **Baseline** (commit 4cd4a9b):
+  - canonical gate: 932 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `scan_with_holdout(dedupe=True)` passed the flag to the train and stability scans, but `_block_holdout_matches` called `interactions`/`anti_interactions` with the raw default.
+  - a T3 train/T3 holdout block candidate carried a holdout match with `family_size 14` while the deduped family is 10; the flag was silently ignored on the holdout side.
+- **Gap**: block holdout family membership disagreed with the train family.
+- **Target delta**: pass the caller's dedupe into block holdout matches, keep the raw family behind the ablation, and leave selection unchanged.
+- **Falsifier**: the holdout still reports 14; a selected dependency changes; the raw family cannot be restored; or T1 classes change.
+- **Change**: `evals/replication._block_holdout_matches` accepts `dedupe`; `scan_with_holdout` passes it; `tests/test_replication.py` adds `test_block_holdout_uses_the_deduped_family` (17 total).
+- **After**:
+  - T3 block holdout match family 10 under dedupe, 14 under `dedupe=False`; selected candidates unchanged.
+  - T1 classes are distinct, so its raw/deduped holdout families already agree.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `dedupe=False` restores the raw holdout family 14; `dedupe=True` reports 10.
+- **Verdict**: holdout-family consistency. The measured delta is "the train family is deduped but the block holdout is raw" -> "both are 10 under the default". Boundary: selected dependency unchanged; this is family membership, not a new interaction.
+- **Gates**: unittest 933/933 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_replication` -> 17 OK.
+  - `python -m unittest discover -s tests -t .` -> 933 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 183**: unittest 933 OK; aikit 5/5; T3 block holdout match family 10 vs raw 14; selected block dependency unchanged; T1 classes distinct; default/wired dependence 34/32; wired independent features (4,7)/(6,7); (4,5) dependent syn -0.1243; block split family 10 vs raw 14; eval dedupe keys 10/8, seen 6/5, turns 10/8, revisits 6/5, alternatives 10/8, distance 10/8; raw 14/12; block-level T3->T1 selected one P-S anti; raw two; T3->T1 column []; T3->T2 block []; XOR control selected three column-level pairs; battery audit 33/9/0 exit 0; block metadata version 2 / M turns / P alternatives / S keys; disabled split metadata None; metadata persistent_fields 2 cold, 0 warm / store_reads 1 cold, 0 warm; signal dedupe 11 reports / 10 valid / family 10; selected (2,5),(2,4) negative p_lower 0.0099; legacy hub 5 raw -> 1 unique; classes [0,1,2,2,4,5]; signed both/negative selected two; positive-only selected []; positive candidate p100 0.0495 / p200 0.0547; `module_interactions []`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 10 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 181 - dependence must check both directions, and classes must be bijective
 
 - **Baseline** (commit bb0b00c):

@@ -60,12 +60,13 @@ def _holdout_ok(report, direction, alpha):
             and null["p_lower"] <= alpha)
 
 
-def _block_holdout_matches(rows, target, blocks, direction, trials, alpha):
+def _block_holdout_matches(rows, target, blocks, direction, trials, alpha,
+                           dedupe=True):
     """Return holdout reports with the same block set and requested sign."""
     if direction == "positive":
-        reports = interactions(rows, target, trials=trials)
+        reports = interactions(rows, target, trials=trials, dedupe=dedupe)
     else:
-        reports = anti_interactions(rows, target, trials=trials)
+        reports = anti_interactions(rows, target, trials=trials, dedupe=dedupe)
     matches = [report for report in reports
                if set(report["blocks"]) == set(blocks)]
     classes = column_classes(rows)
@@ -166,7 +167,7 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         else:
             holdout_matches = _block_holdout_matches(
                 holdout_rows, holdout_target, report["blocks"],
-                candidate_direction, trials, alpha)
+                candidate_direction, trials, alpha, dedupe=dedupe)
             holdout = holdout_matches[0] if holdout_matches else None
             replicated = bool(holdout_matches)
         candidates.append({

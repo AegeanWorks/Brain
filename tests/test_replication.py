@@ -196,6 +196,25 @@ class TestHoldoutReplication(unittest.TestCase):
                                 direction="both", level="block", unique=False)
         self.assertEqual(len(raw["selected"]), 2)
 
+    def test_block_holdout_uses_the_deduped_family(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10, 20))
+        deduped = scan_with_holdout(train_rows, train_target,
+                                    holdout_rows, holdout_target, trials=100,
+                                    direction="both", level="block")
+        raw = scan_with_holdout(train_rows, train_target,
+                                holdout_rows, holdout_target, trials=100,
+                                direction="both", level="block",
+                                dedupe=False)
+        self.assertTrue(deduped["selected"])
+        self.assertEqual(
+            deduped["selected"][0]["holdout_matches"][0]["family"]["family_size"],
+            10)
+        self.assertTrue(raw["selected"])
+        self.assertEqual(
+            raw["selected"][0]["holdout_matches"][0]["family"]["family_size"],
+            14)
+
     def test_column_level_holdout_does_not_replicate_across_t1(self):
         train_rows, train_target = _signal_rows(range(10))
         holdout_rows, holdout_target = _signal_rows(range(10), task="T1_forage")

@@ -1263,6 +1263,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 932 tests OK; aikit check 5/5. The default/wired dependence counts are 34/32 (not 32/34), and the wired independent feature pairs are `(4,7)`/`(6,7)`; `(4,5)` is dependent with `syn -0.1243` unchanged. Signal counts, selected anti pairs, block splits and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: restoring the old backward loop returns 32/34 and the three-pair set and fails the wiring test; unioning one-way dependencies merges the A/B/C fixture and fails the class test.
 - **Boundary**: pair refusal still uses the symmetric `_dependent` (one-way determination is enough to make a pair non-independent), while class identity requires bijection (both directions). This is intentionally stricter for collapsing evidence than for refusing a pair.
 
+### ADR-177: The block-level holdout must honor the dedupe flag
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: `scan_with_holdout(dedupe=True)` passed the flag to the train and stability scans, but `_block_holdout_matches` called `interactions`/`anti_interactions` with their raw default. A T3 train/T3 holdout block candidate therefore carried a holdout match with `family_size 14` while the deduped family is 10; the flag was silently ignored on the holdout side.
+- **Decision**: add `dedupe` to `_block_holdout_matches` and pass the caller's value; tests: `test_block_holdout_uses_the_deduped_family` (17 in the replication file).
+- **Consequences**: 933 tests OK; aikit check 5/5. The T3 block holdout match family is 10 under dedupe and 14 under `dedupe=False`; selected candidates and the block-level count are unchanged. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `dedupe=False` restores the raw holdout family; `dedupe=True` returns 10.
+- **Boundary**: this is a family-membership consistency fix in the holdout path; it does not change the selected dependency, and T1's classes are all distinct so its raw/deduped holdout families already agree.
+
 
 
 
