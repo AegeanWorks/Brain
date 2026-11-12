@@ -60,7 +60,8 @@ class TestHoldoutReplication(unittest.TestCase):
         train_rows, train_target = _signal_rows(range(10))
         holdout_rows, holdout_target = _signal_rows(range(10, 20))
         result = scan_with_holdout(train_rows, train_target,
-                                   holdout_rows, holdout_target, trials=100)
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="positive")
         candidates = [item["candidate"]["columns"]
                       for item in result["candidates"]]
         self.assertIn([0, 4], candidates)
@@ -79,6 +80,7 @@ class TestHoldoutReplication(unittest.TestCase):
         holdout_rows, holdout_target = _signal_rows(range(10, 20))
         result = scan_with_holdout(train_rows, train_target,
                                    holdout_rows, holdout_target, trials=100,
+                                   direction="positive",
                                    require_replication=False,
                                    require_stability=False)
         self.assertTrue(result["candidates"])
@@ -89,7 +91,8 @@ class TestHoldoutReplication(unittest.TestCase):
         train_rows, train_target = _planted(1)
         holdout_rows, holdout_target = _planted(2)
         result = scan_with_holdout(train_rows, train_target,
-                                   holdout_rows, holdout_target, trials=100)
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="positive")
         replicated = [item["candidate"]["columns"]
                       for item in result["selected"]]
         self.assertEqual(replicated, [[0, 2]])
@@ -113,6 +116,7 @@ class TestHoldoutReplication(unittest.TestCase):
         result = scan_with_holdout(train_rows, train_target,
                                    holdout_rows, holdout_target,
                                    trials=100, stability_trials=200,
+                                   direction="positive",
                                    require_replication=False)
         self.assertEqual(result["selected"], [])
         self.assertTrue(result["rejected"])
@@ -125,10 +129,52 @@ class TestHoldoutReplication(unittest.TestCase):
         result = scan_with_holdout(train_rows, train_target,
                                    holdout_rows, holdout_target,
                                    trials=100, stability_trials=200,
+                                   direction="positive",
                                    require_replication=False,
                                    require_stability=False)
         self.assertEqual([item["candidate"]["columns"]
                           for item in result["selected"]], [[0, 4]])
+
+    def test_a_replicated_anti_interaction_is_selected(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10, 20))
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="both")
+        anti = [item for item in result["selected"]
+                if item["direction"] == "negative"]
+        self.assertTrue(anti)
+        for item in anti:
+            self.assertLess(item["candidate"]["syn"], 0.0)
+            self.assertLessEqual(item["candidate"]["family"]["p_lower"], 0.05)
+            self.assertLessEqual(item["holdout"]["null"]["p_lower"], 0.05)
+
+    def test_positive_only_ignores_the_anti_interaction(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10, 20))
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="positive")
+        self.assertEqual([item["candidate"]["columns"]
+                          for item in result["selected"]], [])
+
+    def test_negative_only_selects_the_anti_interaction(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10, 20))
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="negative")
+        self.assertTrue(result["selected"])
+        self.assertTrue(all(item["direction"] == "negative"
+                            for item in result["selected"]))
+        self.assertTrue(all(item["candidate"]["syn"] < 0.0
+                            for item in result["selected"]))
+
+    def test_direction_must_be_known(self):
+        rows, target = _planted(5)
+        with self.assertRaises(ValueError):
+            scan_with_holdout(rows, target, rows, target,
+                              direction="sideways")
 
     def test_the_holdout_result_is_deterministic(self):
         train_rows, train_target = _planted(3)

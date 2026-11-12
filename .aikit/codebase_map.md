@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `216`
 - **Total Classes**: `221`
-- **Total Top-Level Functions**: `614`
-- **Total Class Methods**: `1166`
-- **Total Source Lines**: `29585`
+- **Total Top-Level Functions**: `616`
+- **Total Class Methods**: `1170`
+- **Total Source Lines**: `29675`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`216` module(s))
@@ -825,11 +825,13 @@
 ### [`evals/replication.py`](evals/replication.py)
 > *A scan candidate must survive a held-out pool.*
 
-**Size**: `98` lines (`4321` bytes)
+**Size**: `142` lines (`5952` bytes)
 
 **Functions:**
-- `def _train_candidate(report, alpha)` - *True when a train report is a positive, family-significant pair.*
-- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, require_replication, require_stability)` - *Return train candidates with their stability and holdout verdicts.*
+- `def _direction_of(report, alpha, requested)` - *Return the candidate direction, or None when it does not clear.*
+- `def _tail_ok(report, direction, alpha)` - *True when a family-scan report clears the requested tail.*
+- `def _holdout_ok(report, direction, alpha)` - *True when a single-pair holdout report clears the requested tail.*
+- `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, direction, require_replication, require_stability)` - *Return signed train candidates with stability and holdout verdicts.*
 
 ---
 
@@ -3346,7 +3348,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `147` lines (`6801` bytes)
+**Size**: `193` lines (`9246` bytes)
 
 **Classes:**
 - `class TestHoldoutReplication`
@@ -3356,6 +3358,10 @@
   - Method `.test_no_candidate_degrades_to_empty()`
   - Method `.test_a_100_trial_candidate_is_unstable_at_200()`
   - Method `.test_the_stability_ablation_returns_the_candidate()`
+  - Method `.test_a_replicated_anti_interaction_is_selected()`
+  - Method `.test_positive_only_ignores_the_anti_interaction()`
+  - Method `.test_negative_only_selects_the_anti_interaction()`
+  - Method `.test_direction_must_be_known()`
   - Method `.test_the_holdout_result_is_deterministic()`
 
 **Functions:**

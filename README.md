@@ -235,12 +235,11 @@ no independent second signal: `duplicate-scope-column`; a constant reads
 `target-column`/`target-leak-column`, and applies a family-wise max/min null
 (`family_wise=False`/`guard_target=False` are ablations). Pairs carry
 M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
-shipped pair beats its null. `Agent(module_signals=True)` writes six
+Legacy pairs select nothing. `Agent(module_signals=True)` writes six
 pre-action M/P/S signals; `evals.module_state` pools them (ten T3 episodes:
-12 cross-module pairs versus 0 legacy, none family-significant at
-200 trials). `evals.replication` requires a candidate to survive a higher-trial
-stability check and replicate on held-out episodes; the train-only signal
-pairs fail.
+12 cross-module pairs versus 0 legacy). `evals.replication` requires signed
+candidates to survive stability and a held-out pool: the positive train
+candidate fails, while a P-S anti-interaction replicates (negative).
 
 ## 🧪 Lesion Detectability
 
