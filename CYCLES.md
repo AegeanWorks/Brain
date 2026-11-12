@@ -4904,6 +4904,27 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 187 - zero verified improvement at the signal plateau
+
+- **Baseline** (commit 7c3a43d): 936 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND** (candidate audits):
+  - `T2_delayed_match`: 80 rows; distinct `[8,1,2,1,5,8]`; leak flags `[True,False,True,False,False,True]`; the Brier S variant still yields 0 valid pairs. Only S0 online probability is non-leaky and varying; every partner is constant, target-leaky or dependent.
+  - combined `turns + revisits` M: T1/T3 each 10 valid pairs; `interactions` empty at 200 on both; T1 holdout positive selected `[]`.
+  - positive T3->T1 and T3->T2 block holdout: selected `[]` at 100 trials.
+  - the only positive result, T1 M-M under `revisits`, is mode-specific within-module and already recorded in ADR-181.
+- **ANALYZE**: a Brier signal is target-leaky on T2; keys/Brier variants do not add a valid partner; combining M loses the T1 positive; no positive cross-task block transfer exists. Killing all candidates leaves no measurable substrate, telemetry, ablation or criteria improvement.
+- **IMPLEMENT**: none. No code changed; no claim is promoted.
+- **RECORD**: ADR-182 records the plateau and the stop decision.
+- **Verdict**: zero verified improvements in this cycle; the goal's zero-improvement stop condition is met. This is a process stop, not a claim that the Brain is complete.
+- **Gates**: unittest 936/936 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python ..\..\scratch\probe_t2_brier.py` -> T2 80 rows; valid 0.
+  - `python ..\..\scratch\probe_combined.py` -> T3 valid 10, T1 valid 10, interactions []; T1 holdout positive selected [].
+  - `python ..\..\scratch\probe_182_positive.py` -> T1/T2 positive 100/200 []; T3->T1/T2 positive block selected [].
+  - `python -m unittest discover -s tests -t .` -> 936 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned final state**: unittest 936 OK; aikit 5/5; all cycle 186 pins unchanged; no production change in this cycle.
+
 ## Cycle 186 - a positive within-module dependency replicates under revisits
 
 - **Baseline** (commit 4a487c2):

@@ -1303,6 +1303,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 936 tests OK; aikit check 5/5. The T1 revisits pair reads `syn +0.1671`, family `p_upper 0.0149` on train and holdout `syn +0.1283`, `p_upper 0.045`; it is stable and replicated. The default turns mode selects no positive pair. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `module_m_mode="turns"` removes the positive selection; `"revisits"` returns it.
 - **Boundary**: this is a within-module, mode-dependent positive dependency, not two modules interacting, and the holdout tail is borderline (`0.045`). It is evidence that the memory block can carry a positive joint signal; it is not a cross-module emergence claim.
 
+### ADR-182: A zero-improvement cycle at the signal plateau
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: after the signal-mode work (ADRs 152-181), the remaining candidates were audited. `T2_delayed_match` has only one non-leaky varying signal (S0 online probability); M0/P0 target-leak, M1/P1 are constant, and the Brier and key-count S variants target-leak. A Brier signal still produced 0 valid T2 pairs. A combined `turns + revisits` M value kept 10 valid pairs on T1/T3 but produced no positive interaction on either, and no positive T3->T1/T2 block holdout. The only positive result, the T1 M-M pair under `revisits`, is mode-specific, within-module and already recorded in ADR-181.
+- **Decision**: no further signal variant is accepted in this cycle: the variants either move aliases, lose the existing positive, or remain target-leaky. Record the zero-improvement audit and stop the goal under its zero-verified-improvement condition. A new independent task state or a different substrate is required to reopen the search; a parameter tweak is not.
+- **Consequences**: 936 tests OK; aikit check 5/5. No code changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. The evidence is the three probes: T2 Brier 0 valid pairs; combined M T1/T3 10 valid each and no positive at 200; positive cross-task block selections empty. Ablation: this is a stop decision, not a claim that a deleted gate would restore a result; the tested variants are the alternatives.
+- **Boundary**: the stop condition is process-level, not a claim that the Brain is complete. A task with independent non-leaky state, or a new substrate mechanism, would reopen the cycle; repeating signal-name variants would not.
+
 
 
 
