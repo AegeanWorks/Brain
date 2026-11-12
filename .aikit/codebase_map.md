@@ -9,8 +9,8 @@
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
 - **Total Top-Level Functions**: `632`
-- **Total Class Methods**: `1208`
-- **Total Source Lines**: `30448`
+- **Total Class Methods**: `1209`
+- **Total Source Lines**: `30479`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -721,7 +721,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `190` lines (`6799` bytes)
+**Size**: `201` lines (`7233` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
@@ -2729,7 +2729,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `450` lines (`21693` bytes)
+**Size**: `470` lines (`22732` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2762,6 +2762,7 @@
   - Method `.test_trace_block_split_matches_the_log_path()`
   - Method `.test_module_state_scan_dedupes_the_family()`
   - Method `.test_block_split_dedupes_the_family()`
+  - Method `.test_block_split_reports_within_module_dependencies()`
   - Method `.test_block_split_reports_metadata()`
   - Method `.test_disabled_trace_block_split_is_empty()`
   - Method `.test_anti_block_filters_are_complementary()`

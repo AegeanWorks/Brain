@@ -333,7 +333,8 @@ class TestModuleSignals(unittest.TestCase):
             from_logs = scan_module_state_blocks(paths, trials=200)
             from_traces = scan_trace_blocks(traces, trials=200)
         self.assertEqual(from_traces["metadata"], from_logs["metadata"])
-        for key in ("module", "world", "anti_module", "anti_world"):
+        for key in ("module", "world", "anti_module", "anti_world",
+                    "within_module", "within_world"):
             self.assertEqual(
                 [(report["columns"], report["syn"])
                  for report in from_traces[key]],
@@ -364,6 +365,24 @@ class TestModuleSignals(unittest.TestCase):
         self.assertEqual(deduped["anti_module"][0]["family"]["family_size"], 10)
         self.assertEqual(raw["anti_module"][0]["family"]["family_size"], 14)
 
+    def test_block_split_reports_within_module_dependencies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            blocks = scan_module_state_blocks(paths, trials=200)
+        self.assertEqual(blocks["within_module"], [])
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True, task="T1_forage",
+                          module_m_mode="revisits")
+            t1_blocks = scan_module_state_blocks(paths, trials=200)
+        columns = [tuple(report["columns"])
+                   for report in t1_blocks["within_module"]]
+        self.assertIn((0, 1), columns)
+        self.assertIn((4, 5), columns)
+        sign = {tuple(report["columns"]): report["syn"]
+                for report in t1_blocks["within_module"]}
+        self.assertGreater(sign[(0, 1)], 0.0)
+        self.assertLess(sign[(4, 5)], 0.0)
+
     def test_block_split_reports_metadata(self):
         with tempfile.TemporaryDirectory() as directory:
             paths = _logs(directory, True)
@@ -379,6 +398,7 @@ class TestModuleSignals(unittest.TestCase):
         blocks = scan_trace_blocks(traces, trials=50)
         self.assertEqual(blocks, {"module": [], "world": [],
                                   "anti_module": [], "anti_world": [],
+                                  "within_module": [], "within_world": [],
                                   "metadata": None})
 
     def test_anti_block_filters_are_complementary(self):

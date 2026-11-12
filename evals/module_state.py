@@ -16,9 +16,9 @@ rows.
 
 import json
 
-from evals.pair_scan import (anti_interactions, column_classes,
-                            interactions, module_pair, scan_pairs,
-                            unique_pairs, world_pair)
+from evals.pair_scan import (MODULE_BLOCKS, anti_interactions,
+                            column_classes, interactions, module_pair,
+                            scan_pairs, unique_pairs, world_pair)
 
 
 def _row(args):
@@ -153,11 +153,22 @@ def _split_blocks(rows, target, trials=200, unique=True, dedupe=True):
         classes = column_classes(rows)
         positive = unique_pairs(positive, classes)
         anti = unique_pairs(anti, classes)
+    selected = positive + anti
     return {
         "module": [report for report in positive if module_pair(report)],
         "world": [report for report in positive if world_pair(report)],
         "anti_module": [report for report in anti if module_pair(report)],
         "anti_world": [report for report in anti if world_pair(report)],
+        "within_module": [
+            report for report in selected
+            if report["blocks"][0] in MODULE_BLOCKS
+            and report["blocks"][1] in MODULE_BLOCKS
+            and report["blocks"][0] == report["blocks"][1]
+        ],
+        "within_world": [
+            report for report in selected
+            if all(block == "hub" for block in report["blocks"])
+        ],
     }
 
 

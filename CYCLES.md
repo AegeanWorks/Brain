@@ -4904,6 +4904,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 185 - the block split must report within-module dependencies
+
+- **Baseline** (commit deab272):
+  - canonical gate: 934 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - `module`/`world` and `anti_module`/`anti_world` require two different blocks; a same-block selected pair disappeared.
+  - on `T1_forage` with the `revisits` M ablation, `interactions` selects `(0,1)` M-M at `syn +0.1671`, family `p_upper 0.0149`, and `anti_interactions` selects `(4,5)` S-S at `syn -0.1031`; neither appeared in the block split.
+  - `T3_navigate` has no within-module selected pair after the symmetric dependence fix.
+- **Gap**: the block readout hid same-block positive and anti dependencies.
+- **Target delta**: add within-module/within-world categories, show the T1 revisits pair and T3 empty, and leave cross lists unchanged.
+- **Falsifier**: a cross pair is duplicated into within; a within pair is lost; T3 within is nonempty; or metadata/pair lists move.
+- **Change**: `_split_blocks` adds `within_module` (same M/P/S block, both signs) and `within_world` (both hub); `test_block_split_reports_within_module_dependencies` covers T1 revisits and T3 empty.
+- **After**:
+  - T1 revisits `within_module` contains `(0,1)` positive and `(4,5)` negative; T3 within `[]`; within_world `[]`.
+  - cross-module lists, selected anti pairs and standing numbers unchanged.
+- **Ablation**: removing the two keys hides both same-block dependencies while the cross lists stay identical.
+- **Verdict**: block-readout coverage with a positive within-module dependency. The measured delta is "same-block selected pairs disappear from the split" -> "T1 revisits M-M positive and S-S negative are reported separately". Boundary: within-module is not two modules; the T1 M-M positive appears under the revisits ablation, its column-level holdout `p_upper` is 0.045, and block-level positive holdout returns no match.
+- **Gates**: unittest 935/935 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_module_signals` -> 38 OK.
+  - `python -m unittest discover -s tests -t .` -> 935 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 186**: unittest 935 OK; aikit 5/5; T1 revisits within_module (0,1) +0.1671 p_upper 0.0149 and (4,5) -0.1031; T3 within []; within_world []; cross lists unchanged; synthetic target-derived refused `target-derived-column`; cache hits `_episode` 30/10, `_vectors` 8/2, `_raw` 4/4, replication 4 pools; full gate ~200s; T3 block holdout match family 10 vs raw 14; selected block dependency unchanged; T1 classes distinct; default/wired dependence 34/32; wired independent features (4,7)/(6,7); (4,5) dependent syn -0.1243; block split family 10 vs raw 14; eval dedupe keys 10/8, seen 6/5, turns 10/8, revisits 6/5, alternatives 10/8, distance 10/8; raw 14/12; block-level T3->T1 selected one P-S anti; raw two; T3->T1 column []; T3->T2 block []; XOR control selected three column-level pairs; battery audit 33/9/0 exit 0; block metadata version 2 / M turns / P alternatives / S keys; disabled split metadata None; metadata persistent_fields 2 cold, 0 warm / store_reads 1 cold, 0 warm; signal dedupe 11 reports / 10 valid / family 10; selected (2,5),(2,4) negative p_lower 0.0099; legacy hub 5 raw -> 1 unique; classes [0,1,2,2,4,5]; signed both/negative selected two; positive-only selected []; positive candidate p100 0.0495 / p200 0.0547; `module_interactions []`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 10 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 184 - refuse a column that is a function of the target
 
 - **Baseline** (commit 6c2d64c):

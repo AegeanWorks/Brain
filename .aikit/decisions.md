@@ -1287,6 +1287,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 934 tests OK; aikit check 5/5. Production signal counts, selected anti pairs, block splits and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`), because the binary target already made the direction redundant there. Ablation: removing the gate makes the synthetic pair `ok True`; restoring it refuses it as `target-derived-column`.
 - **Boundary**: for the current binary reward the new gate adds no refusals beyond the existing exact/target-leak/scope gates; it closes the generic-target hole. A target-derived column is still reported with its `syn` for diagnostics, but not testable.
 
+### ADR-180: The block split must report within-module dependencies
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-166/171 split positive and anti pairs into `module`/`world` and `anti_module`/`anti_world`, but both filters require two different blocks. A same-block pair selected by `interactions`/`anti_interactions` disappeared. Measured on `T1_forage` with the `revisits` M ablation: `interactions` selects `(0,1)` M-M at `syn +0.1671`, family `p_upper 0.0149`, and `anti_interactions` selects `(4,5)` S-S at `syn -0.1031`; neither appeared in the block split. `T3_navigate` has no within-module selected pair after the symmetric dependence fix.
+- **Decision**: add `within_module` (both blocks the same M/P/S block, positive and anti) and `within_world` (both blocks `hub`) to `_split_blocks`; tests cover T1 revisits and the T3 empty case.
+- **Consequences**: 935 tests OK; aikit check 5/5. T1 revisits `within_module` contains `(0,1)` positive and `(4,5)` negative; `T3` within is empty; cross-module lists, selected anti pairs and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: removing the two keys hides both same-block dependencies while the cross lists stay identical.
+- **Boundary**: a within-module pair is not two modules interacting. The T1 M-M positive appears under the `revisits` ablation (the default `turns` mode has no M-M positive), and its column-level holdout `p_upper` is `0.045`; the block-level positive holdout returns no match. It is reported separately, not promoted to a cross-module claim.
+
 
 
 
