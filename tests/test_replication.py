@@ -182,6 +182,20 @@ class TestHoldoutReplication(unittest.TestCase):
             self.assertEqual(set(item["candidate"]["blocks"]), {"P", "S"})
             self.assertTrue(item["holdout_matches"])
 
+    def test_block_level_selection_collapses_to_one_dependency(self):
+        train_rows, train_target = _signal_rows(range(10))
+        holdout_rows, holdout_target = _signal_rows(range(10), task="T1_forage")
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="both", level="block")
+        self.assertEqual(len(result["selected"]), 1)
+        self.assertEqual(set(result["selected"][0]["candidate"]["blocks"]),
+                         {"P", "S"})
+        raw = scan_with_holdout(train_rows, train_target,
+                                holdout_rows, holdout_target, trials=100,
+                                direction="both", level="block", unique=False)
+        self.assertEqual(len(raw["selected"]), 2)
+
     def test_column_level_holdout_does_not_replicate_across_t1(self):
         train_rows, train_target = _signal_rows(range(10))
         holdout_rows, holdout_target = _signal_rows(range(10), task="T1_forage")

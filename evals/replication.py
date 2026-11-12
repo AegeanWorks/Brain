@@ -72,15 +72,23 @@ def _block_holdout_matches(rows, target, blocks, direction, trials, alpha):
     return unique_pairs(matches, classes)
 
 
-def _unique_items(items, classes):
-    """Keep the first candidate for each pair of dependent-column classes."""
+def _unique_items(items, classes, level="column"):
+    """Keep the first candidate for each dependency unit.
+
+    Column level uses dependent-column classes; block level uses the
+    candidate's block set plus direction, so a P-S dependency is one entry.
+    """
     seen = set()
     unique = []
     for item in items:
-        first, second = item["candidate"]["columns"]
-        key = tuple(sorted(
-            classes[column] if 0 <= column < len(classes) else column
-            for column in (first, second)))
+        if level == "block":
+            key = tuple(sorted(item["candidate"]["blocks"])) + (
+                item["direction"],)
+        else:
+            first, second = item["candidate"]["columns"]
+            key = tuple(sorted(
+                classes[column] if 0 <= column < len(classes) else column
+                for column in (first, second)))
         if key in seen:
             continue
         seen.add(key)
@@ -178,8 +186,8 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
     rejected = [item for item in candidates if item not in selected]
     if unique:
         classes = column_classes(train_rows)
-        selected = _unique_items(selected, classes)
-        rejected = _unique_items(rejected, classes)
+        selected = _unique_items(selected, classes, level=level)
+        rejected = _unique_items(rejected, classes, level=level)
     return {
         "candidates": candidates,
         "selected": selected,

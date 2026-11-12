@@ -1231,6 +1231,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 928 tests OK; aikit check 5/5. `python -m evals.battery_check` reports 33 batteries / 9 libraries / 0 missing and exits 0. The audit still lists every library and every uncovered battery; no production behavior changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing `LIBRARY_MODULES` makes the five libraries fail the audit again and exits 1; restoring it returns 0 with the libraries visible.
 - **Boundary**: the list is explicit and must be maintained; a new library is audited as a battery until added, and `recompute` is classified as a library despite exposing a CLI because ADR-118 already calls it a pure helper.
 
+### ADR-173: A block-level dependency is one selected entry, not one per feature pair
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-168's block-level holdout selected two T3 candidates `(2,5)` and `(2,4)`, both P-S and both matched by the same two T1 P-S pairs. `unique=True` collapsed dependent-column classes but not block pairs, so one block-level dependency appeared twice. The block-level claim is the P-S dependency, not the number of feature pairs that realize it.
+- **Decision**: `_unique_items` now takes the level; at block level the key is the sorted block set plus direction, so `scan_with_holdout(level="block", unique=True)` selects one entry per block dependency. `unique=False` is the executable ablation. Tests: `test_block_level_selection_collapses_to_one_dependency` (16 in the replication file).
+- **Consequences**: 929 tests OK; aikit check 5/5. T3->T1 block level now selects one P-S anti dependency; raw `unique=False` selects two; column level still selects none and T2 block selects none. The positive control still selects three column-level pairs. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `unique=False` restores the two feature-pair entries; `unique=True` collapses them.
+- **Boundary**: block-level collapsing intentionally discards which feature pair realized the dependency; column level remains the feature-specific view. The selected count is a dependency count, not a pair count.
+
 
 
 

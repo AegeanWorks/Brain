@@ -9,8 +9,8 @@
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
 - **Total Top-Level Functions**: `629`
-- **Total Class Methods**: `1202`
-- **Total Source Lines**: `30319`
+- **Total Class Methods**: `1203`
+- **Total Source Lines**: `30341`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -833,14 +833,14 @@
 ### [`evals/replication.py`](evals/replication.py)
 > *A scan candidate must survive a held-out pool.*
 
-**Size**: `194` lines (`7983` bytes)
+**Size**: `202` lines (`8319` bytes)
 
 **Functions:**
 - `def _direction_of(report, alpha, requested)` - *Return the candidate direction, or None when it does not clear.*
 - `def _tail_ok(report, direction, alpha)` - *True when a family-scan report clears the requested tail.*
 - `def _holdout_ok(report, direction, alpha)` - *True when a single-pair holdout report clears the requested tail.*
 - `def _block_holdout_matches(rows, target, blocks, direction, trials, alpha)` - *Return holdout reports with the same block set and requested sign.*
-- `def _unique_items(items, classes)` - *Keep the first candidate for each pair of dependent-column classes.*
+- `def _unique_items(items, classes, level)` - *Keep the first candidate for each dependency unit.*
 - `def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target, trials, stability_trials, alpha, direction, level, require_replication, require_stability, unique, dedupe)` - *Return signed train candidates with stability and holdout verdicts.*
 
 ---
@@ -3417,7 +3417,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `229` lines (`11202` bytes)
+**Size**: `243` lines (`12046` bytes)
 
 **Classes:**
 - `class TestHoldoutReplication`
@@ -3431,6 +3431,7 @@
   - Method `.test_positive_only_ignores_the_anti_interaction()`
   - Method `.test_negative_only_selects_the_anti_interaction()`
   - Method `.test_block_level_holdout_replicates_p_s_on_t1()`
+  - Method `.test_block_level_selection_collapses_to_one_dependency()`
   - Method `.test_column_level_holdout_does_not_replicate_across_t1()`
   - Method `.test_block_level_holdout_fails_on_t2()`
   - Method `.test_level_must_be_known()`
