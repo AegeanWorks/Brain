@@ -1183,6 +1183,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 915 tests OK; aikit check 5/5. Block split at 200 trials: `module []`, `world []`, `anti_module [[2,5],[2,4]]`, `anti_world []`. The raw filters return four P-S anti entries and no hub entry; `unique=True` collapses them to the two selected pairs. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the anti keys makes the block split report only the empty positive subsets, hiding the replicated dependency.
 - **Boundary**: the block split's anti subset is the negative P-S dependency, not positive emergence; the raw `module_anti_interactions` still returns four aliases while the split's `unique=True` returns two.
 
+### ADR-167: The block split needs an in-memory trace path
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-166 made the block split signed, but `scan_module_state_blocks` accepted only log paths. The signal rows already existed in `Agent.run_task` traces (ADR-158), and the cold trace was proven to match its log (ADR-159), yet a trace could not be split into `module`/`world`/`anti_module`/`anti_world` without writing a temporary log.
+- **Decision**: factor `_split_blocks(rows, target, trials, unique)`; `scan_module_state_blocks` now pools logs and delegates, and `scan_trace_blocks(traces, trials, unique)` pools `signals_from_trace` and delegates. Tests: `test_trace_block_split_matches_the_log_path` and `test_disabled_trace_block_split_is_empty` (32 total in the module-signal file).
+- **Consequences**: 917 tests OK; aikit check 5/5. On ten `T3_navigate` seeds the trace and log splits agree for all four keys; `anti_module` is `[[2,5],[2,4]]`, the positive subsets are empty, and a disabled-signal trace split is all-empty. No production behavior changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing `scan_trace_blocks` makes the parity test fail; disabling signals makes every subset empty.
+- **Boundary**: the in-memory split uses the same estimator and rows as the log path, so it is a reachability/parity improvement, not independent evidence; it removes the temp-log dependency for trace-based claims.
+
 
 
 

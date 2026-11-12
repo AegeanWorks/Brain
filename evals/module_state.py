@@ -136,15 +136,7 @@ def scan_module_states(log_paths, trials=200):
     return scan_pairs(rows, target, trials=trials, family_wise=True)
 
 
-def scan_module_state_blocks(log_paths, trials=200, unique=True):
-    """Return the pooled signal scan split into positive and anti pairs.
-
-    ``unique=True`` collapses dependent-column aliases before the block
-    split, matching the signed replication path; ``unique=False`` restores
-    the raw entries.
-    """
-    rows = pool_signals(log_paths)
-    target = [row[-1] for row in rows]
+def _split_blocks(rows, target, trials=200, unique=True):
     positive = interactions(rows, target, trials=trials)
     anti = anti_interactions(rows, target, trials=trials)
     if unique:
@@ -157,3 +149,24 @@ def scan_module_state_blocks(log_paths, trials=200, unique=True):
         "anti_module": [report for report in anti if module_pair(report)],
         "anti_world": [report for report in anti if world_pair(report)],
     }
+
+
+def scan_module_state_blocks(log_paths, trials=200, unique=True):
+    """Return the pooled log signal scan split into positive and anti pairs.
+
+    ``unique=True`` collapses dependent-column aliases before the block
+    split, matching the signed replication path; ``unique=False`` restores
+    the raw entries.
+    """
+    rows = pool_signals(log_paths)
+    return _split_blocks(rows, [row[-1] for row in rows],
+                         trials=trials, unique=unique)
+
+
+def scan_trace_blocks(traces, trials=200, unique=True):
+    """Return the in-memory trace signal scan split into positive/anti pairs."""
+    rows = []
+    for trace in traces:
+        rows.extend(signals_from_trace(trace))
+    return _split_blocks(rows, [row[-1] for row in rows],
+                         trials=trials, unique=unique)

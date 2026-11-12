@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `217`
 - **Total Classes**: `222`
-- **Total Top-Level Functions**: `625`
-- **Total Class Methods**: `1182`
-- **Total Source Lines**: `30018`
+- **Total Top-Level Functions**: `627`
+- **Total Class Methods**: `1184`
+- **Total Source Lines**: `30061`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`217` module(s))
@@ -721,7 +721,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `159` lines (`5483` bytes)
+**Size**: `172` lines (`5959` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
@@ -732,7 +732,9 @@
 - `def signals_from_trace(trace)` - *Return one signal row per trace step that carries a signals block.*
 - `def scan_traces(traces, trials)` - *Scan pooled in-memory traces with the shared pair gate and family null.*
 - `def scan_module_states(log_paths, trials)` - *Scan pooled signal rows with the shared pair gate and family null.*
-- `def scan_module_state_blocks(log_paths, trials, unique)` - *Return the pooled signal scan split into positive and anti pairs.*
+- `def _split_blocks(rows, target, trials, unique)`
+- `def scan_module_state_blocks(log_paths, trials, unique)` - *Return the pooled log signal scan split into positive and anti pairs.*
+- `def scan_trace_blocks(traces, trials, unique)` - *Return the in-memory trace signal scan split into positive/anti pairs.*
 
 ---
 
@@ -2695,7 +2697,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `366` lines (`17442` bytes)
+**Size**: `396` lines (`18907` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2723,6 +2725,8 @@
   - Method `.test_module_interactions_are_empty_at_200_trials()`
   - Method `.test_signals_do_not_change_actions()`
   - Method `.test_block_split_includes_the_anti_module_pairs()`
+  - Method `.test_trace_block_split_matches_the_log_path()`
+  - Method `.test_disabled_trace_block_split_is_empty()`
   - Method `.test_anti_block_filters_are_complementary()`
   - Method `.test_block_split_reaches_module_and_world()`
   - Method `.test_a_planted_signal_interaction_is_detected()`
