@@ -26,6 +26,8 @@ from evals.module_state import (pool_signals, read_signal_metadata,
                                 read_signals, scan_module_state_blocks,
                                 scan_module_states, scan_traces,
                                 signals_from_trace, signals_meta_from_trace)
+from evals.pair_scan import (module_anti_interactions,
+                             world_anti_interactions)
 from evals.coldstart import cold_run, warm_run
 from evals.replication import scan_with_holdout
 from memory.store import MemoryStore
@@ -283,6 +285,29 @@ class TestModuleSignals(unittest.TestCase):
         self.assertEqual(
             [(step["action"], step["reward"], step["done"]) for step in plain],
             [(step["action"], step["reward"], step["done"]) for step in signal])
+
+    def test_block_split_includes_the_anti_module_pairs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            blocks = scan_module_state_blocks(paths, trials=200)
+        self.assertEqual([report["columns"]
+                          for report in blocks["anti_module"]],
+                         [[2, 5], [2, 4]])
+        self.assertEqual(blocks["anti_world"], [])
+        self.assertEqual(blocks["module"], [])
+        self.assertEqual(blocks["world"], [])
+
+    def test_anti_block_filters_are_complementary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            rows = pool_signals(paths)
+        target = [row[-1] for row in rows]
+        module = module_anti_interactions(rows, target, trials=200)
+        world = world_anti_interactions(rows, target, trials=200)
+        self.assertEqual(len(module), 4)
+        self.assertTrue(all(report["syn"] < 0.0 for report in module))
+        self.assertTrue(all("hub" not in report["blocks"] for report in module))
+        self.assertEqual(world, [])
 
     def test_block_split_reaches_module_and_world(self):
         with tempfile.TemporaryDirectory() as directory:

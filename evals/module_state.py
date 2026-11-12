@@ -16,7 +16,9 @@ rows.
 
 import json
 
-from evals.pair_scan import module_interactions, scan_pairs, world_interactions
+from evals.pair_scan import (anti_interactions, column_classes,
+                            interactions, module_pair, scan_pairs,
+                            unique_pairs, world_pair)
 
 
 def _row(args):
@@ -134,11 +136,24 @@ def scan_module_states(log_paths, trials=200):
     return scan_pairs(rows, target, trials=trials, family_wise=True)
 
 
-def scan_module_state_blocks(log_paths, trials=200):
-    """Return the pooled signal scan split into module and world pairs."""
+def scan_module_state_blocks(log_paths, trials=200, unique=True):
+    """Return the pooled signal scan split into positive and anti pairs.
+
+    ``unique=True`` collapses dependent-column aliases before the block
+    split, matching the signed replication path; ``unique=False`` restores
+    the raw entries.
+    """
     rows = pool_signals(log_paths)
     target = [row[-1] for row in rows]
+    positive = interactions(rows, target, trials=trials)
+    anti = anti_interactions(rows, target, trials=trials)
+    if unique:
+        classes = column_classes(rows)
+        positive = unique_pairs(positive, classes)
+        anti = unique_pairs(anti, classes)
     return {
-        "module": module_interactions(rows, target, trials=trials),
-        "world": world_interactions(rows, target, trials=trials),
+        "module": [report for report in positive if module_pair(report)],
+        "world": [report for report in positive if world_pair(report)],
+        "anti_module": [report for report in anti if module_pair(report)],
+        "anti_world": [report for report in anti if world_pair(report)],
     }

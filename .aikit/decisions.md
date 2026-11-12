@@ -1175,6 +1175,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 913 tests OK; aikit check 5/5. Default metadata reads `version 1 / M turns / P alternatives / S keys`; a run with the ablation modes reports `revisits / distance / seen`; a disabled-signal run has no metadata and no signal rows. Signal rows, actions, rewards and step counts are unchanged; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the metadata fields fails the four tests; the values and actions are otherwise identical.
 - **Boundary**: version 1 is the only schema. The reader records the tag but does not migrate or reject unknown versions; an old log without `signals_meta` still reads signal rows, with no mode provenance.
 
+### ADR-166: The block split must include the replicated anti pairs
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-165 added provenance. `scan_module_state_blocks` still called only `module_interactions`/`world_interactions`, both positive-only, so on the signal trace it returned `module []` and `world []` while the signed replication selected two P-S anti-interactions. The only replicated cross-module dependency was absent from the block readout.
+- **Decision**: add `module_anti_interactions` and `world_anti_interactions` to `evals/pair_scan.py`; `scan_module_state_blocks` now returns `module`, `world`, `anti_module` and `anti_world`, with `unique=True` collapsing dependent-column aliases before the split. Tests: `test_block_split_includes_the_anti_module_pairs` and `test_anti_block_filters_are_complementary` (30 total in the module-signal file).
+- **Consequences**: 915 tests OK; aikit check 5/5. Block split at 200 trials: `module []`, `world []`, `anti_module [[2,5],[2,4]]`, `anti_world []`. The raw filters return four P-S anti entries and no hub entry; `unique=True` collapses them to the two selected pairs. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the anti keys makes the block split report only the empty positive subsets, hiding the replicated dependency.
+- **Boundary**: the block split's anti subset is the negative P-S dependency, not positive emergence; the raw `module_anti_interactions` still returns four aliases while the split's `unique=True` returns two.
+
 
 
 

@@ -359,3 +359,21 @@ def world_interactions(rows, target, trials=200, family_wise=True, seed=0,
                 rows, target, trials=trials, family_wise=family_wise,
                 seed=seed, guard_target=guard_target)
             if world_pair(report)]
+
+
+def module_anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
+                             guard_target=True):
+    """Return anti-interactions whose two blocks are different modules."""
+    return [report for report in anti_interactions(
+                rows, target, trials=trials, family_wise=family_wise,
+                seed=seed, guard_target=guard_target)
+            if module_pair(report)]
+
+
+def world_anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
+                            guard_target=True):
+    """Return anti-interactions that include a ``hub`` column."""
+    return [report for report in anti_interactions(
+                rows, target, trials=trials, family_wise=family_wise,
+                seed=seed, guard_target=guard_target)
+            if world_pair(report)]
