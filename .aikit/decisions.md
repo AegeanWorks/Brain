@@ -1295,6 +1295,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 935 tests OK; aikit check 5/5. T1 revisits `within_module` contains `(0,1)` positive and `(4,5)` negative; `T3` within is empty; cross-module lists, selected anti pairs and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: removing the two keys hides both same-block dependencies while the cross lists stay identical.
 - **Boundary**: a within-module pair is not two modules interacting. The T1 M-M positive appears under the `revisits` ablation (the default `turns` mode has no M-M positive), and its column-level holdout `p_upper` is `0.045`; the block-level positive holdout returns no match. It is reported separately, not promoted to a cross-module claim.
 
+### ADR-181: A positive within-module dependency replicates under revisits
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-180 exposed `within_module`, and the T1 revisits measurement showed `(0,1)` M-M at `syn +0.1671` (family `p_upper 0.0149` at 200 trials) and `(4,5)` S-S at `syn -0.1031`. The M-M pair is a positive dependency, but it is same-block and appeared only under the `revisits` M mode; the default `turns` mode had no positive M-M pair. It had not been tested through the signed holdout.
+- **Decision**: add `test_t1_revisits_within_module_positive_replicates`: T1 train seeds 0-9 and holdout 10-19 in `revisits` mode, `direction="positive"`, `level="column"`; require `(0,1)` M-M stable and replicated; also require the `turns` mode positive selection to be empty. The signal-row cache key now includes the M mode.
+- **Consequences**: 936 tests OK; aikit check 5/5. The T1 revisits pair reads `syn +0.1671`, family `p_upper 0.0149` on train and holdout `syn +0.1283`, `p_upper 0.045`; it is stable and replicated. The default turns mode selects no positive pair. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: `module_m_mode="turns"` removes the positive selection; `"revisits"` returns it.
+- **Boundary**: this is a within-module, mode-dependent positive dependency, not two modules interacting, and the holdout tail is borderline (`0.045`). It is evidence that the memory block can carry a positive joint signal; it is not a cross-module emergence claim.
+
 
 
 

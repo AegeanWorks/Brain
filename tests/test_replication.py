@@ -30,14 +30,14 @@ from evals.replication import scan_with_holdout
 _SIGNAL_CACHE = {}
 
 
-def _signal_rows(seeds, task="T3_navigate"):
+def _signal_rows(seeds, task="T3_navigate", module_m_mode="turns"):
     """Return deterministic signal rows, cached across tests.
 
     The cache is safe because every test only reads the rows; the temporary
     logs are closed before the result is stored.
     """
     seeds = tuple(seeds)
-    key = (task, seeds)
+    key = (task, seeds, module_m_mode)
     if key in _SIGNAL_CACHE:
         return _SIGNAL_CACHE[key]
     rows = []
@@ -45,7 +45,8 @@ def _signal_rows(seeds, task="T3_navigate"):
         paths = []
         for seed in seeds:
             path = os.path.join(directory, "run-%d.jsonl" % seed)
-            Agent(module_signals=True).run_task_logged(
+            Agent(module_signals=True,
+                  module_m_mode=module_m_mode).run_task_logged(
                 task, seed, max_steps=200, log_path=path)
             paths.append(path)
         rows = pool_signals(paths)
@@ -209,6 +210,31 @@ class TestHoldoutReplication(unittest.TestCase):
                                 holdout_rows, holdout_target, trials=100,
                                 direction="both", level="block", unique=False)
         self.assertEqual(len(raw["selected"]), 2)
+
+    def test_t1_revisits_within_module_positive_replicates(self):
+        train_rows, train_target = _signal_rows(
+            range(10), task="T1_forage", module_m_mode="revisits")
+        holdout_rows, holdout_target = _signal_rows(
+            range(10, 20), task="T1_forage", module_m_mode="revisits")
+        result = scan_with_holdout(train_rows, train_target,
+                                   holdout_rows, holdout_target, trials=100,
+                                   direction="positive", level="column")
+        selected = [item for item in result["selected"]
+                    if item["candidate"]["columns"] == [0, 1]]
+        self.assertEqual(len(selected), 1)
+        item = selected[0]
+        self.assertEqual(item["candidate"]["blocks"], ["M", "M"])
+        self.assertGreater(item["candidate"]["syn"], 0.0)
+        self.assertTrue(item["stable"] and item["replicated"])
+        turns_rows, turns_target = _signal_rows(
+            range(10), task="T1_forage", module_m_mode="turns")
+        turns_holdout, turns_holdout_target = _signal_rows(
+            range(10, 20), task="T1_forage", module_m_mode="turns")
+        turns_result = scan_with_holdout(
+            turns_rows, turns_target, turns_holdout, turns_holdout_target,
+            trials=100, direction="positive", level="column")
+        self.assertEqual([candidate["candidate"]["columns"]
+                          for candidate in turns_result["selected"]], [])
 
     def test_block_holdout_uses_the_deduped_family(self):
         train_rows, train_target = _signal_rows(range(10))

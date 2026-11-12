@@ -9,8 +9,8 @@
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
 - **Total Top-Level Functions**: `632`
-- **Total Class Methods**: `1209`
-- **Total Source Lines**: `30479`
+- **Total Class Methods**: `1210`
+- **Total Source Lines**: `30505`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -3425,7 +3425,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `276` lines (`13398` bytes)
+**Size**: `302` lines (`14931` bytes)
 
 **Classes:**
 - `class TestHoldoutReplication`
@@ -3440,6 +3440,7 @@
   - Method `.test_negative_only_selects_the_anti_interaction()`
   - Method `.test_block_level_holdout_replicates_p_s_on_t1()`
   - Method `.test_block_level_selection_collapses_to_one_dependency()`
+  - Method `.test_t1_revisits_within_module_positive_replicates()`
   - Method `.test_block_holdout_uses_the_deduped_family()`
   - Method `.test_column_level_holdout_does_not_replicate_across_t1()`
   - Method `.test_block_level_holdout_fails_on_t2()`
@@ -3448,7 +3449,7 @@
   - Method `.test_the_holdout_result_is_deterministic()`
 
 **Functions:**
-- `def _signal_rows(seeds, task)` - *Return deterministic signal rows, cached across tests.*
+- `def _signal_rows(seeds, task, module_m_mode)` - *Return deterministic signal rows, cached across tests.*
 - `def _planted(seed, n)` - *A non-leaky XOR between column 0 (M) and column 2 (P).*
 
 ---
