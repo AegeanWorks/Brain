@@ -185,6 +185,72 @@ def measure_choice_generalization(train_episodes=40, eval_episodes=20,
     }
 
 
+def _correct_action(context):
+    """The rewarded action for one observed latent pair (binary bits)."""
+    first, second = int(context[0]), int(context[1])
+    return "right" if (first ^ second) else "left"
+
+
+def _correct_probabilities(agent, codes, episodes):
+    """Run pinned episodes; return p(correct action) and the argmax hit rate.
+
+    The context is read from the trace's pre-action ``G`` signal, so the
+    score is what the policy believed before acting, not a post-hoc value.
+    """
+    probabilities = []
+    hits = 0
+    steps = 0
+    for episode in range(episodes):
+        code = codes[episode % len(codes)]
+        agent.world = ChoiceDualWorld(episode, latents=[code] * 4)
+        trace = agent.run(max_steps=4)
+        for step in trace:
+            context = (step.get("signals") or {}).get("G")
+            if not context:
+                continue
+            scores = agent.planner.scores({"x": 0, "y": 0, "task": ChoiceDualWorld.task_id,
+                                           "target": [0, 0], "context": list(context)})
+            correct = _correct_action(context)
+            probabilities.append(scores[correct])
+            chosen = "right" if scores["right"] > scores["left"] else "left"
+            hits += 1 if chosen == correct else 0
+            steps += 1
+    return {
+        "correct_probability": sum(probabilities) / max(1, len(probabilities)),
+        "argmax_accuracy": hits / max(1, steps),
+        "steps": steps,
+    }
+
+
+def measure_factored(train_codes, eval_codes=(0, 0), train_episodes=40,
+                     eval_episodes=8):
+    """Train a quadratic-feature learner and score a held-out quadrant.
+
+    ``train_codes`` is the quadrant coverage the learner sees; ``eval_codes``
+    is the pool it is scored on *after* the table is frozen. Full coverage
+    (all four quadrants) identifies the interaction; three of four does not.
+    """
+    from agent import Agent
+    from planner.plan import LearnedPlanner
+    from self_model.online import FactoredPredictor
+
+    predictor = FactoredPredictor()
+    agent = Agent(planner=LearnedPlanner(), learn_context=True)
+    agent.use_predictor(predictor)
+    _run_pinned(agent, tuple(train_codes), train_episodes)
+    predictor.flush()
+
+    agent.use_predictor(_FrozenPredictor(predictor))
+    held = _correct_probabilities(agent, tuple(eval_codes), eval_episodes)
+    return {
+        "train_codes": [list(code) for code in train_codes],
+        "eval_codes": [list(code) for code in eval_codes],
+        "correct_probability": held["correct_probability"],
+        "argmax_accuracy": held["argmax_accuracy"],
+        "steps": held["steps"],
+    }
+
+
 def main():
     result = {
         "planted": measure(DualWorld),
@@ -193,6 +259,11 @@ def main():
         "choice_blind": measure_choice(use_context=False),
         "generalization": measure_choice_generalization(),
         "additive": measure_choice_generalization(predictor="additive"),
+        "factored_full": measure_factored(
+            ((0, 0), (0, 1), (1, 0), (1, 1)),
+            ((0, 0), (0, 1), (1, 0), (1, 1))),
+        "factored_three": measure_factored(
+            ((0, 0), (0, 1), (1, 0)), ((1, 1),)),
     }
     print(json.dumps(result, sort_keys=True))
     ok = (result["planted"]["g_pair_selected"]
@@ -202,7 +273,9 @@ def main():
           and result["generalization"]["in_distribution_accuracy"] > 0.9
           and result["generalization"]["zero_shot_accuracy"] < 0.35
           and result["generalization"]["adapted_accuracy"] > 0.9
-          and result["additive"]["in_distribution_accuracy"] < 0.65)
+          and result["additive"]["in_distribution_accuracy"] < 0.65
+          and result["factored_full"]["argmax_accuracy"] > 0.99
+          and result["factored_three"]["argmax_accuracy"] < 0.25)
     raise SystemExit(0 if ok else 1)
 
 

@@ -5,7 +5,7 @@ world's own reward condition, so it is 100% accurate and its error carries
 no information. A predictor that is *taught* the rule cannot show learning.
 
 ``OnlinePredictor`` is told nothing about reward. It sees a pre-action
-feature key — ``(task, action, distance bucket)`` — and a binary outcome,
+feature key â€” ``(task, action, distance bucket)`` â€” and a binary outcome,
 and keeps a Laplace-smoothed count per key. Scoring is **prequential**: the
 prediction for a step uses only steps before it, so no step sees its own
 outcome and the score is not circular.
@@ -114,14 +114,14 @@ class AdditivePredictor:
     ``OnlinePredictor`` learns one probability per complete key, so it needs
     one exposure per joint context. This class is the natural alternative an
     engineer reaches for: sum the evidence each *part* of the key carries.
-    ``predict`` takes the same key shape as ``context_feature_key`` — the
-    tuple ``(task, action, bucket, context)`` — decomposes the context into
+    ``predict`` takes the same key shape as ``context_feature_key`` â€” the
+    tuple ``(task, action, bucket, context)`` â€” decomposes the context into
     one component per value plus a ``(task, action, bucket)`` component, and
     returns ``sigmoid(sum of component log-odds)``.
 
     It cannot represent an XOR: each component is symmetric over the two
     outcomes, so the summed evidence is the same for both actions and the
-    model predicts 0.5. That is the point — the interaction has to be in the
+    model predicts 0.5. That is the point â€” the interaction has to be in the
     representation, not in the number of features.
     """
 
@@ -160,3 +160,113 @@ class AdditivePredictor:
     def seen(self, key):
         return sum(self._trials.get(component, 0)
                    for component in self._components(key))
+
+
+#: Fixed learning rate and epoch count, so the factored learner is
+#: deterministic and cheap enough for the unit tier.
+FACTORED_LR = 0.5
+FACTORED_EPOCHS = 4
+
+
+def quadratic_features(context):
+    """Return ``[1, c0, c1, ..., c0*c1, ...]`` for a context tuple."""
+    values = [float(value) for value in context]
+    features = [1.0] + values
+    for first in range(len(values)):
+        for second in range(first + 1, len(values)):
+            features.append(values[first] * values[second])
+    return features
+
+
+def _sigmoid(value):
+    import math
+
+    if value >= 0:
+        return 1.0 / (1.0 + math.exp(-value))
+    scaled = math.exp(value)
+    return scaled / (1.0 + scaled)
+
+
+class FactoredPredictor:
+    """A logistic model on quadratic features of the learned key.
+
+    ``AdditivePredictor`` sums independent evidence, so it cannot fit XOR.
+    ``OnlinePredictor`` fits XOR but only for a joint key it has seen. This
+    class keeps one weight vector per action over ``[1, context, pairwise
+    products]`` and fits it by gradient descent on log loss. A product term
+    is what XOR needs: for bits, ``a XOR b == a + b - 2ab``.
+
+    It is told the feature *shape*, not the rule, and learns the weights
+    from outcomes. Fitting needs the full joint coverage: with only three of
+    the four quadrants the weights are underdetermined and gradient descent
+    extrapolates the missing quadrant into the majority class. Keys without
+    a context collapse to the bias, so the shipped key shape still works.
+    """
+
+    def __init__(self, learning_rate=FACTORED_LR, epochs=FACTORED_EPOCHS):
+        self._lr = float(learning_rate)
+        self._epochs = max(1, int(epochs))
+        self._weights = {}
+        self._counts = {}
+        self._pending = []
+
+    def _context(self, key):
+        if len(key) < 4 or not isinstance(key[3], tuple):
+            return ()
+        return tuple(key[3])
+
+    def _features(self, key):
+        context = self._context(key)
+        return quadratic_features(context) if context else [1.0]
+
+    def _weights_for(self, action, width):
+        weights = self._weights.get(action)
+        if weights is None or len(weights) != width:
+            weights = [0.0] * width
+            self._weights[action] = weights
+        return weights
+
+    def predict(self, key):
+        """Probability of reward for this action and context."""
+        features = self._features(key)
+        weights = self._weights.get(key[1])
+        if weights is None or len(weights) != len(features):
+            return 0.5
+        return _sigmoid(sum(w * f for w, f in zip(weights, features)))
+
+    def observe(self, key, outcome):
+        """Record one outcome and refit once a batch has accumulated."""
+        self._pending.append((key, 1.0 if outcome else 0.0))
+        self._counts[key] = self._counts.get(key, 0) + 1
+        if len(self._pending) >= 32:
+            self.fit()
+        return self._counts[key]
+
+    def fit(self):
+        """Refit on the pending batch with deterministic gradient descent."""
+        batch = self._pending
+        if not batch:
+            return 0
+        for _epoch in range(self._epochs):
+            for key, outcome in batch:
+                features = self._features(key)
+                weights = self._weights_for(key[1], len(features))
+                predicted = _sigmoid(sum(w * f for w, f in zip(weights, features)))
+                error = outcome - predicted
+                for index, value in enumerate(features):
+                    weights[index] += self._lr * error * value
+        self._pending = []
+        return len(batch)
+
+    def flush(self):
+        """Fit any observations still buffered."""
+        return self.fit()
+
+    def table(self):
+        return {key: self.predict(key) for key in sorted(self._counts)}
+
+    def keys(self):
+        return sorted(self._counts)
+
+    def seen(self, key):
+        return self._counts.get(key, 0)

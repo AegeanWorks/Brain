@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `224`
-- **Total Classes**: `244`
-- **Total Top-Level Functions**: `642`
-- **Total Class Methods**: `1287`
-- **Total Source Lines**: `31543`
+- **Total Python Modules**: `225`
+- **Total Classes**: `249`
+- **Total Top-Level Functions**: `649`
+- **Total Class Methods**: `1315`
+- **Total Source Lines**: `31881`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`224` module(s))
+- **Indexed**: python (`225` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -520,7 +520,7 @@
 ### [`evals/context_channel.py`](evals/context_channel.py)
 > *Measure a world-provided context channel against the pair gate.*
 
-**Size**: `210` lines (`8622` bytes)
+**Size**: `283` lines (`11630` bytes)
 
 **Classes:**
 - `class _FrozenPredictor` - *A predictor that predicts from its counts but learns nothing new.*
@@ -537,6 +537,9 @@
 - `def measure_choice(use_context, episodes, phases)` - *Learn to *act* on the XOR: the rewarded action needs both latents.*
 - `def _run_pinned(agent, codes, episodes)` - *Run episodes over a fixed cycle of latent codes; return step rewards.*
 - `def measure_choice_generalization(train_episodes, eval_episodes, backoff, predictor)` - *Train on one set of latent codes and test on a disjoint set.*
+- `def _correct_action(context)` - *The rewarded action for one observed latent pair (binary bits).*
+- `def _correct_probabilities(agent, codes, episodes)` - *Run pinned episodes; return p(correct action) and the argmax hit rate.*
+- `def measure_factored(train_codes, eval_codes, train_episodes, eval_episodes)` - *Train a quadratic-feature learner and score a held-out quadrant.*
 - `def main()`
 
 ---
@@ -1258,7 +1261,7 @@
 ### [`self_model/online.py`](self_model/online.py)
 > *Learn the reward probability from error, without being told the rule.*
 
-**Size**: `162` lines (`5968` bytes)
+**Size**: `272` lines (`9911` bytes)
 
 **Classes:**
 - `class OnlinePredictor` - *Laplace-smoothed outcome frequencies that improve with every step.*
@@ -1276,12 +1279,26 @@
   - Method `.table()`
   - Method `.keys()`
   - Method `.seen(key)`
+- `class FactoredPredictor` - *A logistic model on quadratic features of the learned key.*
+  - Method `.__init__(learning_rate, epochs)`
+  - Method `._context(key)`
+  - Method `._features(key)`
+  - Method `._weights_for(action, width)`
+  - Method `.predict(key)` - *Probability of reward for this action and context.*
+  - Method `.observe(key, outcome)` - *Record one outcome and refit once a batch has accumulated.*
+  - Method `.fit()` - *Refit on the pending batch with deterministic gradient descent.*
+  - Method `.flush()` - *Fit any observations still buffered.*
+  - Method `.table()`
+  - Method `.keys()`
+  - Method `.seen(key)`
 
 **Functions:**
 - `def distance_bucket(state, task)` - *Pre-action distance to the nearest goal, capped at 3 (``9`` = none).*
 - `def feature_key(task, state, action)` - *The key this predictor learns over: nothing but observable inputs.*
 - `def context_feature_key(task, state, action, context)` - *Append a pre-action world context to the feature key.*
 - `def _logit(hits, trials)` - *Laplace-smoothed log-odds of one component.*
+- `def quadratic_features(context)` - *Return ``[1, c0, c1, ..., c0*c1, ...]`` for a context tuple.*
+- `def _sigmoid(value)`
 
 ---
 
@@ -2420,6 +2437,40 @@
 **Functions:**
 - `def _bfs_optimal(target, obstacle)`
 - `def _run_config(target, obstacle, max_steps)`
+
+---
+
+### [`tests/test_factored_learning.py`](tests/test_factored_learning.py)
+> *A product feature can express XOR; three quadrants still do not pin it.*
+
+**Size**: `155` lines (`6499` bytes)
+
+**Classes:**
+- `class TestQuadraticFeatures`
+  - Method `.test_the_shape_is_intercept_terms_and_products()`
+  - Method `.test_a_single_value_has_no_product_term()`
+  - Method `.test_sigmoid_is_stable_and_symmetric()`
+- `class TestFactoredPredictor`
+  - Method `.test_an_unfitted_key_predicts_the_prior()`
+  - Method `.test_a_key_without_context_collapses_to_the_bias()`
+  - Method `.test_counts_are_per_exact_key()`
+  - Method `.test_flush_is_idempotent()`
+  - Method `.test_the_full_coverage_table_fits_xor()`
+  - Method `.test_three_quadrants_do_not_identify_the_fourth()`
+- `class TestFactoredThroughTheAgent`
+  - Method `.setUpClass()`
+  - Method `.test_full_coverage_reaches_the_correct_action()`
+  - Method `.test_three_quadrants_fail_on_the_held_one()`
+  - Method `.test_the_held_quadrant_is_absent_from_training()`
+  - Method `.test_the_correct_action_helper_is_xor()`
+  - Method `.test_a_frozen_wrapper_stops_further_fitting()`
+- `class TestCoveragePools`
+  - Method `.test_the_three_pool_omits_exactly_one_quadrant()`
+  - Method `.test_the_shipped_joint_predictor_is_unchanged()`
+
+**Functions:**
+- `def _trained(codes, episodes)`
+- `def _score(predictor, first, second)`
 
 ---
 

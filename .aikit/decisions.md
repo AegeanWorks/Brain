@@ -1335,6 +1335,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: joint table: in-distribution 1.0; zero-shot 0.25, which equals the blind tie-break baseline on that pool; first exposure 0.25; adapted 1.0; 20 keys. `backoff=True` changes no number. Additive model: in-distribution 0.50, adapted 0.236, so it cannot represent XOR at any sample size. 976 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged.
 - **Boundary**: this is a negative result about the learner, not a defect fix: a joint lookup needs one exposure per context and an additive model cannot express an interaction. Closing it needs a representation that factorises the interaction (e.g. a product/AND feature), which is a new learner and a new re-baseline.
 
+### ADR-186: A product feature fits XOR, but only with full quadrant coverage
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-185 left one route open: a factorised interaction feature instead of a joint lookup. The obvious candidate is a logistic model on quadratic features, since `a XOR b == a + b - 2ab` for bits.
+- **Decision**: `self_model.online.FactoredPredictor` keeps one weight vector per action over `[1, context, pairwise products]` and fits it by deterministic gradient descent on log loss (`FACTORED_LR`, `FACTORED_EPOCHS`, 32-observation batches, `flush()` for the tail). `evals.context_channel.measure_factored` trains on one quadrant set, freezes the model, and scores a held-out set by the probability assigned to the correct action and by argmax accuracy.
+- **Consequences**: all four quadrants: correct-action probability 0.9935, argmax 1.0. Three quadrants with `(1,1)` held out: 0.0534, argmax 0.0 — the weights are underdetermined and gradient descent extrapolates the missing quadrant into the majority class. Additive stays at 0.50 (ADR-185). 992 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged; every earlier predictor default untouched.
+- **Boundary**: the model is told the feature shape (products of context values), not the rule, and it fits XOR only when the interaction's support is covered. It does not establish that a product feature generalises beyond binary latents, and the shipped policy still uses the joint lookup by default.
+
 
 
 

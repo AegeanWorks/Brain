@@ -4904,6 +4904,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 191 - a product feature fits XOR, but only with full quadrant coverage
+
+- **Baseline** (commit 215f76a): 976 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: ADR-185 closed with a named route: a factorised interaction feature. For bits, `a XOR b == a + b - 2ab`, so a logistic model on quadratic features can represent the interaction that an additive model cannot and that a joint lookup cannot generalise.
+- **ANALYZE**: two claims are separable — can the representation fit XOR at all, and how much support does fitting need? Full four-quadrant coverage versus three-of-four answers both without a new task.
+- **IMPLEMENT**: `self_model.online.FactoredPredictor` (per-action weights over `[1, context, pairwise products]`, deterministic batch gradient descent, `flush()`), `quadratic_features`, `_sigmoid`; `evals.context_channel.measure_factored` with `_correct_probabilities` read from the pre-action `G` signal; `tests/test_factored_learning.py` (16). ADR-186.
+- **After** (table frozen, 32 held steps per arm):
+  - four quadrants: correct-action probability **0.9935**, argmax **1.0**.
+  - three quadrants, `(1,1)` held: correctness **0.0534**, argmax **0.0** — it extrapolates the held quadrant into the majority class.
+  - additive model: 0.50 in-distribution (ADR-185, unchanged); joint lookup 0.25 zero-shot (ADR-185, unchanged).
+  - CLI now also exits 0 only when full-coverage argmax > 0.99 and the three-quadrant arm is < 0.25.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the held-out quadrant is the ablation — the same learner, features and learning rate score 1.0 with four quadrants and 0.0 with three, so the difference is coverage, not capacity.
+- **Verdict**: the route named in ADR-185 works, with a precondition. The measured delta is "an interaction cannot be learned by an additive model and is not generalised by a lookup" -> "a product feature fits XOR at 0.9935 **when the support is covered**, and fails at 0.0534 when it is not". Boundary: binary latents only; the default policy still uses the joint lookup, and nothing here claims a grid-task gain.
+- **Gates**: unittest 992/992 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -c "FactoredPredictor ... 4 vs 3 quadrants"` -> 0.886-0.976 correct at four, right-heavy at three.
+  - `python -c "measure_factored(...)"` -> full 0.9935/1.0; three 0.0534/0.0.
+  - `python -m evals.context_channel` -> exit 0 with all eight blocks.
+  - `python -m unittest tests.test_factored_learning` -> 16 OK.
+  - `python -m unittest discover -s tests -t .` -> 992 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 192**: unittest 992 OK; aikit 5/5; factored four-quadrant correct p 0.9935 / argmax 1.0; three-quadrant held `(1,1)` correct p 0.0534 / argmax 0.0; `quadratic_features((2,3))` `[1.0,2.0,3.0,6.0]`; sigmoid symmetry and stability at ±40; unfitted key 0.5; context-free key is bias-only; per-key counts and idempotent `flush`; frozen wrapper stops fitting; additive 0.50; joint zero-shot 0.25; all cycle 190 pins unchanged.
+
 ## Cycle 190 - the learned policy memorises; XOR needs a joint representation
 
 - **Baseline** (commit efbc362): 961 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
