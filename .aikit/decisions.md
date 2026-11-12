@@ -1247,6 +1247,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 930 tests OK; aikit check 5/5. The eval family and the replication family now agree at 10 for the default signal trace; keys adds 3 unique cross pairs over seen (8 vs 5), turns adds 3 over revisits (8 vs 5), and alternatives adds no unique cross pairs over distance (8 vs 8) while removing the P0 target leak. Selected anti pairs and standing numbers are unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: `dedupe=False` restores the raw family (14 valid / 12 cross) and the duplicate alias count.
 - **Boundary**: generic `scan_pairs` still defaults to `dedupe=False` for compatibility; the eval path chooses true. Unique counts are evidence counts; raw counts include dependent aliases.
 
+### ADR-175: The block split must use the deduped family too
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-174 deduped `scan_module_states`/`scan_traces`, but `_split_blocks` still called `interactions`/`anti_interactions` with their raw family. It collapsed the pair list with `unique_pairs` but reported `family_size 14` and the raw p-values; the block result disagreed with the eval and replication paths.
+- **Decision**: add `dedupe=False` to `interactions`, `anti_interactions` and the module/world wrappers, pass it through; `_split_blocks` defaults `dedupe=True`, and `scan_module_state_blocks`/`scan_trace_blocks` expose the ablation. Tests: `test_block_split_dedupes_the_family` (37 in the module-signal file).
+- **Consequences**: 931 tests OK; aikit check 5/5. Block split `family_size` 10 (deduped) versus 14 (raw); anti list remains two unique P-S pairs; positive subsets empty; metadata and standing numbers unchanged (`89 steps / 11.0`, `policy_digest decbfce3...`). Ablation: `dedupe=False` reports the raw family 14 and the duplicate aliases; `dedupe=True` reports 10.
+- **Boundary**: generic `interactions`/`anti_interactions` still default raw for compatibility; the block split and eval choose true. The block split remains a family-membership correction, not a new interaction.
+
 
 
 

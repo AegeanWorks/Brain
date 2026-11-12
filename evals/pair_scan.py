@@ -277,7 +277,7 @@ def scan_pairs(rows, target, trials=200, family_wise=True, seed=0,
 
 
 def interactions(rows, target, trials=200, family_wise=True, seed=0,
-                 guard_target=True):
+                 guard_target=True, dedupe=False):
     """Return only the pairs that pass the gate AND beat their family upward.
 
     This is the honest answer to "which two modules interact": empty when no
@@ -289,7 +289,8 @@ def interactions(rows, target, trials=200, family_wise=True, seed=0,
     """
     selected = []
     for report in scan_pairs(rows, target, trials, family_wise=family_wise,
-                             seed=seed, guard_target=guard_target):
+                             seed=seed, guard_target=guard_target,
+                             dedupe=dedupe):
         if not report["ok"] or report["syn"] <= 0.0:
             continue
         if family_wise:
@@ -301,7 +302,7 @@ def interactions(rows, target, trials=200, family_wise=True, seed=0,
 
 
 def anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
-                      guard_target=True):
+                      guard_target=True, dedupe=False):
     """Return pairs that pass the gate and sit below their family null.
 
     Kept separate from :func:`interactions` so a caller counting
@@ -311,7 +312,8 @@ def anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
     """
     selected = []
     for report in scan_pairs(rows, target, trials, family_wise=family_wise,
-                             seed=seed, guard_target=guard_target):
+                             seed=seed, guard_target=guard_target,
+                             dedupe=dedupe):
         if not report["ok"] or report["syn"] >= 0.0:
             continue
         if family_wise:
@@ -339,7 +341,7 @@ def world_pair(report):
 
 
 def module_interactions(rows, target, trials=200, family_wise=True, seed=0,
-                        guard_target=True):
+                        guard_target=True, dedupe=False):
     """Return corrected interactions whose two blocks are different modules.
 
     A pair with a ``hub`` column is a world/time pair, not two modules
@@ -348,32 +350,32 @@ def module_interactions(rows, target, trials=200, family_wise=True, seed=0,
     """
     return [report for report in interactions(
                 rows, target, trials=trials, family_wise=family_wise,
-                seed=seed, guard_target=guard_target)
+                seed=seed, guard_target=guard_target, dedupe=dedupe)
             if module_pair(report)]
 
 
 def world_interactions(rows, target, trials=200, family_wise=True, seed=0,
-                       guard_target=True):
+                       guard_target=True, dedupe=False):
     """Return corrected interactions that include a ``hub`` column."""
     return [report for report in interactions(
                 rows, target, trials=trials, family_wise=family_wise,
-                seed=seed, guard_target=guard_target)
+                seed=seed, guard_target=guard_target, dedupe=dedupe)
             if world_pair(report)]
 
 
 def module_anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
-                             guard_target=True):
+                             guard_target=True, dedupe=False):
     """Return anti-interactions whose two blocks are different modules."""
     return [report for report in anti_interactions(
                 rows, target, trials=trials, family_wise=family_wise,
-                seed=seed, guard_target=guard_target)
+                seed=seed, guard_target=guard_target, dedupe=dedupe)
             if module_pair(report)]
 
 
 def world_anti_interactions(rows, target, trials=200, family_wise=True, seed=0,
-                            guard_target=True):
+                            guard_target=True, dedupe=False):
     """Return anti-interactions that include a ``hub`` column."""
     return [report for report in anti_interactions(
                 rows, target, trials=trials, family_wise=family_wise,
-                seed=seed, guard_target=guard_target)
+                seed=seed, guard_target=guard_target, dedupe=dedupe)
             if world_pair(report)]

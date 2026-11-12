@@ -9,8 +9,8 @@
 - **Total Python Modules**: `218`
 - **Total Classes**: `227`
 - **Total Top-Level Functions**: `629`
-- **Total Class Methods**: `1204`
-- **Total Source Lines**: `30363`
+- **Total Class Methods**: `1205`
+- **Total Source Lines**: `30373`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`218` module(s))
@@ -721,7 +721,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `190` lines (`6700` bytes)
+**Size**: `190` lines (`6799` bytes)
 
 **Functions:**
 - `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
@@ -732,16 +732,16 @@
 - `def signals_from_trace(trace)` - *Return one signal row per trace step that carries a signals block.*
 - `def scan_traces(traces, trials, dedupe)` - *Scan pooled in-memory traces with the shared pair gate and family null.*
 - `def scan_module_states(log_paths, trials, dedupe)` - *Scan pooled signal rows with the shared pair gate and family null.*
-- `def _split_blocks(rows, target, trials, unique)`
-- `def scan_module_state_blocks(log_paths, trials, unique)` - *Return the pooled log signal scan split into positive and anti pairs.*
-- `def scan_trace_blocks(traces, trials, unique)` - *Return the in-memory trace signal scan split into positive/anti pairs.*
+- `def _split_blocks(rows, target, trials, unique, dedupe)`
+- `def scan_module_state_blocks(log_paths, trials, unique, dedupe)` - *Return the pooled log signal scan split into positive and anti pairs.*
+- `def scan_trace_blocks(traces, trials, unique, dedupe)` - *Return the in-memory trace signal scan split into positive/anti pairs.*
 
 ---
 
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `379` lines (`15347` bytes)
+**Size**: `381` lines (`15579` bytes)
 
 **Functions:**
 - `def _dependent(first, second)` - *True when one column is a deterministic function of the other.*
@@ -753,14 +753,14 @@
 - `def pair_report(rows, target, first, second, trials, with_null, guard_target)` - *Score one column pair, refusing artifacts before scoring.*
 - `def _family_wise(rows, target, reports, trials, seed)` - *Attach a max/min-statistic null to every pair that passed the gate.*
 - `def scan_pairs(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return every feature-column pair's report, sorted by gap descending.*
-- `def interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return only the pairs that pass the gate AND beat their family upward.*
-- `def anti_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return pairs that pass the gate and sit below their family null.*
+- `def interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return only the pairs that pass the gate AND beat their family upward.*
+- `def anti_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return pairs that pass the gate and sit below their family null.*
 - `def module_pair(report)` - *True when a report's two blocks are different M/P/S modules.*
 - `def world_pair(report)` - *True when a report includes the world hub.*
-- `def module_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return corrected interactions whose two blocks are different modules.*
-- `def world_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return corrected interactions that include a ``hub`` column.*
-- `def module_anti_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return anti-interactions whose two blocks are different modules.*
-- `def world_anti_interactions(rows, target, trials, family_wise, seed, guard_target)` - *Return anti-interactions that include a ``hub`` column.*
+- `def module_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return corrected interactions whose two blocks are different modules.*
+- `def world_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return corrected interactions that include a ``hub`` column.*
+- `def module_anti_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return anti-interactions whose two blocks are different modules.*
+- `def world_anti_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return anti-interactions that include a ``hub`` column.*
 
 ---
 
@@ -2726,7 +2726,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `442` lines (`21241` bytes)
+**Size**: `450` lines (`21693` bytes)
 
 **Classes:**
 - `class TestModuleSignals`
@@ -2758,6 +2758,7 @@
   - Method `.test_block_split_includes_the_anti_module_pairs()`
   - Method `.test_trace_block_split_matches_the_log_path()`
   - Method `.test_module_state_scan_dedupes_the_family()`
+  - Method `.test_block_split_dedupes_the_family()`
   - Method `.test_block_split_reports_metadata()`
   - Method `.test_disabled_trace_block_split_is_empty()`
   - Method `.test_anti_block_filters_are_complementary()`

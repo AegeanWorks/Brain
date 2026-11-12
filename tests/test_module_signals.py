@@ -356,6 +356,14 @@ class TestModuleSignals(unittest.TestCase):
         self.assertEqual(deduped_valid[0]["family"]["family_size"], 10)
         self.assertEqual(full_valid[0]["family"]["family_size"], 14)
 
+    def test_block_split_dedupes_the_family(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = _logs(directory, True)
+            deduped = scan_module_state_blocks(paths, trials=100)
+            raw = scan_module_state_blocks(paths, trials=100, dedupe=False)
+        self.assertEqual(deduped["anti_module"][0]["family"]["family_size"], 10)
+        self.assertEqual(raw["anti_module"][0]["family"]["family_size"], 14)
+
     def test_block_split_reports_metadata(self):
         with tempfile.TemporaryDirectory() as directory:
             paths = _logs(directory, True)

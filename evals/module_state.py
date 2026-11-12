@@ -146,9 +146,9 @@ def scan_module_states(log_paths, trials=200, dedupe=True):
                       dedupe=dedupe)
 
 
-def _split_blocks(rows, target, trials=200, unique=True):
-    positive = interactions(rows, target, trials=trials)
-    anti = anti_interactions(rows, target, trials=trials)
+def _split_blocks(rows, target, trials=200, unique=True, dedupe=True):
+    positive = interactions(rows, target, trials=trials, dedupe=dedupe)
+    anti = anti_interactions(rows, target, trials=trials, dedupe=dedupe)
     if unique:
         classes = column_classes(rows)
         positive = unique_pairs(positive, classes)
@@ -161,7 +161,7 @@ def _split_blocks(rows, target, trials=200, unique=True):
     }
 
 
-def scan_module_state_blocks(log_paths, trials=200, unique=True):
+def scan_module_state_blocks(log_paths, trials=200, unique=True, dedupe=True):
     """Return the pooled log signal scan split into positive and anti pairs.
 
     ``unique=True`` collapses dependent-column aliases before the block
@@ -171,20 +171,20 @@ def scan_module_state_blocks(log_paths, trials=200, unique=True):
     log_paths = list(log_paths)
     rows = pool_signals(log_paths)
     result = _split_blocks(rows, [row[-1] for row in rows],
-                           trials=trials, unique=unique)
+                           trials=trials, unique=unique, dedupe=dedupe)
     result["metadata"] = (read_signal_metadata(log_paths[0])
                           if log_paths else None)
     return result
 
 
-def scan_trace_blocks(traces, trials=200, unique=True):
+def scan_trace_blocks(traces, trials=200, unique=True, dedupe=True):
     """Return the in-memory trace signal scan split into positive/anti pairs."""
     traces = list(traces)
     rows = []
     for trace in traces:
         rows.extend(signals_from_trace(trace))
     result = _split_blocks(rows, [row[-1] for row in rows],
-                           trials=trials, unique=unique)
+                           trials=trials, unique=unique, dedupe=dedupe)
     result["metadata"] = (signals_meta_from_trace(traces[0])
                           if traces else None)
     return result
