@@ -95,12 +95,12 @@ EVAL_CODES = ((2, 0), (2, 1), (2, 2), (2, 3),
               (3, 0), (3, 1), (3, 2), (3, 3))
 
 
-def _run_pinned(agent, codes, episodes):
+def _run_pinned(agent, codes, episodes, rule="xor"):
     """Run episodes over a fixed cycle of latent codes; return step rewards."""
     rewards = []
     for episode in range(episodes):
         batch = [codes[(episode * 4 + index) % len(codes)] for index in range(4)]
-        agent.world = ChoiceDualWorld(episode, latents=batch)
+        agent.world = ChoiceDualWorld(episode, latents=batch, rule=rule)
         trace = agent.run(max_steps=4)
         rewards.extend(float(step.get("reward", 0.0)) for step in trace)
     return rewards
@@ -191,18 +191,36 @@ def _correct_action(context):
     return "right" if (first ^ second) else "left"
 
 
-def _correct_probabilities(agent, codes, episodes):
-    """Run pinned episodes; return p(correct action) and the argmax hit rate.
+def _parity_correct_action(context):
+    """The rewarded action when the rule is defined on each value's parity."""
+    first, second = int(context[0]) % 2, int(context[1]) % 2
+    return "right" if (first ^ second) else "left"
+
+
+#: Large-value contexts for the transfer arm. Each pair has a parity
+#: combination that also occurs in ``TRAIN_CODES``, but no value is 0 or 1.
+TRANSFER_CODES = ((2, 4), (2, 5), (3, 4), (3, 5),
+                  (6, 8), (6, 9), (7, 8), (7, 9))
+
+
+def _correct_probabilities(agent, codes, episodes, action_of=_correct_action,
+                           rule="xor"):
+    """Run pinned episodes; return p(correct), the argmax hit rate and margin.
 
     The context is read from the trace's pre-action ``G`` signal, so the
     score is what the policy believed before acting, not a post-hoc value.
+    ``margin`` is ``|p_right - p_left|`` and ``saturated_steps`` counts
+    steps where both actions read above 0.99 — a saturated readout makes the
+    correctness probability meaningless even though it looks confident.
     """
     probabilities = []
+    margins = []
     hits = 0
     steps = 0
+    saturated = 0
     for episode in range(episodes):
         code = codes[episode % len(codes)]
-        agent.world = ChoiceDualWorld(episode, latents=[code] * 4)
+        agent.world = ChoiceDualWorld(episode, latents=[code] * 4, rule=rule)
         trace = agent.run(max_steps=4)
         for step in trace:
             context = (step.get("signals") or {}).get("G")
@@ -210,15 +228,61 @@ def _correct_probabilities(agent, codes, episodes):
                 continue
             scores = agent.planner.scores({"x": 0, "y": 0, "task": ChoiceDualWorld.task_id,
                                            "target": [0, 0], "context": list(context)})
-            correct = _correct_action(context)
+            correct = action_of(context)
             probabilities.append(scores[correct])
+            margins.append(abs(scores["right"] - scores["left"]))
+            if scores["right"] > 0.99 and scores["left"] > 0.99:
+                saturated += 1
             chosen = "right" if scores["right"] > scores["left"] else "left"
             hits += 1 if chosen == correct else 0
             steps += 1
     return {
         "correct_probability": sum(probabilities) / max(1, len(probabilities)),
         "argmax_accuracy": hits / max(1, steps),
+        "margin": sum(margins) / max(1, len(margins)),
+        "saturated_steps": saturated,
         "steps": steps,
+    }
+
+
+def measure_transfer(feature_mode="raw", train_codes=TRAIN_CODES,
+                     eval_codes=TRANSFER_CODES, train_episodes=40,
+                     eval_episodes=8):
+    """Train a factored learner on small values and score larger ones.
+
+    The world rule is parity-invariant, and ``TRANSFER_CODES`` reuse the
+    parity combinations seen in training while using no training value.
+    ``feature_mode="raw"`` sees scale; ``"parity"`` reduces each value
+    before the terms are built, so only the second mode can transfer.
+    """
+    from agent import Agent
+    from planner.plan import LearnedPlanner
+    from self_model.online import FactoredPredictor
+
+    predictor = FactoredPredictor(feature_mode=feature_mode)
+    agent = Agent(planner=LearnedPlanner(), learn_context=True)
+    agent.use_predictor(predictor)
+    train_rewards = _run_pinned(agent, tuple(train_codes), train_episodes,
+                                rule="parity")
+    predictor.flush()
+
+    agent.use_predictor(_FrozenPredictor(predictor))
+    seen = _correct_probabilities(agent, tuple(train_codes), eval_episodes,
+                                  action_of=_parity_correct_action,
+                                  rule="parity")
+    unseen = _correct_probabilities(agent, tuple(eval_codes), eval_episodes,
+                                    action_of=_parity_correct_action,
+                                    rule="parity")
+    return {
+        "feature_mode": feature_mode,
+        "train_accuracy": sum(train_rewards) / max(1, len(train_rewards)),
+        "seen_accuracy": seen["argmax_accuracy"],
+        "seen_correct_probability": seen["correct_probability"],
+        "transfer_accuracy": unseen["argmax_accuracy"],
+        "transfer_correct_probability": unseen["correct_probability"],
+        "transfer_margin": unseen["margin"],
+        "transfer_saturated_steps": unseen["saturated_steps"],
+        "transfer_steps": unseen["steps"],
     }
 
 
@@ -264,6 +328,8 @@ def main():
             ((0, 0), (0, 1), (1, 0), (1, 1))),
         "factored_three": measure_factored(
             ((0, 0), (0, 1), (1, 0)), ((1, 1),)),
+        "transfer_raw": measure_transfer(feature_mode="raw"),
+        "transfer_parity": measure_transfer(feature_mode="parity"),
     }
     print(json.dumps(result, sort_keys=True))
     ok = (result["planted"]["g_pair_selected"]
@@ -275,7 +341,9 @@ def main():
           and result["generalization"]["adapted_accuracy"] > 0.9
           and result["additive"]["in_distribution_accuracy"] < 0.65
           and result["factored_full"]["argmax_accuracy"] > 0.99
-          and result["factored_three"]["argmax_accuracy"] < 0.25)
+          and result["factored_three"]["argmax_accuracy"] < 0.25
+          and result["transfer_raw"]["transfer_accuracy"] < 0.75
+          and result["transfer_parity"]["transfer_accuracy"] > 0.99)
     raise SystemExit(0 if ok else 1)
 
 

@@ -4904,6 +4904,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 192 - transfer measures the feature map, not the learner
+
+- **Baseline** (commit 4621fa9): 992 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: ADR-186 fits a covered interaction, but the practical question is behaviour outside the training range. A rule can be magnitude-invariant while the feature map is not, and nothing yet separated those two.
+- **ANALYZE**: make the rule parity-invariant (`rule="parity"`) and score frozen on contexts whose parity combinations were all trained but whose values never were. Then capacity, coverage and sample count are held fixed and only the feature map differs.
+- **IMPLEMENT**: `ChoiceDualWorld(rule=...)` with `RULES` validation; `FactoredPredictor(feature_mode=...)`; `quadratic_features(context, mode)`; `evals.context_channel.measure_transfer`, `TRANSFER_CODES`, `_parity_correct_action`, `_run_pinned(rule=)`; `_correct_probabilities` reports `margin` and `saturated_steps`; `tests/test_parity_transfer.py` (18). ADR-187. Also fixed `_phase` to clamp to the pinned latent list rather than the module `PHASES`.
+- **After** (40 train episodes, frozen, 32 held steps):
+  - parity map: seen **1.0**, transfer **1.0**, correct p 0.9935, 8/32 steps saturated.
+  - raw map: seen **1.0**, transfer **0.5**, correct p ~1.0, **32/32** steps saturated.
+  - transfer pool shares no value with training (0/1 vs 2-9) yet every parity combination is covered.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the two arms are identical in world, seed pool, learner, learning rate, coverage and sample count; only `feature_mode` differs, so the 1.0/0.5 split is the feature map.
+- **Verdict**: identifies what the earlier "generalisation" numbers meant. The measured delta is "a learner that fits a covered interaction" -> "a learner whose transfer is decided by whether its features match the rule: 1.0 parity vs 0.5 raw, with the raw arm fully saturated". Boundary: the parity map was chosen to match a parity rule; nothing here shows a learner discovering that alignment.
+- **Gates**: unittest 1010/1010 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -c "measure_transfer(...)"` -> raw 1.0 seen / 0.5 transfer / 32 saturated; parity 1.0 / 1.0 / 8.
+  - `python -c "FactoredPredictor(feature_mode='parity') ..."` -> correct side for (2,3),(4,5),(6,8).
+  - `python -m evals.context_channel` -> exit 0 with ten blocks.
+  - `python -m unittest tests.test_parity_transfer` -> 18 OK.
+  - `python -m unittest discover -s tests -t .` -> 1010 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 193**: unittest 1010 OK; aikit 5/5; parity transfer 1.0 (p 0.9935, 8/32 saturated); raw transfer 0.5 (32/32 saturated); `quadratic_features((2,3),"parity")` `[1.0,0.0,1.0,0.0]`; unknown mode/rule refused; `rule="xor"` still reads raw bits; rewards follow the rule; pinned latents shorter than `PHASES` clamp instead of raising; defaults `rule="xor"`/`feature_mode="raw"`; factored full 0.9935/1.0 and three-quadrant 0.0534/0.0; all cycle 191 pins unchanged.
+
 ## Cycle 191 - a product feature fits XOR, but only with full quadrant coverage
 
 - **Baseline** (commit 215f76a): 976 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

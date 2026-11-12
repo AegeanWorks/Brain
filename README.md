@@ -225,7 +225,7 @@ first prompt hash.
 
 `synergy` reads columns 0 and 1 only, so `syn` 0.0 cannot separate
 absence from signal elsewhere. `synergy_scope(...)` and `synergy_verdict(...)`
-say what the pair can decide and whether it beats a permutation null
+say what the pair decides and whether it beats a permutation null
 (`p_upper`/`p_lower`); `recompute` carries it; `dedupe_rows` collapses paired
 rows so `n` counts steps. Equal scope columns mean no second
 signal (`duplicate-scope-column`); a constant reads `constant-scope-column`.
@@ -235,12 +235,12 @@ signal (`duplicate-scope-column`); a constant reads `constant-scope-column`.
 `evals.module_state` pools them. `evals.replication` needs stability and
 holdout. A world may expose `signal_context(state)`, copied to a pre-action
 `G` block. `worlds.dual` rewards two latents by XOR:
-`evals.context_channel` selects `G` cols(6,7) `syn +0.6654`, holdout
-`+0.6874`; noise selects none. `T5_choice` rewards the XOR action:
-`LearnedPlanner` with `learn_context` reaches last-half 1.0 vs 0.4875 blind,
-but an unseen joint context scores 0.25 zero-shot, an additive model 0.5, and
-`FactoredPredictor`'s products fit XOR only with all four quadrants.
-Interaction is in the representation.
+`evals.context_channel` selects `G` cols(6,7) `syn +0.6654` (holdout
+`+0.6874`); noise selects none. `T5_choice` rewards the XOR action:
+`LearnedPlanner` with `learn_context` reaches last-half 1.0 vs 0.4875 blind;
+an unseen joint context scores 0.25, an additive model 0.5, `FactoredPredictor`
+fits XOR only with all four quadrants, and parity features transfer across
+magnitudes (1.0 vs 0.5).
 
 ## 🧪 Lesion Detectability
 

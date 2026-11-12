@@ -1343,6 +1343,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: all four quadrants: correct-action probability 0.9935, argmax 1.0. Three quadrants with `(1,1)` held out: 0.0534, argmax 0.0 — the weights are underdetermined and gradient descent extrapolates the missing quadrant into the majority class. Additive stays at 0.50 (ADR-185). 992 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged; every earlier predictor default untouched.
 - **Boundary**: the model is told the feature shape (products of context values), not the rule, and it fits XOR only when the interaction's support is covered. It does not establish that a product feature generalises beyond binary latents, and the shipped policy still uses the joint lookup by default.
 
+### ADR-187: Transfer measures the feature map, not the learner
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-186 showed the factored learner fits a covered interaction. The practical question is what happens outside the training range: a rule can be invariant to magnitude while the feature map is not.
+- **Decision**: `ChoiceDualWorld(rule="xor"|"parity")` applies the same interaction to raw values or to each value's parity, and `FactoredPredictor(feature_mode="raw"|"parity")` builds the quadratic terms from raw values or their parities. `evals.context_channel.measure_transfer` trains on values 0/1 and scores frozen on `TRANSFER_CODES` (values 2-9) whose parity combinations all occurred in training. `_correct_probabilities` now also reports `margin` and `saturated_steps`, because unregularised logistic regression saturates on separable data and a p(correct) near 1.0 can coexist with a wrong argmax.
+- **Consequences**: parity map: seen 1.0, transfer 1.0 (correct p 0.9935, 8 of 32 steps saturated). Raw map: seen 1.0, transfer 0.5 with 32 of 32 steps saturated, so its probability readout is uninformative under extrapolation. Defaults unchanged (`rule="xor"`, `feature_mode="raw"`). 1010 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged.
+- **Boundary**: the parity map was chosen to match a parity rule; this shows that a representation aligned with the rule transfers, not that a learner discovers the alignment. A rule that is not parity-invariant would not transfer this way, and no claim is made about non-binary latents.
+
 
 
 

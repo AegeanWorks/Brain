@@ -168,9 +168,21 @@ FACTORED_LR = 0.5
 FACTORED_EPOCHS = 4
 
 
-def quadratic_features(context):
-    """Return ``[1, c0, c1, ..., c0*c1, ...]`` for a context tuple."""
+def quadratic_features(context, mode="raw"):
+    """Return ``[1, c0, c1, ..., c0*c1, ...]`` for a context tuple.
+
+    ``mode="parity"`` reduces every value to ``value % 2`` before building
+    the terms, so the feature map is invariant to the value's magnitude. A
+    rule defined on parity then transfers to values the learner never saw;
+    ``mode="raw"`` keeps the shipped scale-sensitive map.
+    """
+    if mode not in ("raw", "parity"):
+        raise ValueError(
+            "Why: mode must be raw or parity. "
+            "Fix: pass mode='raw'.")
     values = [float(value) for value in context]
+    if mode == "parity":
+        values = [float(int(value) % 2) for value in values]
     features = [1.0] + values
     for first in range(len(values)):
         for second in range(first + 1, len(values)):
@@ -199,13 +211,23 @@ class FactoredPredictor:
     It is told the feature *shape*, not the rule, and learns the weights
     from outcomes. Fitting needs the full joint coverage: with only three of
     the four quadrants the weights are underdetermined and gradient descent
-    extrapolates the missing quadrant into the majority class. Keys without
-    a context collapse to the bias, so the shipped key shape still works.
+    extrapolates the missing quadrant into the majority class.
+
+    ``feature_mode="parity"`` replaces each context value with its parity
+    before the terms are built, so a rule defined on parity transfers to
+    value ranges the learner never saw. Keys without a context collapse to
+    the bias, so the shipped key shape still works.
     """
 
-    def __init__(self, learning_rate=FACTORED_LR, epochs=FACTORED_EPOCHS):
+    def __init__(self, learning_rate=FACTORED_LR, epochs=FACTORED_EPOCHS,
+                 feature_mode="raw"):
+        if feature_mode not in ("raw", "parity"):
+            raise ValueError(
+                "Why: feature_mode must be raw or parity. "
+                "Fix: pass feature_mode='raw'.")
         self._lr = float(learning_rate)
         self._epochs = max(1, int(epochs))
+        self._mode = feature_mode
         self._weights = {}
         self._counts = {}
         self._pending = []
@@ -217,7 +239,7 @@ class FactoredPredictor:
 
     def _features(self, key):
         context = self._context(key)
-        return quadratic_features(context) if context else [1.0]
+        return quadratic_features(context, self._mode) if context else [1.0]
 
     def _weights_for(self, action, width):
         weights = self._weights.get(action)

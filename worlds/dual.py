@@ -57,7 +57,9 @@ class DualWorld:
                         for _ in range(PHASES)]
 
     def _phase(self):
-        return min(self.i, PHASES - 1)
+        if not self.latents:
+            return 0
+        return min(self.i, len(self.latents) - 1)
 
     def _state(self):
         index = self._phase()
@@ -123,20 +125,39 @@ class ChoiceDualWorld(DualWorld):
     and ``left`` when ``a ^ b == 0``. Every other action scores 0.0, so the
     reward is not reachable without reading both latents, and the base rate
     of a blind policy is 0.5.
+
+    ``rule="parity"`` keeps the same interaction but applies it to each
+    latent's parity, so the rule is invariant to value range. That makes
+    transfer measurable: a learner trained on small values can be scored on
+    larger ones where the *rule* still holds.
     """
 
     task_id = "T5_choice"
     ACTIONS = ("left", "right")
+    RULES = ("xor", "parity")
+
+    def __init__(self, seed, latents=None, rule="xor"):
+        if rule not in self.RULES:
+            raise ValueError(
+                "Why: rule must be xor or parity. "
+                "Fix: pass rule='xor'.")
+        self.rule = rule
+        super().__init__(seed, latents=latents)
 
     def _state(self):
         state = super()._state()
         state["context"] = [state["a"], state["b"]]
         return state
 
+    def _bits(self, pair):
+        if self.rule == "parity":
+            return int(pair[0]) % 2, int(pair[1]) % 2
+        return int(pair[0]), int(pair[1])
+
     def correct_action(self):
         """Return the rewarded action for the current phase."""
-        a, b = self.latents[self._phase()]
-        return "right" if (a ^ b) else "left"
+        first, second = self._bits(self.latents[self._phase()])
+        return "right" if (first ^ second) else "left"
 
     def step(self, action):
         if self.i >= PHASES:

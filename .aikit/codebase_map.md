@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `225`
-- **Total Classes**: `249`
-- **Total Top-Level Functions**: `649`
-- **Total Class Methods**: `1315`
-- **Total Source Lines**: `31881`
+- **Total Python Modules**: `226`
+- **Total Classes**: `253`
+- **Total Top-Level Functions**: `653`
+- **Total Class Methods**: `1336`
+- **Total Source Lines**: `32166`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`225` module(s))
+- **Indexed**: python (`226` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -520,7 +520,7 @@
 ### [`evals/context_channel.py`](evals/context_channel.py)
 > *Measure a world-provided context channel against the pair gate.*
 
-**Size**: `283` lines (`11630` bytes)
+**Size**: `351` lines (`14917` bytes)
 
 **Classes:**
 - `class _FrozenPredictor` - *A predictor that predicts from its counts but learns nothing new.*
@@ -535,10 +535,12 @@
 - `def collect_rows(world_factory, seeds, include_context)` - *Run one agent per seed and return extended signal rows plus targets.*
 - `def measure(world_class, train_seeds, holdout_seeds, trials, include_context)` - *Return the signed holdout result for a world class.*
 - `def measure_choice(use_context, episodes, phases)` - *Learn to *act* on the XOR: the rewarded action needs both latents.*
-- `def _run_pinned(agent, codes, episodes)` - *Run episodes over a fixed cycle of latent codes; return step rewards.*
+- `def _run_pinned(agent, codes, episodes, rule)` - *Run episodes over a fixed cycle of latent codes; return step rewards.*
 - `def measure_choice_generalization(train_episodes, eval_episodes, backoff, predictor)` - *Train on one set of latent codes and test on a disjoint set.*
 - `def _correct_action(context)` - *The rewarded action for one observed latent pair (binary bits).*
-- `def _correct_probabilities(agent, codes, episodes)` - *Run pinned episodes; return p(correct action) and the argmax hit rate.*
+- `def _parity_correct_action(context)` - *The rewarded action when the rule is defined on each value's parity.*
+- `def _correct_probabilities(agent, codes, episodes, action_of, rule)` - *Run pinned episodes; return p(correct), the argmax hit rate and margin.*
+- `def measure_transfer(feature_mode, train_codes, eval_codes, train_episodes, eval_episodes)` - *Train a factored learner on small values and score larger ones.*
 - `def measure_factored(train_codes, eval_codes, train_episodes, eval_episodes)` - *Train a quadratic-feature learner and score a held-out quadrant.*
 - `def main()`
 
@@ -1261,7 +1263,7 @@
 ### [`self_model/online.py`](self_model/online.py)
 > *Learn the reward probability from error, without being told the rule.*
 
-**Size**: `272` lines (`9911` bytes)
+**Size**: `294` lines (`10907` bytes)
 
 **Classes:**
 - `class OnlinePredictor` - *Laplace-smoothed outcome frequencies that improve with every step.*
@@ -1280,7 +1282,7 @@
   - Method `.keys()`
   - Method `.seen(key)`
 - `class FactoredPredictor` - *A logistic model on quadratic features of the learned key.*
-  - Method `.__init__(learning_rate, epochs)`
+  - Method `.__init__(learning_rate, epochs, feature_mode)`
   - Method `._context(key)`
   - Method `._features(key)`
   - Method `._weights_for(action, width)`
@@ -1297,7 +1299,7 @@
 - `def feature_key(task, state, action)` - *The key this predictor learns over: nothing but observable inputs.*
 - `def context_feature_key(task, state, action, context)` - *Append a pre-action world context to the feature key.*
 - `def _logit(hits, trials)` - *Laplace-smoothed log-odds of one component.*
-- `def quadratic_features(context)` - *Return ``[1, c0, c1, ..., c0*c1, ...]`` for a context tuple.*
+- `def quadratic_features(context, mode)` - *Return ``[1, c0, c1, ..., c0*c1, ...]`` for a context tuple.*
 - `def _sigmoid(value)`
 
 ---
@@ -3215,6 +3217,42 @@
 
 ---
 
+### [`tests/test_parity_transfer.py`](tests/test_parity_transfer.py)
+> *A representation that matches the rule transfers; the same weights do not.*
+
+**Size**: `174` lines (`7542` bytes)
+
+**Classes:**
+- `class TestParityRule`
+  - Method `.test_the_rule_rejects_an_unknown_name()`
+  - Method `.test_parity_ignores_magnitude()`
+  - Method `.test_the_xor_rule_still_reads_raw_bits()`
+  - Method `.test_rewards_follow_the_selected_rule()`
+- `class TestParityFeatures`
+  - Method `.test_parity_reduces_values_before_the_products()`
+  - Method `.test_raw_keeps_the_shipped_scale()`
+  - Method `.test_an_unknown_mode_is_refused()`
+  - Method `.test_parity_weights_transfer_to_larger_values()`
+  - Method `.test_raw_weights_do_not_transfer()`
+- `class TestTransferThroughTheAgent`
+  - Method `.setUpClass()`
+  - Method `.test_both_modes_fit_the_seen_contexts()`
+  - Method `.test_only_the_matching_feature_map_transfers()`
+  - Method `.test_the_raw_arm_is_saturated_so_its_probability_is_meaningless()`
+  - Method `.test_the_parity_arm_is_not_wholly_saturated()`
+  - Method `.test_the_transfer_pool_shares_no_value_with_training()`
+  - Method `.test_every_transfer_parity_combination_was_trained()`
+  - Method `.test_the_parity_scorer_agrees_with_the_world()`
+- `class TestNoDefaultDrift`
+  - Method `.test_the_shipped_predictor_defaults_are_unchanged()`
+  - Method `.test_a_frozen_parity_model_keeps_its_weights()`
+
+**Functions:**
+- `def _trained(mode, episodes)`
+- `def _scores(predictor, first, second)`
+
+---
+
 ### [`tests/test_persistent_hidden_forage.py`](tests/test_persistent_hidden_forage.py)
 > *Persistent-hidden forage: episode recall goes stale after collects.*
 
@@ -4434,7 +4472,7 @@
 ### [`worlds/dual.py`](worlds/dual.py)
 > *A deterministic world whose reward is an interaction of two independent bits.*
 
-**Size**: `146` lines (`4762` bytes)
+**Size**: `167` lines (`5597` bytes)
 
 **Classes:**
 - `class DualWorld` - *Two independent latents per phase; reward is their XOR.*
@@ -4450,7 +4488,9 @@
 - `class NoiseDualWorld` - *Same latents and context, but the reward ignores both of them.*
   - Method `.step(action)`
 - `class ChoiceDualWorld` - *The correct action is the XOR of the two latents.*
+  - Method `.__init__(seed, latents, rule)`
   - Method `._state()`
+  - Method `._bits(pair)`
   - Method `.correct_action()` - *Return the rewarded action for the current phase.*
   - Method `.step(action)`
 
