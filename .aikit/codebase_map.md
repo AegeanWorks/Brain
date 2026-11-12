@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `217`
-- **Total Classes**: `222`
-- **Total Top-Level Functions**: `628`
-- **Total Class Methods**: `1190`
-- **Total Source Lines**: `30161`
+- **Total Python Modules**: `218`
+- **Total Classes**: `227`
+- **Total Top-Level Functions**: `629`
+- **Total Class Methods**: `1200`
+- **Total Source Lines**: `30281`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`217` module(s))
+- **Indexed**: python (`218` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -1468,6 +1468,33 @@
   - Method `.test_the_table_persists_across_episodes()`
   - Method `.test_the_learned_rule_matches_the_world()`
   - Method `.test_actions_are_unchanged_by_learning()`
+
+---
+
+### [`tests/test_agent_positive_control.py`](tests/test_agent_positive_control.py)
+> *An agent-produced positive control for the signed module scan.*
+
+**Size**: `120` lines (`4247` bytes)
+
+**Classes:**
+- `class _BaseWorld`
+  - Method `.__init__(seed)`
+  - Method `.reset()`
+  - Method `._state()`
+- `class XorWorld` - *Reward is x XOR y; y is the visit-index parity.*
+  - Method `.step(action)`
+- `class NoiseWorld` - *Reward is fixed at one step, independent of x/y.*
+  - Method `.step(action)`
+- `class _ProbePlanner` - *Return a constant action and expose x as the alternatives count.*
+  - Method `.__init__()`
+  - Method `.plan(state, memories)`
+- `class TestAgentPositiveControl`
+  - Method `.test_planted_xor_is_selected_and_replicated()`
+  - Method `.test_noise_control_selects_nothing()`
+  - Method `.test_disabled_signals_have_no_rows()`
+
+**Functions:**
+- `def _rows(world_class, seeds)`
 
 ---
 

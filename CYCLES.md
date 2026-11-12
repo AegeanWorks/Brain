@@ -4904,6 +4904,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 175 - the signed scan needs an agent-produced positive control
+
+- **Baseline** (commit 4afb47b):
+  - canonical gate: 923 tests OK; aikit check 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+  - ADR-157's positive control was a synthetic JSONL; every agent-path test was negative except the P-S anti dependency.
+  - a criterion that only sees negative or synthetic evidence cannot show it would detect a real positive interaction through the Agent signal path.
+- **Gap**: no agent-produced positive control for the signed scan.
+- **Target delta**: plant M0/P0 XOR through a test world/planner, select positive cross-module pairs on train and holdout, and make noise/disabled controls empty.
+- **Falsifier**: the planted pair is not selected; the noise control selects; disabled signals still produce rows; or the control needs production changes.
+- **Change**: `tests/test_agent_positive_control.py` adds test-only `XorWorld`/`NoiseWorld`/`_ProbePlanner`; reward `x XOR y`, `y` tied to visit-index parity (M0), `x` exposed as alternatives count (P0); 20 train + 20 holdout seeds through `Agent`; tests 3.
+- **After**:
+  - XOR control selected `(0,2)` `syn +0.2722`, `(1,2)` `+0.3352`, `(2,5)` `+0.3715`; all positive, stable and replicated.
+  - noise control selected nothing; disabled signals produced no rows.
+  - no production code changed; standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: a fixed-step reward removes every selection; `module_signals=False` removes the rows. The planted world and signal block are the integration points.
+- **Verdict**: instrument validation with agent-produced signals. The measured delta is "only synthetic/negative agent-path evidence" -> "a planted M0/P0 XOR is selected and replicated, while noise and disabled controls are empty". Boundary: the world/planner are test fixtures, not production substrate; the production evidence remains the negative P-S dependency.
+- **Gates**: unittest 926/926 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m unittest tests.test_agent_positive_control` -> 3 OK.
+  - `python -m unittest discover -s tests -t .` -> 926 OK.
+  - `python scripts\update_knowledge_base.py --workspace ...\projects\brain` -> map refreshed.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 176**: unittest 926 OK; aikit 5/5; XOR control selected (0,2)/(1,2)/(2,5) positive stable replicated; noise control empty; disabled rows empty; metadata version 2 / persistent_fields 2 cold, 0 warm / store_reads 1 cold, 0 warm; T3->T1 block selected two P-S anti with matches (3,5)/(3,4) p_lower 0.0099; T3->T1 column []; T3->T2 block []; positive (0,4) rejected; trace/log block parity; anti_module [(2,5),(2,4)]; signal dedupe 11 reports / 10 valid / family 10; raw 15 / 14 / 14; selected (2,5),(2,4) negative p_lower 0.0099; legacy hub 5 raw -> 1 unique; classes [0,1,2,2,4,5]; signed both/negative selected two; positive-only selected []; positive candidate p100 0.0495 / p200 0.0547; alternatives keys 14 valid / 12 cross / P0 leak false; alternatives seen 13 / 12; distance keys 10 / 8 / P0 leak true; distance seen 9 / 8; turns 14 valid / 12 cross; revisits 9 valid; `module_interactions []`; cold trace 13 rows / log parity; warm trace 13 rows / log parity; in-memory ten-trace scan 70 / 14 / module `[]`; planted signal M/P `[[0,2]]` detected and replicated; legacy 70 / 0 module-valid; pooled world 5 hub pairs / module `[]`; planted M/P pair_scan `[[0,2]]` / world `[]`; leak fixture guarded `target-leak-column` / `syn 0.0542`; planted XOR `[[0,1]]` family `p_upper 0.005`; `syn` −0.05791331748493783 on T3:15; online skill +0.8387; self-model skill +0.935; `run-T3-15` `(0.005385, 0.924167)`; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
+
 ## Cycle 174 - signal metadata must expose the persistent memory context
 
 - **Baseline** (commit f0ce5ab):

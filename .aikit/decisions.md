@@ -1207,6 +1207,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 923 tests OK; aikit check 5/5. Cold first-action metadata: `persistent_fields 2`, `store_reads 1`; warm: `0` and `0`; trace and log metadata agree. Signal rows, actions, rewards and step counts are unchanged; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: removing the two fields fails the context tests while the rows and actions are identical; version 1 logs still read rows but carry no context.
 - **Boundary**: `read_signal_metadata` returns the first record's context, not a per-step summary; a reader that needs the cold-load event must scan records. The counts show that a persistent layout was used, not which fields were read.
 
+### ADR-170: The signed scan needs an agent-produced positive control
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-157's positive control was a synthetic JSONL, and every agent-path test was negative except the P-S anti dependency. A criterion that only sees negative or synthetic evidence cannot show it would detect a real positive interaction produced through the Agent signal path.
+- **Decision**: add a test-only `XorWorld`/`NoiseWorld` and `_ProbePlanner` in `tests/test_agent_positive_control.py`. Four states per episode, reward `x XOR y`, with `y` tied to visit-index parity (M0) and `x` exposed as the alternatives count (P0); M0 and P0 jointly determine the target, neither marginal does. Run 20 train and 20 holdout seeds through the real `Agent`; require the signed holdout to select positive M-P/P-S pairs, a noise-reward world to select none, and disabled signals to produce no rows.
+- **Consequences**: 926 tests OK; aikit check 5/5. The XOR control selects `(0,2)` `syn +0.2722`, `(1,2)` `+0.3352` and `(2,5)` `+0.3715`, all positive, stable and replicated; the noise control selects nothing; disabled signals yield no rows. No production code changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. Ablation: changing the reward to a fixed step removes every selection; removing the signal block removes the rows.
+- **Boundary**: the world and planner are test fixtures, not production substrate. The control proves the instrument can detect a planted agent-path interaction; it does not show that the production tasks contain one. The production evidence remains the replicated P-S anti dependency.
+
 
 
 
