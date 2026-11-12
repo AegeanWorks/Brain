@@ -4904,6 +4904,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 188 - an independent-latent world carries a planted interaction
+
+- **Baseline** (commit 199bbb6): 936 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND** (reopening audit): ADR-182's condition was a task with independent, non-leaky state, and no shipped world had one. The test-only `XorWorld` control (ADR-157) proves detection is possible but lives outside the product. Measured over 200 seeds x 4 phases: the two latents cover all four joint codes (194/204/202/200 of 800), so neither marginal predicts the other and reward `a XOR b` is not a function of either alone.
+- **ANALYZE**: the missing piece is a channel, not an estimator. A world can carry state the M/P/S blocks cannot see, but the agent had no way to export it, so every shipped row was history-collinear.
+- **IMPLEMENT**: `worlds/dual.py` adds `DualWorld` (`T4_dual`) and `NoiseDualWorld`; `Agent._world_context` copies an optional world `signal_context(state)` readout into a pre-action `signals["G"]` block; `evals/module_state` readers take `include_context` (default False); `evals/context_channel.py` runs the signed holdout; `tests/test_dual_world.py` (5) and `tests/test_context_channel.py` (8). ADR-183.
+- **After** (same code, two pools of 20 seeds x 4 phases = 80 rows each):
+  - planted `G` pair cols(6,7): train `syn +0.6654`, family `p_upper 0.00498`; holdout `+0.6874`, `p_upper 0.0`, `distinguishable True`; selected `[[6,7]]`, stable and replicated, nothing rejected.
+  - `NoiseDualWorld`: cols(6,7) `syn +0.0001`, family `p_upper 0.9950`; selected `[]`.
+  - default reader rows stay 7 wide; extended rows are 9 wide; `GridWorld` traces carry no `G`.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: dropping the block at the reader (`include_context=False`) selects `[]`; `module_signals=False` emits 0 rows; the noise world keeps the latents but loses the interaction, so the selection comes from the planted dependence, not from the block existing.
+- **Verdict**: first positive interaction measured on shipped code, in a task built to carry one. The measured delta is "the estimator only ever saw collinear rows" -> "a planted XOR is recovered at `syn +0.6654` and replicates at `+0.6874`". Boundary: the task is synthetic and the interaction is planted by construction; T1-T3 remain collinear, so this reopens the substrate question and does not claim a grid-task result.
+- **Gates**: unittest 949/949 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -m evals.context_channel` -> planted selected `[[6,7]]`, noise `[]`, exit 0.
+  - `python -c "...pair_report..."` -> train `+0.6654` `p_upper 0.00498`, holdout `+0.6874` `p_upper 0.0`, noise `+0.0001` `p_upper 0.9950`.
+  - `python -c "...measure(include_context=False)..."` -> selected `[]`.
+  - `python -m unittest tests.test_dual_world tests.test_context_channel` -> 13 OK.
+  - `python -m unittest discover -s tests -t .` -> 949 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 189**: unittest 949 OK; aikit 5/5; planted `T4_dual` cols(6,7) `syn +0.6654` / holdout `+0.6874` with `p_upper 0.0`; noise `+0.0001` / `p_upper 0.9950` and selected `[]`; reader ablation selected `[]`; 80 rows per 20-seed pool; dual latents 194/204/202/200 of 800 across all four joint codes; default signal rows 7 wide, extended 9 wide; `GridWorld` emits no `G`; 0 of 6 pinned traces and 0 of 17 slots distinguishable; all cycle 187 pins unchanged.
+
 ## Cycle 187 - zero verified improvement at the signal plateau
 
 - **Baseline** (commit 7c3a43d): 936 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

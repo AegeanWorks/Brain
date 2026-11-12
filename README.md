@@ -90,7 +90,7 @@ brain/
 ├── memory/                   <- SQLite FTS5 store + layout anchors
 ├── planner/                  <- explicit steps + recover
 ├── self_model/               <- budget/error/confidence counters + prediction
-├── worlds/                   <- 8x8 fixed-step tasks T1-T3
+├── worlds/                   <- 8x8 grid tasks T1-T3 + dual-latent T4
 ├── telemetry/                <- JSONL append-only + ablation ops
 ├── evals/                    <- evidence and verification batteries
 ├── tests/                    <- unittest gate, tempdir only
@@ -224,21 +224,24 @@ first prompt hash.
 ## 📏 Synergy Column Scope
 
 `synergy` reads columns 0 and 1 only, so `syn` 0.0 cannot separate
-absence from "signal outside them". `synergy_scope(...)` and
-`synergy_null.synergy_verdict(...)` expose what the pair can decide
-(ignored/constant/duplicate columns, sufficiency) and whether it beats
-a permutation null (`p_upper`/`p_lower`, `distinguishable`);
-`recompute` and each battery slot carry both; `dedupe_rows` collapses the
-paired action/result record so `n` counts steps. Equal scope columns mean
-no independent second signal: `duplicate-scope-column`; a constant reads
-`constant-scope-column`. `evals.pair_scan` skips the target column, refuses
-`target-column`/`target-leak-column`, and applies a family-wise max/min null
-(`family_wise=False`/`guard_target=False` are ablations). Pairs carry
-M/P/S/hub blocks; `module_interactions` counts cross-module pairs. No
-Legacy pairs select none. `Agent(module_signals=True)` writes six
-pre-action M/P/S signals plus versioned modes; `evals.module_state` pools them (ten T3 episodes:
-12 raw / 8 unique pairs versus 0 legacy). `evals.replication` requires signed candidates to survive stability
-and a held-out pool: the positive candidate fails; the P-S anti-interaction replicates on T1 only (negative).
+absence from signal outside them. `synergy_scope(...)` and
+`synergy_verdict(...)` expose what the pair can decide (constant/duplicate/
+sufficiency) and whether it beats a permutation null
+(`p_upper`/`p_lower`, `distinguishable`); `recompute` carries it; `dedupe_rows` collapses
+paired action/result rows so `n` counts steps. Equal scope columns mean no independent second signal
+(`duplicate-scope-column`); a constant reads `constant-scope-column`.
+`evals.pair_scan` skips the target column, refuses `target-column`/
+`target-leak-column`, applies a family-wise max/min null. Pairs carry
+M/P/S/hub blocks. `Agent(module_signals=True)` writes six pre-action M/P/S
+signals plus modes; `evals.module_state` pools them.
+`evals.replication` requires signed candidates to survive stability and holdout.
+
+A world may expose `signal_context(state)`; the agent copies it to a
+pre-action `G` block (`include_context=True`). `worlds.dual`
+rewards two independent latents by XOR; `python -m
+evals.context_channel` selects `G` cols(6,7) `syn +0.6654` (family
+`p_upper 0.005`, holdout `+0.6874`) while its noise world selects
+none; dropping the block is the ablation.
 
 ## 🧪 Lesion Detectability
 

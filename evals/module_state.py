@@ -21,8 +21,14 @@ from evals.pair_scan import (MODULE_BLOCKS, anti_interactions,
                             scan_pairs, unique_pairs, world_pair)
 
 
-def _row(args):
-    """Return one six-signal row plus target, or None when malformed."""
+def _row(args, include_context=False):
+    """Return one six-signal row plus target, or None when malformed.
+
+    ``include_context=True`` appends a world-provided ``G`` block when the
+    record carries one, so a task with independent latent state can be
+    scanned. The default keeps the shipped six-column shape, and records
+    without ``G`` read identically under both settings.
+    """
     signals = args.get("signals")
     if not isinstance(signals, dict):
         return None
@@ -35,6 +41,13 @@ def _row(args):
             values.extend(float(value) for value in pair)
         except (TypeError, ValueError):
             return None
+    if include_context:
+        context = signals.get("G")
+        if isinstance(context, (list, tuple)) and context:
+            try:
+                values.extend(float(value) for value in context)
+            except (TypeError, ValueError):
+                return None
     try:
         target = float(args.get("reward", 0.0))
     except (TypeError, ValueError):
@@ -42,7 +55,7 @@ def _row(args):
     return values + [target]
 
 
-def read_signals(log_path):
+def read_signals(log_path, include_context=False):
     """Return one row per action record carrying a ``signals`` block."""
     rows = []
     with open(log_path, "r", encoding="utf-8") as handle:
@@ -59,17 +72,17 @@ def read_signals(log_path):
             args = record.get("args")
             if not isinstance(args, dict):
                 continue
-            row = _row(args)
+            row = _row(args, include_context=include_context)
             if row is not None:
                 rows.append(row)
     return rows
 
 
-def pool_signals(log_paths):
+def pool_signals(log_paths, include_context=False):
     """Concatenate the signal rows from several episode logs."""
     rows = []
     for path in log_paths:
-        rows.extend(read_signals(path))
+        rows.extend(read_signals(path, include_context=include_context))
     return rows
 
 
@@ -107,14 +120,15 @@ def signals_meta_from_trace(trace):
     return None
 
 
-def signals_from_trace(trace):
+def signals_from_trace(trace, include_context=False):
     """Return one signal row per trace step that carries a signals block."""
     rows = []
     for step in trace:
         if not isinstance(step, dict):
             continue
         row = _row({"signals": step.get("signals"),
-                    "reward": step.get("reward", 0.0)})
+                    "reward": step.get("reward", 0.0)},
+                   include_context=include_context)
         if row is not None:
             rows.append(row)
     return rows

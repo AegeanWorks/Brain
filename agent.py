@@ -1386,6 +1386,31 @@ class Agent:
             "S": [float(learned), int(second)],
         }
 
+    def _world_context(self, state):
+        """Return an optional world-provided context block for signals.
+
+        A world exposes ``signal_context(state)`` when it carries state the
+        M/P/S blocks cannot see. The readout is taken from the pre-action
+        state, so a context value cannot leak the outcome of the step it
+        labels. Worlds without the hook emit no ``G`` block, so every
+        shipped row shape is unchanged.
+        """
+        api = getattr(self.world, "signal_context", None)
+        if not callable(api):
+            return {}
+        try:
+            values = api(state)
+        except Exception:
+            self._substrate_errors["bind"] += 1
+            return {}
+        if not isinstance(values, (list, tuple)) or not values:
+            return {}
+        try:
+            return {"G": [float(value) for value in values]}
+        except (TypeError, ValueError):
+            self._substrate_errors["bind"] += 1
+            return {}
+
     def _step_vectors(self, idx, new_state, reward, memories):
         """Build numeric M/P/S/hub vectors for one step.
 
@@ -1543,6 +1568,9 @@ class Agent:
                     "P": self._module_p_mode,
                     "S": self._module_s_mode,
                 }
+                _signals.update(self._world_context(state))
+                if "G" in _signals:
+                    _signals_meta["G"] = "world"
                 _probe_meta = getattr(self.planner, "last_probe", None)
                 _persistent_fields = 0
                 _store_reads = 0

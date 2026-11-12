@@ -1311,6 +1311,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: 936 tests OK; aikit check 5/5. No code changed; standing 89 steps / 11.0 reward and `policy_digest decbfce3...` are unchanged. The evidence is the three probes: T2 Brier 0 valid pairs; combined M T1/T3 10 valid each and no positive at 200; positive cross-task block selections empty. Ablation: this is a stop decision, not a claim that a deleted gate would restore a result; the tested variants are the alternatives.
 - **Boundary**: the stop condition is process-level, not a claim that the Brain is complete. A task with independent non-leaky state, or a new substrate mechanism, would reopen the cycle; repeating signal-name variants would not.
 
+### ADR-183: A world-provided context channel carries a planted interaction
+- **Date**: 2026-11-12
+- **Status**: Accepted
+- **Context**: ADR-182 stopped the search until a task with independent, non-leaky state existed. The test-only `XorWorld` control (ADR-157) showed the estimator recovers a planted XOR through the agent path, but no shipped world carried independent state: every module signal stayed collinear with elapsed time.
+- **Decision**: `worlds.dual` adds `DualWorld` (task `T4_dual`: four phases, each drawing two bits from independent random streams, reward the XOR) and `NoiseDualWorld` (same latents, reward fixed by phase). The agent reads an optional world `signal_context(state)` hook into a pre-action `signals["G"]` block; worlds without the hook emit nothing, so every shipped row shape is unchanged. `evals.module_state` readers take `include_context=False` by default and append `G` on request. `evals.context_channel` measures the signed scan on separate train and holdout pools.
+- **Consequences**: planted pair cols(6,7) `syn +0.6654`, family `p_upper 0.00498`, holdout `+0.6874` `p_upper 0.0`, selected as stable and replicated; `NoiseDualWorld` `+0.0001` `p_upper 0.9950` selects nothing; the reader ablation (`include_context=False`) selects nothing. 949 tests OK; aikit check 5/5. Standing 89 steps / 11.0 reward and `policy_digest decbfce3...` unchanged.
+- **Boundary**: the interaction is planted by construction in a synthetic task. It proves the channel and the scan recover a known interaction on shipped code; it does not show that T1-T3 contain one. Those tasks remain collinear, and a positive result there still needs independent state.
+
 
 
 

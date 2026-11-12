@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `218`
-- **Total Classes**: `227`
-- **Total Top-Level Functions**: `632`
-- **Total Class Methods**: `1210`
-- **Total Source Lines**: `30505`
+- **Total Python Modules**: `222`
+- **Total Classes**: `231`
+- **Total Top-Level Functions**: `636`
+- **Total Class Methods**: `1235`
+- **Total Source Lines**: `30869`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`218` module(s))
+- **Indexed**: python (`222` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1723` lines (`71758` bytes)
+**Size**: `1751` lines (`72880` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -68,6 +68,7 @@
   - Method `._layout_complete(state)` - *True when a state carries every goal field its task consumes.*
   - Method `._remember_layout(state)` - *Persist the initial state once; never store an incomplete one.*
   - Method `._module_signals(memories, learned, keys, seen)` - *Return pre-action M/P/S state that is not an elapsed-time counter.*
+  - Method `._world_context(state)` - *Return an optional world-provided context block for signals.*
   - Method `._step_vectors(idx, new_state, reward, memories)` - *Build numeric M/P/S/hub vectors for one step.*
   - Method `.run(max_steps, budget)` - *Run the loop; optionally install an execution budget.*
   - Method `._run_loop(max_steps)` - *Run perceive/plan/act/observe loop; return trace list.*
@@ -513,6 +514,18 @@
 
 ---
 
+### [`evals/context_channel.py`](evals/context_channel.py)
+> *Measure a world-provided context channel against the pair gate.*
+
+**Size**: `69` lines (`2709` bytes)
+
+**Functions:**
+- `def collect_rows(world_factory, seeds, include_context)` - *Run one agent per seed and return extended signal rows plus targets.*
+- `def measure(world_class, train_seeds, holdout_seeds, trials, include_context)` - *Return the signed holdout result for a world class.*
+- `def main()`
+
+---
+
 ### [`evals/dead_pool.py`](evals/dead_pool.py)
 > *Dead-pool guard battery: behavior plus the dead_pool probe.*
 
@@ -721,15 +734,15 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `201` lines (`7233` bytes)
+**Size**: `215` lines (`7996` bytes)
 
 **Functions:**
-- `def _row(args)` - *Return one six-signal row plus target, or None when malformed.*
-- `def read_signals(log_path)` - *Return one row per action record carrying a ``signals`` block.*
-- `def pool_signals(log_paths)` - *Concatenate the signal rows from several episode logs.*
+- `def _row(args, include_context)` - *Return one six-signal row plus target, or None when malformed.*
+- `def read_signals(log_path, include_context)` - *Return one row per action record carrying a ``signals`` block.*
+- `def pool_signals(log_paths, include_context)` - *Concatenate the signal rows from several episode logs.*
 - `def read_signal_metadata(log_path)` - *Return the first action record's signals metadata, or None.*
 - `def signals_meta_from_trace(trace)` - *Return the first trace step's signals metadata, or None.*
-- `def signals_from_trace(trace)` - *Return one signal row per trace step that carries a signals block.*
+- `def signals_from_trace(trace, include_context)` - *Return one signal row per trace step that carries a signals block.*
 - `def scan_traces(traces, trials, dedupe)` - *Scan pooled in-memory traces with the shared pair gate and family null.*
 - `def scan_module_states(log_paths, trials, dedupe)` - *Scan pooled signal rows with the shared pair gate and family null.*
 - `def _split_blocks(rows, target, trials, unique, dedupe)`
@@ -2045,6 +2058,28 @@
 
 ---
 
+### [`tests/test_context_channel.py`](tests/test_context_channel.py)
+> *A world-provided context block carries a detectable interaction.*
+
+**Size**: `97` lines (`3914` bytes)
+
+**Classes:**
+- `class TestContextChannel`
+  - Method `.setUpClass()`
+  - Method `.test_default_reader_keeps_the_six_column_row()`
+  - Method `.test_extended_reader_appends_the_context_block()`
+  - Method `.test_world_without_hook_emits_no_context()`
+  - Method `.test_disabled_signals_emit_no_context()`
+  - Method `.test_each_latent_alone_does_not_determine_the_reward()`
+  - Method `.test_planted_pair_is_selected_and_noise_is_not()`
+  - Method `.test_dropping_the_context_block_is_the_executable_ablation()`
+  - Method `.test_signals_reach_the_telemetry_log()`
+
+**Functions:**
+- `def _target_leak(values, target)`
+
+---
+
 ### [`tests/test_corrected_counts.py`](tests/test_corrected_counts.py)
 > *The corrected distinguishability counts, at one observation per step.*
 
@@ -2127,6 +2162,21 @@
 **Functions:**
 - `def _pairs(rows)`
 - `def _flagged(result)`
+
+---
+
+### [`tests/test_dual_world.py`](tests/test_dual_world.py)
+> *The dual world carries two independent latents and rewards their XOR.*
+
+**Size**: `56` lines (`2158` bytes)
+
+**Classes:**
+- `class TestDualWorld`
+  - Method `.test_latents_are_deterministic_and_reset_reproduces()`
+  - Method `.test_latents_are_independent()`
+  - Method `.test_reward_is_the_xor_of_the_pre_action_latents()`
+  - Method `.test_context_is_the_current_latent_pair()`
+  - Method `.test_noise_world_reward_ignores_both_latents()`
 
 ---
 
@@ -4237,7 +4287,28 @@
 ### [`worlds/__init__.py`](worlds/__init__.py)
 > *Brain grid worlds package: deterministic fixed-step 8x8 tasks.*
 
-**Size**: `5` lines (`275` bytes)
+**Size**: `7` lines (`399` bytes)
+
+---
+
+### [`worlds/dual.py`](worlds/dual.py)
+> *A deterministic world whose reward is an interaction of two independent bits.*
+
+**Size**: `98` lines (`3016` bytes)
+
+**Classes:**
+- `class DualWorld` - *Two independent latents per phase; reward is their XOR.*
+  - Method `.__init__(seed)`
+  - Method `._build()`
+  - Method `._phase()`
+  - Method `._state()`
+  - Method `.signal_context(state)` - *Return the pre-action latent pair as floats ``[a, b]``.*
+  - Method `.layout_fingerprint()`
+  - Method `.is_viable()`
+  - Method `.reset()`
+  - Method `.step(action)`
+- `class NoiseDualWorld` - *Same latents and context, but the reward ignores both of them.*
+  - Method `.step(action)`
 
 ---
 
