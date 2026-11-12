@@ -3,42 +3,15 @@
   "active_task": {
     "task_id": "brain-context-channel",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1794508384.5156448,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794509121.1690984,
     "owner": "kilo:brain188",
     "started_by": "kilo:brain188",
     "continuations": [],
-    "impact_assessment": {
-      "why": "ADR-182 stopped the search until a task with independent non-leaky state existed; no shipped world had one",
-      "benefits": "the pair scan is shown to recover a planted interaction on shipped code, not only in a test-only control",
-      "risks": "contract: new optional signals G block and reader keyword; dependency: stdlib only; concurrency: none; state: default row shape unchanged",
-      "mitigation": "world hook optional and default-off; include_context default False keeps every pin; failing-first tests for both readers, noise world and reader ablation"
-    }
+    "completed_at": 1794509121.404074
   },
   "checkpoints": [
-    {
-      "task_id": "brain-push9-downgrade-guard",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] 449 tests OK; three downgrades raise and files are byte-identical; keyed reload works; unkeyed paths unchanged; aikit 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794111884.5002072,
-      "timestamp_str": "2026-11-08 07:24:44",
-      "agent": "opencode:push9"
-    },
-    {
-      "task_id": "brain-push9-downgrade-guard",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] checklists: passed; ready to commit Push 9",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794111884.7069492,
-      "timestamp_str": "2026-11-08 07:24:44",
-      "agent": "opencode:push9"
-    },
     {
       "task_id": "brain-push9-downgrade-guard",
       "phase": "completed",
@@ -260,6 +233,28 @@
         "mitigation": "world hook optional and default-off; include_context default False keeps every pin; failing-first tests for both readers, noise world and reader ablation"
       },
       "plan_digest": "0db40e3d078a02f98ad61166ab50b74d18c750ba39a001551ab58dea8b281e0f"
+    },
+    {
+      "task_id": "brain-context-channel",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checklists: passed; unittest 949/949 OK; aikit check brain 5/5 (test/hygiene/guidelines/secrets/compat); planted pair selected and noise/ablation empty; committed 2b80211",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794509121.1690984,
+      "timestamp_str": "2026-11-12 21:45:21",
+      "agent": "kilo:brain188",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "brain-context-channel",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-context-channel' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794509121.4040759,
+      "timestamp_str": "2026-11-12 21:45:21",
+      "agent": "kilo:brain188"
     }
   ]
 }
