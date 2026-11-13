@@ -44,8 +44,11 @@ class TestBackendConformanceChecks(unittest.TestCase):
         self.assertFalse(case["ok"])
         self.assertEqual(case["findings"].count("no-proposal"), 1)
 
-    def test_both_shipped_providers_are_registered(self):
-        self.assertEqual(self.report["registered"], ["llamacpp", "stub"])
+    def test_every_shipped_provider_is_registered(self):
+        # llamacpp launches its own server, openai asks one already running,
+        # stub replays a script: all three are shipped seams.
+        self.assertEqual(self.report["registered"],
+                         ["llamacpp", "openai", "stub"])
 
     def test_a_widened_contract_is_named(self):
         broken = {"cases": [dict(c) for c in self.report["cases"]],

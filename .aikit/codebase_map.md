@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `233`
-- **Total Classes**: `274`
-- **Total Top-Level Functions**: `675`
-- **Total Class Methods**: `1426`
-- **Total Source Lines**: `33541`
+- **Total Python Modules**: `235`
+- **Total Classes**: `281`
+- **Total Top-Level Functions**: `677`
+- **Total Class Methods**: `1448`
+- **Total Source Lines**: `33822`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`233` module(s))
+- **Indexed**: python (`235` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -100,7 +100,7 @@
 ### [`brain.py`](brain.py)
 > *Brain, the way a person actually uses it.*
 
-**Size**: `189` lines (`6961` bytes)
+**Size**: `205` lines (`7768` bytes)
 
 **Functions:**
 - `def _connect(args)` - *Resolve a live model; return ``(client, source)`` or ``(None, None)``.*
@@ -1133,7 +1133,7 @@
 ### [`models/__init__.py`](models/__init__.py)
 > *Swappable small-model backends for Brain policies.*
 
-**Size**: `10` lines (`518` bytes)
+**Size**: `13` lines (`661` bytes)
 
 ---
 
@@ -1205,6 +1205,23 @@
 
 ---
 
+### [`models/openai_backend.py`](models/openai_backend.py)
+> *Drive any OpenAI-compatible local server as an action backend.*
+
+**Size**: `94` lines (`4321` bytes)
+
+**Classes:**
+- `class OpenAIBackend` - *Propose one action token through an OpenAI-compatible endpoint.*
+  - Method `.__init__(client, endpoint, model, max_tokens, prompt_budget, seed)`
+  - Method `.identity()` - *Stable pin: provider plus the pinned model id (never the class).*
+  - Method `.client()` - *Return the client, resolving a local endpoint on first use.*
+  - Method `.generate(observation)` - *Ask for one action; return a legal token or ``None``.*
+
+**Functions:**
+- `def build_openai(**config)` - *Registry factory: build an ``OpenAIBackend`` from config keywords.*
+
+---
+
 ### [`models/openai_compat.py`](models/openai_compat.py)
 > *Talk to any OpenAI-compatible local model server, with no surprises.*
 
@@ -1234,13 +1251,14 @@
 ### [`models/registry.py`](models/registry.py)
 > *A name-to-provider registry so a backend can be selected without code.*
 
-**Size**: `60` lines (`2012` bytes)
+**Size**: `66` lines (`2164` bytes)
 
 **Functions:**
 - `def register(name, factory)` - *Register ``factory`` under ``name``; a duplicate name raises.*
 - `def build(name, **config)` - *Build the provider registered under ``name`` with ``config``.*
 - `def names()` - *Return the registered backend names, sorted.*
 - `def _build_llamacpp(**config)`
+- `def _build_openai(**config)`
 
 ---
 
@@ -1279,11 +1297,11 @@
 ### [`run_agent.py`](run_agent.py)
 > *Run one episode, optionally with a backend chosen by name.*
 
-**Size**: `89` lines (`3453` bytes)
+**Size**: `96` lines (`3910` bytes)
 
 **Functions:**
 - `def _parse_script(text)` - *Split a comma-separated action script, ignoring blanks.*
-- `def _build_backend(name, script)` - *Build a registered backend, or exit 2 with the available names.*
+- `def _build_backend(name, script, endpoint, model)` - *Build a registered backend, or exit 2 with the available names.*
 - `def main(argv)`
 
 ---
@@ -1653,7 +1671,7 @@
 ### [`tests/test_backend_conformance_checks.py`](tests/test_backend_conformance_checks.py)
 > *The conformance battery must check its own controls.*
 
-**Size**: `75` lines (`3071` bytes)
+**Size**: `78` lines (`3244` bytes)
 
 **Classes:**
 - `class TestBackendConformanceChecks`
@@ -1663,7 +1681,7 @@
   - Method `.test_the_non_deterministic_control_is_named()`
   - Method `.test_the_class_identity_control_is_named()`
   - Method `.test_the_no_proposal_control_is_named_once()`
-  - Method `.test_both_shipped_providers_are_registered()`
+  - Method `.test_every_shipped_provider_is_registered()`
   - Method `.test_a_widened_contract_is_named()`
   - Method `.test_a_missing_control_is_named()`
   - Method `.test_an_unregistered_provider_is_named()`
@@ -3259,6 +3277,39 @@
 - `def _brier(pairs)`
 - `def _episodes()` - *Yield (key, outcome) in a fixed order, with the pre-action key.*
 - `def _prequential_score()`
+
+---
+
+### [`tests/test_openai_backend.py`](tests/test_openai_backend.py)
+> *The agent must be able to use the server a person already has running.*
+
+**Size**: `152` lines (`6731` bytes)
+
+**Classes:**
+- `class _Client` - *A chat client double: fixed reply, records every call.*
+  - Method `.__init__(text, model)`
+  - Method `.chat(messages, temperature, max_tokens)`
+- `class _BrokenClient`
+  - Method `.chat(*args, **kwargs)`
+- `class TestIdentity`
+  - Method `.test_the_identity_names_the_model_not_the_class()`
+  - Method `.test_a_ready_client_and_an_endpoint_are_exclusive()`
+  - Method `.test_a_bad_prompt_budget_is_refused()`
+- `class TestGenerate`
+  - Method `.test_a_legal_action_is_parsed_from_noisy_text()`
+  - Method `.test_unusable_text_returns_none_rather_than_raising()`
+  - Method `.test_the_prompt_states_the_task_and_the_legal_actions()`
+  - Method `.test_stats_and_manifest_are_recorded_for_provenance()`
+  - Method `.test_construction_does_not_touch_the_network()`
+- `class TestRegistryAndCli`
+  - Method `.test_the_openai_backend_is_registered()`
+  - Method `.test_the_factory_builds_the_same_backend()`
+  - Method `.test_run_agent_builds_the_backend_from_flags()`
+  - Method `.test_run_agent_refuses_an_unknown_backend()`
+- `class TestAgentIntegration`
+  - Method `._agent(client)`
+  - Method `.test_the_model_is_consulted_and_the_episode_still_completes()`
+  - Method `.test_a_dead_server_falls_back_to_the_rule_policy()`
 
 ---
 

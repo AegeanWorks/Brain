@@ -11,12 +11,13 @@ a terminal, or run the ablation and telemetry batteries.
 
 ## 🚀 Start Here
 
-Three commands, no packages, no config:
+Four commands, no packages, no config:
 
 ```bash
 python brain.py                  # talk to a local model
 python brain.py doctor           # is a model reachable? how do I start one?
 python brain.py run T3_navigate  # run an agent task, no model needed
+python brain.py run T3_navigate --backend openai   # let the model choose actions
 ```
 
 `brain.py` finds a local OpenAI-compatible server by itself — `llama-server`
@@ -24,7 +25,9 @@ on 8080, LM Studio on 1234, Ollama on 11434, vLLM on 8000 — or takes
 `--endpoint http://host:port` (or `$BRAIN_ENDPOINT`) plus `--model` to pin a
 model id. When nothing answers it prints the exact command to start a server
 instead of a stack trace, and `run` still works offline. Inside chat:
-`/help`, `/model`, `/reset`, `/quit`.
+`/help`, `/model`, `/reset`, `/quit`. The same server can drive the agent:
+`run --backend openai` asks it for each action (a dead or silent server falls
+back to the rule policy and the run still completes).
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -118,7 +121,10 @@ choices. `check_backend` names `identity-from-class-name`,
 `python -m evals.backend_conformance` runs four controls, exits 1 on
 drift. `python -m run_agent --task T3_navigate --backend stub
 --stub-script right,right,right` runs one episode; an unregistered
-name exits 2 naming the choices.
+name exits 2 naming the choices. `--backend openai` asks an
+OpenAI-compatible server that is already running (endpoint discovery as in
+`brain.py`), so the agent and the chat share one model; a raising or silent
+server is a counted fallback, never a failed run.
 
 ## 🤝 Model-Seam Trust Contract
 

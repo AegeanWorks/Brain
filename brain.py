@@ -120,15 +120,28 @@ def _doctor(args):
 
 def _run(args):
     """Run one task with a readable transcript; returns an exit code."""
-    from agent import Agent
+    from agent import Agent, Planner, model_label
+    from models.registry import build
 
-    agent = Agent()
+    planner = None
+    backend_name = getattr(args, "backend", "rule")
+    if backend_name != "rule":
+        try:
+            backend = build("openai", endpoint=args.endpoint, model=args.model)
+        except KeyError as problem:
+            print("error: %s" % problem, file=sys.stderr)
+            return 2
+        planner = Planner(backend=backend)
+    agent = Agent(planner=planner) if planner is not None else Agent()
     try:
         trace = agent.run_task(args.task, args.seed, max_steps=args.max_steps)
     except ValueError as problem:
         print("error: %s" % problem, file=sys.stderr)
         return 2
-    print("task %s, seed %d" % (args.task, args.seed))
+    label = backend_name
+    if planner is not None:
+        label += " (%s)" % model_label(planner.backend)
+    print("task %s, seed %d, policy %s" % (args.task, args.seed, label))
     for index, step in enumerate(trace, 1):
         state = step.get("state") or {}
         position = "[%s,%s]" % (state.get("x"), state.get("y"))
@@ -165,11 +178,14 @@ def main(argv=None):
     doctor.add_argument("--say", default=None,
                         help="also send one test message")
 
-    run = modes.add_parser("run", help="run an agent task, no model needed")
+    run = modes.add_parser("run", help="run an agent task (model optional)")
     run.add_argument("task", choices=TASKS,
                      help="task id, one of %s" % ", ".join(TASKS))
     run.add_argument("--seed", type=int, default=0)
     run.add_argument("--max-steps", type=int, default=200)
+    run.add_argument("--backend", choices=("rule", "openai"), default="rule",
+                     help="policy: rule (offline, default) or openai (ask the "
+                          "local model for each action)")
 
     args = parser.parse_args(argv)
     if args.mode == "run":

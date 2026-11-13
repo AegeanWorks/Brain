@@ -4904,6 +4904,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 195 - the agent can drive the model a person already runs
+
+- **Baseline** (commit 08696ea): 1077 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: ADR-189 let a person talk to a local model, but the agent could not use it. `LlamaCppBackend` needs `server_exe` + a GGUF and owns the server, so the only model the planner could reach was one Brain launched itself; the registry listed two providers and neither attached to an endpoint already running.
+- **ANALYZE**: the seam was already right (`ModelBackend.generate`/`identity`, deterministic prompt, `parse_action`, manifest). What was missing was a provider that uses the discovered endpoint, which `openai_compat` already speaks.
+- **IMPLEMENT**: `models/openai_backend.py` (`OpenAIBackend`, lazily resolved client, pinned-or-served model id, prompt stats + manifest); registered as `openai`; `run_agent --backend openai --endpoint --model`; `brain.py run --backend openai` with the policy label in the transcript; `tests/test_openai_backend.py` (14); conformance pin widened to three providers; `models/__init__.py` docstring. ADR-190.
+- **After** (real HTTP stub on :8199 and an always-`up` stub on :8198):
+  - `run_agent --task T3_navigate --seed 15 --backend openai` -> 13 steps, reward 1.0, done true, `model openai:auto` (then `openai:always-up` once the served id is adopted).
+  - `brain.py --endpoint 127.0.0.1:8198 run T3_navigate --seed 15 --backend openai` -> transcript labelled `policy openai (openai:always-up)`, 13 steps, `done`, reward 1.0.
+  - rule vs model on T2_delayed_match seed 0: both 8 steps / 1.0 reward.
+  - injected-client runs consult the backend on 11 of 13 steps; the distrust and progress guards skip it by design.
+  - `python -m evals.backend_conformance` -> 3 registered, 0 findings, exit 0.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the dead-server arm is the ablation — the same planner, world and seeds with a client that raises still finish in 13 steps at reward 1.0, so the episode's success does not depend on the model answering; only the proposal channel changes.
+- **Verdict**: closes the gap between "a person can talk to a model" and "the agent can use that model". Boundary: a live server is not byte-reproducible, so this is verified through an injected client and a local stub, not a real checkpoint.
+- **Gates**: unittest 1091/1091 OK; aikit check brain 5/5.
+- **Commands run**:
+  - `python run_agent.py --task T3_navigate --seed 15 --backend openai --endpoint 127.0.0.1:8199` -> exit 0.
+  - `python brain.py --endpoint 127.0.0.1:8198 run T3_navigate --seed 15 --backend openai` -> exit 0.
+  - `python -m evals.backend_conformance` -> exit 0, three providers.
+  - `python -m unittest tests.test_openai_backend` -> 14 OK.
+  - `python -m unittest discover -s tests -t .` -> 1091 OK.
+- **Pinned regression baselines for cycle 196**: unittest 1091 OK; aikit 5/5; `openai` registered with `llamacpp`,`stub`; `OpenAIBackend(model='m').identity()` == `openai:m`; `openai:auto` before resolution; client+endpoint refused; bad prompt_budget refused; noisy text parses to the first legal token; unusable text returns None; prompt carries task and legal actions at temperature 0.0 with an 8-token cap; stats tokens > 0 and manifest sha 64 chars; construction offline then `EndpointUnavailable` on first call; `run_agent._build_backend('openai', ...)` and unknown-name exit 2; backend consulted on 11 of 13 steps; dead server still 13 steps / 1.0; conformance 3 registered; all cycle 194 pins unchanged.
+
 ## Cycle 194 - a model a person can reach, and a demo that proves something
 
 - **Baseline** (commit b5d2004): 1023 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

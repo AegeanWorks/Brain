@@ -1,29 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-console-safe",
+    "task_id": "brain-openai-backend",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794552407.5415838,
-    "owner": "kilo:brain194b",
-    "started_by": "kilo:brain194b",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794589120.337141,
+    "owner": "kilo:goal",
+    "started_by": "kilo:goal",
     "continuations": [],
-    "completed_at": 1794552407.7112432
+    "impact_assessment": {
+      "why": "the agent could only reach a model Brain launched itself, so the model a person runs was unusable by the planner",
+      "benefits": "one local server serves both chat and the agent; the rule policy remains the default and a dead server is a counted fallback",
+      "risks": "contract: new provider name and CLI flags, no default change; dependency: stdlib only; concurrency: none; state: last_manifest/last_prompt_stats per backend",
+      "mitigation": "provider is opt-in by name; construction stays offline; a raising client is proven to leave the episode intact; conformance pin updated with the reason"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-learned-action",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 961/961 OK; aikit check brain 5/5; learned last-half 1.0 vs blind 0.4875; committed fef7eca",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794511941.663567,
-      "timestamp_str": "2026-11-12 22:32:21",
-      "agent": "kilo:brain189",
-      "checklists": "passed"
-    },
     {
       "task_id": "brain-learned-action",
       "phase": "completed",
@@ -273,6 +266,24 @@
       "timestamp": 1794552407.7112446,
       "timestamp_str": "2026-11-13 09:46:47",
       "agent": "kilo:brain194b"
+    },
+    {
+      "task_id": "brain-openai-backend",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan + implement the openai action backend so the agent can drive an already-running model; registered, wired into run_agent and brain.py, 14 tests, live stub proof; checklists: passed (freshness/call-site/deps/platform checked, unittest 1091 OK, aikit 5/5, secrets/compat clean)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794589120.337141,
+      "timestamp_str": "2026-11-13 19:58:40",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "the agent could only reach a model Brain launched itself, so the model a person runs was unusable by the planner",
+        "benefits": "one local server serves both chat and the agent; the rule policy remains the default and a dead server is a counted fallback",
+        "risks": "contract: new provider name and CLI flags, no default change; dependency: stdlib only; concurrency: none; state: last_manifest/last_prompt_stats per backend",
+        "mitigation": "provider is opt-in by name; construction stays offline; a raising client is proven to leave the episode intact; conformance pin updated with the reason"
+      },
+      "plan_digest": "dd2f5ac94567f8811e75235c4c5b5ab0f3a5afb3114aa8b3eff34497935299f6"
     }
   ]
 }

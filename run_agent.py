@@ -30,7 +30,7 @@ def _parse_script(text):
     return [token.strip() for token in text.split(",") if token.strip()]
 
 
-def _build_backend(name, script):
+def _build_backend(name, script, endpoint=None, model=None):
     """Build a registered backend, or exit 2 with the available names."""
     try:
         if name == "stub":
@@ -39,6 +39,8 @@ def _build_backend(name, script):
                       "  Fix: --stub-script right,right,right", file=sys.stderr)
                 raise SystemExit(2)
             return build(name, script=script)
+        if name == "openai":
+            return build(name, endpoint=endpoint, model=model)
         return build(name)
     except KeyError as exc:
         print("run_agent: %s\n  Available: %s"
@@ -60,12 +62,17 @@ def main(argv=None):
                         help="registered backend name; omit for the rule policy")
     parser.add_argument("--stub-script", default=None,
                         help="comma-separated action script for the stub backend")
+    parser.add_argument("--endpoint", default=None,
+                        help="OpenAI-compatible base URL for --backend openai")
+    parser.add_argument("--model", default=None,
+                        help="model id for --backend openai (default: server's)")
     args = parser.parse_args(argv)
 
     backend = None
     if args.backend is not None:
         script = _parse_script(args.stub_script or "")
-        backend = _build_backend(args.backend, script)
+        backend = _build_backend(args.backend, script,
+                                 endpoint=args.endpoint, model=args.model)
 
     planner = Planner(backend=backend) if backend is not None else None
     agent = Agent(planner=planner) if planner is not None else Agent()

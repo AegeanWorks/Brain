@@ -56,5 +56,11 @@ def _build_llamacpp(**config):
     return LlamaCppBackend(**config)
 
 
+def _build_openai(**config):
+    from models.openai_backend import OpenAIBackend
+    return OpenAIBackend(**config)
+
+
 register("stub", StubBackend)
 register("llamacpp", _build_llamacpp)
+register("openai", _build_openai)
