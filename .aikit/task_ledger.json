@@ -3,48 +3,15 @@
   "active_task": {
     "task_id": "brain-model-influence",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1794593286.7643013,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794593915.205253,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": [],
-    "impact_assessment": {
-      "why": "a model-driven transcript looked identical to the rule policy and read as model skill when 12 of 12 proposals had been rejected",
-      "benefits": "a person sees how much the model decided, and the counterfactual is one flag away instead of an undocumented constructor",
-      "risks": "contract: new response fields and CLI flag, no default behaviour change; dependency: stdlib only; concurrency: none; state: one integer counter",
-      "mitigation": "guards stay on by default; the trusted arm is labelled a measurement switch and its worse measured result is pinned; tests cover zero, partial and never-consulted cases"
-    }
+    "completed_at": 1794593915.4860094
   },
   "checkpoints": [
-    {
-      "task_id": "brain-learned-limits",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-learned-limits' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794514775.6895819,
-      "timestamp_str": "2026-11-12 23:19:35",
-      "agent": "kilo:brain190"
-    },
-    {
-      "task_id": "brain-factored-learner",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement a factorised interaction learner: FactoredPredictor over quadratic context features, measure_factored with a frozen held-out quadrant; four quadrants 0.9935/1.0, three quadrants 0.0534/0.0, additive unchanged at 0.5; checklists: passed (freshness/call-site/deps/platform checked, unittest 992 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794517563.4720027,
-      "timestamp_str": "2026-11-13 00:06:03",
-      "agent": "kilo:brain191",
-      "impact_assessment": {
-        "why": "ADR-185 named a factorised feature as the way past a lookup that memorises; for bits XOR is a+b-2ab so a product term can express it",
-        "benefits": "the named route works and its precondition is quantified: capacity is not enough, support coverage is required",
-        "risks": "contract: new predictor class and eval helper, no default policy change; dependency: stdlib only (math); concurrency: none; state: per-key counts only",
-        "mitigation": "additive predictor and joint lookup both unchanged and re-measured; ablation is the held-out quadrant on the same learner; failing-first tests pin every number"
-      },
-      "plan_digest": "1459d36124caebfb7945238151eb3a197349251df4f9970ee6ee9d839e773098"
-    },
     {
       "task_id": "brain-factored-learner",
       "phase": "in_progress",
@@ -284,6 +251,28 @@
         "mitigation": "guards stay on by default; the trusted arm is labelled a measurement switch and its worse measured result is pinned; tests cover zero, partial and never-consulted cases"
       },
       "plan_digest": "dde378847ebd04b0abb7b50cf620f03889825e0cd3e27e09e8dbe77560404b6e"
+    },
+    {
+      "task_id": "brain-model-influence",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checklists: passed; unittest 1104/1104 OK; aikit check brain 5/5; guarded 0 accepted/12 rejected vs trusted 200 accepted/0.0 reward; test module 0.09s; committed 07d809d",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794593915.205253,
+      "timestamp_str": "2026-11-13 21:18:35",
+      "agent": "kilo:goal",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "brain-model-influence",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-model-influence' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794593915.486011,
+      "timestamp_str": "2026-11-13 21:18:35",
+      "agent": "kilo:goal"
     }
   ]
 }
