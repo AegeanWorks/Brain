@@ -1359,49 +1359,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: `LearnedPlanner()` on any grid task now raises at step 0 instead of burning the cap; `LearnedPlanner(actions=ACTIONS)` runs normally; `T5_choice` and the rule planner are byte-identical to before. A policy that *declares* full coverage but proposes narrower still burns the cap, which is recorded as the residual boundary rather than claimed as fixed. 1023 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged.
 - **Boundary**: the guard is a declaration check, not a promise that the plan will work. It cannot see a policy that under-uses a declared alphabet, and it does not validate that a policy's proposals are ever legal — that stays the world's `ValueError`.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### ADR-189: A model a person can reach, and a demo that proves something
+- **Date**: 2026-11-13
+- **Status**: Accepted
+- **Context**: Two things made the project unusable outside the test suite. `demo.py` printed three hardcoded `WORLD-DELTA` lines and never touched a world, so the scaffolded compat replay proved nothing. And there was no human path to a model at all: `LlamaCppBackend` required a caller to construct it with `server_exe` and `model_path` in code, nothing discovered or explained a local server, and a missing model surfaced as a traceback.
+- **Decision**: `models/openai_compat.py` speaks the `/v1/chat/completions` contract every local runtime exposes, with an injectable transport so it is testable without a socket; `resolve` prefers `--endpoint`, then `$BRAIN_ENDPOINT`, then probes llama-server 8080, LM Studio 1234, Ollama 11434 and vLLM 8000, and when nothing answers returns a message naming all four start commands. `chat_session.py` owns bounded history (system prompt always kept, oldest turns dropped) and a one-line footer. `brain.py` is the front door: `chat` (interactive or piped, `/help` `/model` `/reset` `/quit`), `doctor` (plain-language access report) and `run` (task transcript, works offline). `demo.py` now runs a real episode in both modes and derives `WORLD-DELTA` lines from the observed position and item changes.
+- **Consequences**: `python demo.py` prints 13 real steps and `done (steps=13 reward=1.0)`; `python brain.py run T3_navigate --seed 15` prints the same episode; `python brain.py doctor` with nothing running exits 1 listing llama.cpp, LM Studio, Ollama and vLLM with exact commands. The seeded replay in `.aikit/compat.json` now compares deltas that depend on the seed (seed 7 and seed 1 differ; the same seed repeats byte for byte). 1074 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged; no earlier API changed.
+- **Boundary**: no live model server existed in this environment, so the chat path is verified through an injected transport (40 tests covering parsing, discovery, refusal, empty replies, trimming, piping and exit codes) and not against a real checkpoint. Streaming, tool calls and multi-model routing are deliberately out of scope.

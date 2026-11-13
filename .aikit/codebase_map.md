@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `227`
-- **Total Classes**: `258`
-- **Total Top-Level Functions**: `653`
-- **Total Class Methods**: `1357`
-- **Total Source Lines**: `32352`
+- **Total Python Modules**: `233`
+- **Total Classes**: `273`
+- **Total Top-Level Functions**: `675`
+- **Total Class Methods**: `1422`
+- **Total Source Lines**: `33488`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`227` module(s))
+- **Indexed**: python (`233` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -97,6 +97,21 @@
 
 ---
 
+### [`brain.py`](brain.py)
+> *Brain, the way a person actually uses it.*
+
+**Size**: `189` lines (`6961` bytes)
+
+**Functions:**
+- `def _connect(args)` - *Resolve a live model; return ``(client, source)`` or ``(None, None)``.*
+- `def _chat(args)` - *Interactive (or piped) conversation; returns an exit code.*
+- `def _input_lines(prompt)` - *Yield one prompt when given, otherwise every stdin line.*
+- `def _doctor(args)` - *Report model access in plain language; returns an exit code.*
+- `def _run(args)` - *Run one task with a readable transcript; returns an exit code.*
+- `def main(argv)` - *Parse arguments and dispatch; returns the process exit code.*
+
+---
+
 ### [`budget.py`](budget.py)
 > *Per-run execution budget: steps, LLM calls, tokens and wall time.*
 
@@ -168,6 +183,23 @@
 - `def verify_forecast_file(path, hmac_key)` - *Verify every record's schema, checksum, MAC, id and outcome.*
 - `def _rotate_locked(target, archive, keep_recent, hmac_key)` - *Rotate ``target`` into ``archive``; the caller holds the lock.*
 - `def rotate_forecast_journal(path, keep_recent, archive_path, lock_timeout, hmac_key)` - *Archive older forecasts and keep the newest ``keep_recent`` live.*
+
+---
+
+### [`chat_session.py`](chat_session.py)
+> *A conversation you can hold in a terminal, without losing your place.*
+
+**Size**: `103` lines (`3938` bytes)
+
+**Classes:**
+- `class ChatSession` - *Hold a bounded conversation and render it for a person.*
+  - Method `.__init__(client, system, max_turns)`
+  - Method `.reset()` - *Drop every turn but the system prompt; return how many were cut.*
+  - Method `._trim()` - *Keep the system prompt plus the newest ``max_turns`` messages.*
+  - Method `.ask(text, temperature, max_tokens)` - *Send one user turn and append the reply; return the result dict.*
+  - Method `.footer(result)` - *One line naming the model and how long the reply took.*
+  - Method `.banner(client, source)` - *Greeting that states what is being talked to and how to leave.*
+  - Method `.help_text()` - *Return the command list as aligned lines.*
 
 ---
 
@@ -248,12 +280,16 @@
 ---
 
 ### [`demo.py`](demo.py)
-> *Headless scripted drive: prints WORLD-DELTA lines, no input, exits 0.*
+> *Ten-second demo: run a real episode and print what actually happened.*
 
-**Size**: `22` lines (`769` bytes)
+**Size**: `90` lines (`3388` bytes)
 
 **Functions:**
-- `def _parse_seed(argv)`
+- `def _parse(argv)`
+- `def deltas(previous, state)` - *Return ``[(key, old, new)]`` for the world facts that changed.*
+- `def scripted_lines(task, seed, trace)` - *Render one machine-readable line per changed world fact.*
+- `def human_lines(trace)` - *Render the same episode as something a person can read.*
+- `def main(argv)` - *Run the episode and print it; 0 when the task finished.*
 
 ---
 
@@ -1169,6 +1205,32 @@
 
 ---
 
+### [`models/openai_compat.py`](models/openai_compat.py)
+> *Talk to any OpenAI-compatible local model server, with no surprises.*
+
+**Size**: `240` lines (`9142` bytes)
+
+**Classes:**
+- `class EndpointUnavailable` - *Raised when no model server answers; the message is user-facing.*
+- `class OpenAIClient` - *A minimal chat client for an OpenAI-compatible local server.*
+  - Method `.__init__(base_url, model, timeout, transport)`
+  - Method `.models()` - *Return the model ids this server advertises (may be empty).*
+  - Method `.is_alive()` - *True when the server answers its model list at all.*
+  - Method `.identify()` - *Return ``(model_id, server_name)`` for a human summary line.*
+  - Method `.chat(messages, temperature, max_tokens)` - *Send ``messages`` and return ``{text, model, seconds}``.*
+  - Method `._request(method, path, payload, timeout)`
+
+**Functions:**
+- `def normalize_endpoint(text)` - *Return ``scheme://host[:port]`` with no trailing slash or ``/v1``.*
+- `def url_for(base, path)` - *Join a normalized base URL and a ``/``-prefixed API path.*
+- `def _http_transport(method, url, payload, timeout)` - *Default transport: one JSON request, no retries, bounded wait.*
+- `def _explain_failure(base, cause)` - *Turn a transport exception into a message a person can act on.*
+- `def describe_available()` - *Return the human text listing the usual ways to get a model.*
+- `def _message_text(body)` - *Pull one string out of a chat-completion body, or return ``""``.*
+- `def resolve(client_factory, probe, endpoint, model)` - *Find a live endpoint: explicit argument, env, then local defaults.*
+
+---
+
 ### [`models/registry.py`](models/registry.py)
 > *A name-to-provider registry so a backend can be selected without code.*
 
@@ -1682,6 +1744,36 @@
 
 **Functions:**
 - `def _steps(task, seed, planner, max_steps)`
+
+---
+
+### [`tests/test_brain_cli.py`](tests/test_brain_cli.py)
+> *The front door itself: exit codes, piped parity and readable output.*
+
+**Size**: `182` lines (`7348` bytes)
+
+**Classes:**
+- `class TestRunMode`
+  - Method `.test_a_real_transcript_is_printed_and_the_run_succeeds()`
+  - Method `.test_a_collection_is_marked_in_the_transcript()`
+  - Method `.test_an_unknown_task_is_misuse()`
+- `class TestDoctor`
+  - Method `.test_a_missing_model_is_reported_and_exits_one()`
+  - Method `.test_a_live_model_is_described()`
+  - Method `.test_a_failing_probe_message_is_reported()`
+- `class TestChatMode`
+  - Method `.test_piped_lines_are_asked_in_order_without_prompt_noise()`
+  - Method `.test_one_prompt_answers_and_exits()`
+  - Method `.test_commands_do_not_reach_the_model()`
+  - Method `.test_a_failed_call_exits_one_without_a_traceback()`
+  - Method `.test_an_unreachable_model_exits_one_before_any_prompt()`
+- `class TestStartup`
+  - Method `.test_help_is_fast_and_lists_the_modes()`
+  - Method `.test_the_module_documents_the_model_fallbacks()`
+
+**Functions:**
+- `def _transport(text, model)`
+- `def _client(text, model)`
 
 ---
 
@@ -2276,6 +2368,32 @@
 
 ---
 
+### [`tests/test_demo.py`](tests/test_demo.py)
+> *The demo must prove something: real episodes, real deltas.*
+
+**Size**: `93` lines (`3784` bytes)
+
+**Classes:**
+- `class TestScriptedOutput`
+  - Method `.test_the_scripted_run_prints_world_deltas()`
+  - Method `.test_the_same_seed_repeats_byte_for_byte()`
+  - Method `.test_a_different_seed_changes_the_deltas()`
+  - Method `.test_the_deltas_come_from_the_episode_not_a_constant()`
+  - Method `.test_a_walk_is_reported_as_position_changes()`
+  - Method `.test_a_collection_is_reported_as_an_item_delta()`
+- `class TestHumanOutput`
+  - Method `.test_the_human_trace_names_the_task_and_the_verdict()`
+  - Method `.test_every_step_line_carries_an_action_and_a_position()`
+- `class TestHelperFunctions`
+  - Method `.test_deltas_ignores_unchanged_facts()`
+  - Method `.test_deltas_reports_each_changed_fact()`
+  - Method `.test_the_first_step_reports_from_none()`
+
+**Functions:**
+- `def _run(argv)`
+
+---
+
 ### [`tests/test_dual_world.py`](tests/test_dual_world.py)
 > *The dual world carries two independent latents and rewards their XOR.*
 
@@ -2823,6 +2941,52 @@
 - `def _canonical(value)`
 - `def _resign(record)`
 - `def _rewrite(path, records)`
+
+---
+
+### [`tests/test_model_access.py`](tests/test_model_access.py)
+> *Model access must be reachable, honest and testable without a socket.*
+
+**Size**: `261` lines (`11397` bytes)
+
+**Classes:**
+- `class TestNormalize`
+  - Method `.test_a_bare_host_port_gets_a_scheme()`
+  - Method `.test_trailing_slash_and_v1_are_removed()`
+  - Method `.test_an_empty_endpoint_is_refused_with_a_fix()`
+- `class TestMessageText`
+  - Method `.test_a_normal_choice_is_read()`
+  - Method `.test_a_legacy_text_choice_is_read()`
+  - Method `.test_a_missing_or_odd_body_is_empty_not_a_crash()`
+- `class TestClient`
+  - Method `.test_chat_returns_text_model_and_timing()`
+  - Method `.test_a_pinned_model_is_sent()`
+  - Method `.test_an_unreachable_server_names_address_and_fix()`
+  - Method `.test_an_empty_reply_is_an_error_not_an_empty_bubble()`
+  - Method `.test_models_lists_ids_and_is_empty_when_absent()`
+  - Method `.test_identify_prefers_the_pin_then_the_first_served_model()`
+  - Method `.test_is_alive_is_false_not_fatal()`
+- `class TestResolve`
+  - Method `.test_an_explicit_endpoint_wins_and_is_labelled()`
+  - Method `.test_an_explicit_dead_endpoint_fails_loudly()`
+  - Method `.test_the_environment_variable_is_used_when_no_argument_given()`
+  - Method `.test_discovery_reports_which_runtime_answered()`
+  - Method `.test_nothing_answering_lists_every_way_to_start_a_server()`
+  - Method `.test_the_shared_hint_names_a_concrete_command()`
+- `class TestChatSession`
+  - Method `._session(texts, **kwargs)`
+  - Method `.test_a_turn_appends_the_question_and_answer()`
+  - Method `.test_the_system_prompt_survives_a_reset()`
+  - Method `.test_the_cap_drops_oldest_turns_but_keeps_the_system_prompt()`
+  - Method `.test_an_empty_message_is_refused_before_any_request()`
+  - Method `.test_a_tiny_cap_is_refused()`
+  - Method `.test_the_footer_names_the_model_and_the_time()`
+  - Method `.test_the_banner_states_the_target_and_how_to_leave()`
+  - Method `.test_help_lists_every_supported_command()`
+
+**Functions:**
+- `def _fake_transport(replies)` - *Return a transport that pops canned ``(method, path)`` replies.*
+- `def _chat_body(text, model)`
 
 ---
 

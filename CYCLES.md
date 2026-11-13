@@ -4904,6 +4904,32 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 194 - a model a person can reach, and a demo that proves something
+
+- **Baseline** (commit b5d2004): 1023 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND** (human-experience audit, not a metric): `python demo.py --scripted` printed three hardcoded `WORLD-DELTA` lines and never constructed a world, so the scaffolded compat replay was proof of nothing. There was no human path to a model at all: `LlamaCppBackend` had to be constructed in code with `server_exe` and `model_path`, and an unreachable server surfaced as a traceback. The README led with 31 battery commands, which is a harness, not an app.
+- **ANALYZE**: the substrate was fine; the entry point was missing. What a person needs is one command that either talks to the model they already have or says exactly how to start one, plus a demo that shows a real episode.
+- **IMPLEMENT**: `models/openai_compat.py` (client + discovery + injectable transport); `chat_session.py` (bounded history, footer, commands); `brain.py` (chat/doctor/run, piped parity, exit codes 0/1/2); `demo.py` rewritten to run a real episode in both modes with derived deltas; `tests/test_model_access.py` (27) and `tests/test_brain_cli.py` (13) and `tests/test_demo.py` (11); README now opens with Start Here. ADR-189.
+- **After** (measured on this machine, no model running):
+  - `python demo.py` -> 13 real steps, `done (steps=13 reward=1.0)`; `--scripted --seed 7` -> seed-dependent deltas, identical across repeat runs.
+  - `python brain.py run T3_navigate --seed 15` -> same 13 steps, exit 0.
+  - `python brain.py doctor` -> exit 1, and names llama.cpp, LM Studio, Ollama and vLLM with exact start commands.
+  - `python brain.py --help` -> under 1s (test-pinned).
+  - compat replay: `.aikit/compat.json` scripted command passes `project_compat --verify` (was exit 2 after the demo rewrite until `--scripted` was restored with real content).
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the seed-7-versus-seed-1 delta comparison is the ablation: if the demo were still printing constants the two runs would be equal. They are not, and the repeat run is byte-identical.
+- **Verdict**: the project now has a front door. Boundary: no live checkpoint was available here, so the chat path is verified through an injected transport; nothing claims a real model was driven.
+- **Gates**: unittest 1074/1074 OK; aikit check brain 5/5 PASS; project_compat --verify OK.
+- **Commands run**:
+  - `python demo.py` -> 13 steps, done, exit 0.
+  - `python demo.py --scripted --seed 7` (twice) -> identical; seed 1 -> different.
+  - `python brain.py doctor` -> exit 1 with four start commands.
+  - `python brain.py run T3_navigate --seed 15` -> exit 0.
+  - `python ../../scripts/project_compat.py --verify --root .` -> `[OK] compat proof holds`.
+  - `python -m unittest discover -s tests -t .` -> 1074 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 195**: unittest 1074 OK; aikit 5/5; compat verify OK; demo human run 13 steps / `done (steps=13 reward=1.0)`; scripted seed 7 differs from seed 1 and repeats exactly; `WORLD-DELTA: items=0->1` present; `brain.py run T3_navigate --seed 15` exit 0; `brain.py doctor` with no server exit 1 naming four runtimes; endpoint normalization table; empty reply is an error; session cap keeps the system prompt; piped chat has no prompt noise; `--help` under 1s; all cycle 193 pins unchanged.
+
 ## Cycle 193 - a bounded policy that cannot act must refuse, not run
 
 - **Baseline** (commit 0af40f6): 1010 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

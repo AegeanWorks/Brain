@@ -1,28 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-policy-coverage",
+    "task_id": "brain-human-entry",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794546239.4299085,
-    "owner": "kilo:brain193",
-    "started_by": "kilo:brain193",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794550686.953484,
+    "owner": "kilo:brain194",
+    "started_by": "kilo:brain194",
     "continuations": [],
-    "completed_at": 1794546239.610095
+    "impact_assessment": {
+      "why": "the app was only usable from the test harness: demo.py printed constants and a person had no way to reach a local model",
+      "benefits": "one command talks to whatever server is installed or prints exactly how to start one; run and demo work offline; compat replay now proves something",
+      "risks": "contract: new CLI entry point and three new modules, demo contract preserved and strengthened; dependency: stdlib only; concurrency: none; state: none",
+      "mitigation": "transport injection keeps tests socket-free; existing CLI/backends untouched; compat replay and full suite both run before commit; README tree and budget updated"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-publish-private",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[publish] Pushed to https://github.com/AegeanWorks/Brain: private, master, remote=local 9cd4d9f; topics set; dossier skipped for private",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794129186.3362267,
-      "timestamp_str": "2026-11-08 12:13:06",
-      "agent": "opencode:publish"
-    },
     {
       "task_id": "brain-publish-private",
       "phase": "completed",
@@ -272,6 +266,24 @@
       "timestamp": 1794546239.6100967,
       "timestamp_str": "2026-11-13 08:03:59",
       "agent": "kilo:brain193"
+    },
+    {
+      "task_id": "brain-human-entry",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan + implement the human entry point: brain.py (chat/doctor/run), models/openai_compat.py (discovery + injectable transport), chat_session.py, real demo.py with derived WORLD-DELTA, README Start Here; demo 13 real steps, doctor lists 4 runtimes, compat verify OK; checklists: passed (freshness/call-site/deps/platform checked, unittest 1074 OK, aikit 5/5, secrets/compat clean)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794550686.953484,
+      "timestamp_str": "2026-11-13 09:18:06",
+      "agent": "kilo:brain194",
+      "impact_assessment": {
+        "why": "the app was only usable from the test harness: demo.py printed constants and a person had no way to reach a local model",
+        "benefits": "one command talks to whatever server is installed or prints exactly how to start one; run and demo work offline; compat replay now proves something",
+        "risks": "contract: new CLI entry point and three new modules, demo contract preserved and strengthened; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "transport injection keeps tests socket-free; existing CLI/backends untouched; compat replay and full suite both run before commit; README tree and budget updated"
+      },
+      "plan_digest": "aaddfb20b18a8163ef148479fb8b3473305475d5134b4f166b17ffc5df182a8d"
     }
   ]
 }

@@ -6,7 +6,25 @@
 <!-- aegean:media:end -->
 
 
-Deterministic agent substrate with memory planner self-model and integration telemetry plus ablation harness.
+A deterministic agent with memory, a planner and a self-model: talk to it in
+a terminal, or run the ablation and telemetry batteries.
+
+## 🚀 Start Here
+
+Three commands, no packages, no config:
+
+```bash
+python brain.py                  # talk to a local model
+python brain.py doctor           # is a model reachable? how do I start one?
+python brain.py run T3_navigate  # run an agent task, no model needed
+```
+
+`brain.py` finds a local OpenAI-compatible server by itself — `llama-server`
+on 8080, LM Studio on 1234, Ollama on 11434, vLLM on 8000 — or takes
+`--endpoint http://host:port` (or `$BRAIN_ENDPOINT`) plus `--model` to pin a
+model id. When nothing answers it prints the exact command to start a server
+instead of a stack trace, and `run` still works offline. Inside chat:
+`/help`, `/model`, `/reset`, `/quit`.
 
 ## ⚡ 30-Second Cold-Start Quick Reference
 
@@ -15,38 +33,16 @@ Deterministic agent substrate with memory planner self-model and integration tel
   ```bash
   python -m unittest discover -s tests -t .
   ```
-- **Cold-Start Recovery Battery**: `python -m evals.coldstart --capture`
-- **Model-Trust Battery**: `python -m evals.trust`
-- **Backend-Conformance Battery**: `python -m evals.backend_conformance`
-- **Progress-Guard Battery**: `python -m evals.progress_guard`
-- **Rule-Confidence Battery**: `python -m evals.rule_confidence`
-- **Telemetry Lock Battery**: `python -m evals.telemetry_lock`
-- **Cycle-Escape Battery**: `python -m evals.escape`
-- **Manifest-Binding Battery**: `python -m evals.manifest_binding`
-- **Dead-Pool Guard Battery**: `python -m evals.dead_pool`
-- **Chain-Anchor Battery**: `python -m evals.chain_anchor`
-- **Anchor-Journal Battery**: `python -m evals.anchor_journal`
-- **Keyed Telemetry Battery**: `python -m evals.telemetry_mac`
-- **Prompt-Budget Battery**: `python -m evals.prompt_budget`
-- **Merkle-Anchor Battery**: `python -m evals.merkle_anchor`
-- **Merkle-Journal Battery**: `python -m evals.merkle_journal`
-- **Merkle-Compaction Battery**: `python -m evals.merkle_compaction`
-- **Execution-Budget Battery**: `python -m evals.execution_budget`
-- **Resume-Identity Battery**: `python -m evals.resume_identity`
-- **Workspace-Binding Battery**: `python -m evals.workspace_binding`
-- **Snapshot-Diff Battery**: `python -m evals.snapshot_diff`
-- **Snapshot-Digest Battery**: `python -m evals.snapshot_digest`
-- **Calibration Battery**: `python -m evals.calibration`
-- **Calibration-Store Battery**: `python -m evals.calibration_store`
-- **Calibration-Bridge Battery**: `python -m evals.calibration_bridge`
-- **Calibration-Retention Battery**: `python -m evals.calibration_retention`
-- **Calibration-Autoretention Battery**: `python -m evals.calibration_autoretention`
-- **Claim-Verdict Battery**: `python -m evals.claims`
-- **Claim-Store Battery**: `python -m evals.claims_store`
-- **Claim-Evidence Battery**: `python -m evals.claim_evidence`
-- **Claim-Ref Battery**: `python -m evals.claim_ref_verify`
-- **Episode-Header Battery**: `python -m evals.episode_header`
-- **Header-Reader Battery**: `python -m evals.header_reader`
+- **Batteries** (one module each, e.g. `python -m evals.trust`):
+  coldstart, trust, backend_conformance, progress_guard, rule_confidence,
+  telemetry_lock, escape, manifest_binding, dead_pool, chain_anchor,
+  anchor_journal, telemetry_mac, prompt_budget, merkle_anchor, merkle_journal,
+  merkle_compaction, execution_budget, resume_identity, workspace_binding,
+  snapshot_diff, snapshot_digest, calibration, calibration_store,
+  calibration_bridge, calibration_retention, calibration_autoretention,
+  claims, claims_store, claim_evidence, claim_ref_verify, episode_header,
+  header_reader.
+- **Demo**: `python demo.py` runs one real episode and prints the trace.
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
 | Role | Command |
@@ -70,7 +66,9 @@ brain/
 ├── README.md
 ├── assets/
 ├── inventory.py
-├── demo.py
+├── brain.py                  <- the front door: chat, doctor, run
+├── chat_session.py           <- bounded conversation + transcript
+├── demo.py                   <- one real episode, printed
 ├── state_machines.py          <- explicit lifecycle registry (read-only)
 ├── agent.py                  <- rule-based perceive-plan-act-observe loop
 ├── budget.py                 <- opt-in step/LLM/token/time budgets
