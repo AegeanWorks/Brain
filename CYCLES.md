@@ -4904,6 +4904,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 196 - report how much of a run the model actually decided
+
+- **Baseline** (commit 6b32ff5): 1091 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: the cycle 195 transcript looked identical to the rule policy while claiming `policy openai`. Measured on T3_navigate seed 15 with an always-`up` model: 13 steps, reward 1.0, **0 accepted, 12 rejected**. With the guards off: 200 steps, reward 0.0, 200 accepted. The model was theatre, and the guards are what produced the win.
+- **ANALYZE**: the seam works; the reporting did not. `Planner.fallbacks` already counted rejections but nothing surfaced it, and `brain.py` labelled the run by the attached backend rather than by what decided it.
+- **IMPLEMENT**: `Planner.accepted`; `run_agent` JSON `model_accepted`/`model_rejected` plus a stderr warning at zero; `brain.py _report_model_influence` transcript line and warning; `--trust-model` on both entries (guards off) via `run_agent._make_planner`; `tests/test_model_influence.py` (13). ADR-191.
+- **After** (live stub on :8198, always `up`):
+  - guarded: `model: 12 proposals, 0 accepted, 12 rejected` then the warning; run 13 steps, reward 1.0.
+  - trusted: `model: 200 proposals, 200 accepted, 0 rejected`; run truncated at 200 steps, reward 0.0.
+  - `run_agent` JSON carries `model_accepted: 0`, `model_rejected: 12` and the stderr warning.
+  - test module time 209s -> 0.09s after removing a class-patch that made two tests 105s each.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: `--trust-model` is the ablation. Same world, same seed, same model text; with guards 12 rejections and a win, without guards 200 acceptances and no reward. The guards, not the model, are doing the work.
+- **Verdict**: converts a flattering transcript into an honest one. Boundary: counters describe proposals, not success; a different model may be genuinely useful, and this cycle does not claim none is.
+- **Gates**: unittest 1104/1104 OK; aikit check brain 5/5.
+- **Commands run**:
+  - `python run_agent.py --task T3_navigate --seed 15 --backend openai --endpoint 127.0.0.1:8198` -> 13 steps, 0 accepted, 12 rejected, exit 0.
+  - `python brain.py --endpoint 127.0.0.1:8198 run T3_navigate --seed 15 --backend openai` -> influence line + warning.
+  - `python brain.py ... --trust-model` -> 200 accepted, reward 0.0.
+  - `python -m unittest tests.test_model_influence` -> 13 OK in 0.09s.
+  - `python -m unittest discover -s tests -t .` -> 1104 OK.
+- **Pinned regression baselines for cycle 197**: unittest 1104 OK; aikit 5/5; guarded T3:15 0 accepted / 12 rejected / reward 1.0 / 13 steps; trusted 200 accepted / reward 0.0; `_report_model_influence` text for (0,12), (7,5), (0,0); console-safe; `run_agent` JSON counts; stderr warning at zero; `_make_planner` guard matrix (trusted off, default on, None backend); all cycle 195 pins unchanged.
+
 ## Cycle 195 - the agent can drive the model a person already runs
 
 - **Baseline** (commit 08696ea): 1077 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

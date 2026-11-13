@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `235`
-- **Total Classes**: `281`
-- **Total Top-Level Functions**: `677`
-- **Total Class Methods**: `1448`
-- **Total Source Lines**: `33822`
+- **Total Python Modules**: `236`
+- **Total Classes**: `285`
+- **Total Top-Level Functions**: `683`
+- **Total Class Methods**: `1465`
+- **Total Source Lines**: `34040`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`235` module(s))
+- **Indexed**: python (`236` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1831` lines (`76457` bytes)
+**Size**: `1833` lines (`76518` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -100,7 +100,7 @@
 ### [`brain.py`](brain.py)
 > *Brain, the way a person actually uses it.*
 
-**Size**: `205` lines (`7768` bytes)
+**Size**: `239` lines (`9403` bytes)
 
 **Functions:**
 - `def _connect(args)` - *Resolve a live model; return ``(client, source)`` or ``(None, None)``.*
@@ -108,6 +108,7 @@
 - `def _input_lines(prompt)` - *Yield one prompt when given, otherwise every stdin line.*
 - `def _doctor(args)` - *Report model access in plain language; returns an exit code.*
 - `def _run(args)` - *Run one task with a readable transcript; returns an exit code.*
+- `def _report_model_influence(planner)` - *Say plainly how much of the run the model actually decided.*
 - `def main(argv)` - *Parse arguments and dispatch; returns the process exit code.*
 
 ---
@@ -1297,11 +1298,12 @@
 ### [`run_agent.py`](run_agent.py)
 > *Run one episode, optionally with a backend chosen by name.*
 
-**Size**: `96` lines (`3910` bytes)
+**Size**: `121` lines (`5123` bytes)
 
 **Functions:**
 - `def _parse_script(text)` - *Split a comma-separated action script, ignoring blanks.*
 - `def _build_backend(name, script, endpoint, model)` - *Build a registered backend, or exit 2 with the available names.*
+- `def _make_planner(backend, trust_model)` - *Build the policy for this run; ``--trust-model`` disables the guards.*
 - `def main(argv)`
 
 ---
@@ -3062,6 +3064,42 @@
 
 **Functions:**
 - `def _rule_actions(task, seed, max_steps)`
+
+---
+
+### [`tests/test_model_influence.py`](tests/test_model_influence.py)
+> *Say plainly how much of a run the model actually decided.*
+
+**Size**: `157` lines (`6017` bytes)
+
+**Classes:**
+- `class _UpClient` - *A client that always proposes one action, like a stuck model.*
+  - Method `.__init__(text)`
+  - Method `.chat(messages, temperature, max_tokens)`
+- `class TestCounters`
+  - Method `.test_a_rejected_proposal_is_counted_as_a_fallback()`
+  - Method `.test_a_trusted_proposal_is_counted_as_accepted()`
+  - Method `.test_the_guards_are_what_make_the_episode_succeed()`
+- `class TestHumanReport`
+  - Method `._render(accepted, fallbacks)`
+  - Method `.test_zero_acceptances_says_the_rule_produced_the_run()`
+  - Method `.test_some_acceptances_report_counts_without_the_warning()`
+  - Method `.test_never_consulted_is_stated_not_implied()`
+  - Method `.test_every_rendered_line_is_console_safe()`
+  - Method `.test_the_run_transcript_ends_with_the_influence_line()`
+- `class TestJsonReport`
+  - Method `._run(extra)`
+  - Method `.test_the_report_carries_the_counts()`
+  - Method `.test_a_useless_model_prints_a_warning_on_stderr()`
+  - Method `.test_trust_model_disables_the_guards()`
+  - Method `.test_the_default_keeps_every_guard_on()`
+  - Method `.test_no_backend_means_no_planner()`
+
+**Functions:**
+- `def _guarded(text)`
+- `def _trusted(text)`
+- `def _reward(trace)`
+- `def _UpBackend()` - *A ready backend whose model always proposes ``up``.*
 
 ---
 

@@ -632,6 +632,7 @@ class Planner:
         self._progress_distrusted = False
         self._progress_streak = 0
         self.fallbacks = 0
+        self.accepted = 0
         self.progress_rejections = 0
         self._recall_source = None
         self._persistent_loaded = False
@@ -1013,6 +1014,7 @@ class Planner:
             probe["model_decision"] = decision
             self.last_probe = probe
             if accepted:
+                self.accepted += 1
                 return proposed
             self.fallbacks += 1
         return rule_action

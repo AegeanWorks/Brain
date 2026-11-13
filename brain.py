@@ -131,7 +131,12 @@ def _run(args):
         except KeyError as problem:
             print("error: %s" % problem, file=sys.stderr)
             return 2
-        planner = Planner(backend=backend)
+        if getattr(args, "trust_model", False):
+            planner = Planner(backend=backend, noop_guard=False,
+                              progress_guard=False, trust_window=None,
+                              skip_after_distrust=False)
+        else:
+            planner = Planner(backend=backend)
     agent = Agent(planner=planner) if planner is not None else Agent()
     try:
         trace = agent.run_task(args.task, args.seed, max_steps=args.max_steps)
@@ -148,10 +153,35 @@ def _run(args):
         reward = float(step.get("reward", 0.0))
         mark = "  reward %.1f" % reward if reward > 0 else ""
         print("%3d  %-8s %s%s" % (index, step.get("action"), position, mark))
+    if planner is not None:
+        _report_model_influence(planner)
     verdict, reason = agent._episode_verdict(trace, args.max_steps)
     total = sum(float(step.get("reward", 0.0)) for step in trace)
     print("%s (%s), reward %.1f" % (verdict, reason, total))
     return 0 if verdict == "done" else 1
+
+
+def _report_model_influence(planner):
+    """Say plainly how much of the run the model actually decided.
+
+    A transcript that looks identical to the rule policy is not "the model
+    drove it": with the trust guards on, a stale proposal is rejected and the
+    rule action runs. Measured on T3_navigate seed 15 with a model that always
+    says ``up``: 13 steps, 12 rejections, reward 1.0 - the run is the rule's.
+    Printing the counts stops that from reading as model skill.
+    """
+    accepted = getattr(planner, "accepted", 0)
+    refused = getattr(planner, "fallbacks", 0)
+    seen = accepted + refused
+    if not seen:
+        print("model: never consulted (guards skipped it)")
+        return
+    print("model: %d proposals, %d accepted, %d rejected" %
+          (seen, accepted, refused))
+    if accepted == 0:
+        print("model: the rule policy produced this run; the model changed "
+              "nothing (try --trust-model to let it decide, and expect a "
+              "worse result until it is tuned)")
 
 
 def main(argv=None):
@@ -186,6 +216,10 @@ def main(argv=None):
     run.add_argument("--backend", choices=("rule", "openai"), default="rule",
                      help="policy: rule (offline, default) or openai (ask the "
                           "local model for each action)")
+    run.add_argument("--trust-model", action="store_true",
+                     help="let the model's proposal stand: disables the no-op, "
+                          "progress and distrust guards (measurement shows the "
+                          "rule policy wins with them on)")
 
     args = parser.parse_args(argv)
     if args.mode == "run":
