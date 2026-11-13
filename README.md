@@ -125,11 +125,13 @@ OpenAI-compatible server that is already running (endpoint discovery as in
 `brain.py`), one model for chat and agent; a raising or silent
 server is a counted fallback, never a failed run.
 
-`run_agent` reports `model_accepted`/`model_rejected`, and `brain.py run`
-says so, warning when none were accepted: a consulted but ignored
-model must not read as skill. T3:15 with a model that always says
-`up`: 13 steps, reward 1.0, 0 accepted, 12 refused; `--trust-model` accepts
-every proposal (200 steps, reward 0.0).
+`run_agent` reports `model_accepted`/`model_rejected` and `brain.py run` says
+so: an ignored model is not skill. T3:15 with always-`up` gives 13 steps,
+reward 1.0, 0 accepted, 12 refused; `--trust-model` accepts all 200 for 0.0.
+
+`python -m evals.policy_ceiling`: seeds 0-19, the rule equals the BFS
+optimum everywhere (gap 0 on 20/20), so disagreement is a mistake, not a
+discovery.
 
 ## 🤝 Model-Seam Trust Contract
 
@@ -147,10 +149,8 @@ carries `progress_guard` plus `progress: {proposed, rule}`. After
 `progress_skip_after=3` consecutive rejections (reset by any non-progress
 outcome) calls stop with `reason=skipped-progress` and
 `progress_distrusted=True`; `progress_skip_after=None` keeps them for the
-guard-only ablation. `python -m
-evals.progress_guard` shows T3:15 33 -> 13, T3:65 26 -> 6, T2:3 34 -> 8
-steps; calls 21 -> 13/6/8 with the guard alone, 4/4/3 with the skip,
-T1 stays 36/22. `skip_after_distrust=False` restores the redundant
+guard-only ablation. `python -m evals.progress_guard`
+shows 33 -> 13, 26 -> 6, 34 -> 8 steps with 4/4/3 calls. `skip_after_distrust=False` restores the redundant
 calls; `trust_window=None` with both guards off is the raw control.
 `reason` is `stall` only on the triggering step, then `distrusted` or
 `skipped`.

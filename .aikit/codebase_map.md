@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `236`
-- **Total Classes**: `285`
-- **Total Top-Level Functions**: `683`
-- **Total Class Methods**: `1465`
-- **Total Source Lines**: `34040`
+- **Total Python Modules**: `238`
+- **Total Classes**: `288`
+- **Total Top-Level Functions**: `689`
+- **Total Class Methods**: `1483`
+- **Total Source Lines**: `34279`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`236` module(s))
+- **Indexed**: python (`238` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -847,6 +847,21 @@
 - `def _columns(rows)`
 - `def phi_diagnosis(rows)` - *Explain a ``phi_ar`` result as data.*
 - `def probe_scale()` - *Return the smallest synthetic series that moves ``phi_ar`` off 0.0.*
+
+---
+
+### [`evals/policy_ceiling.py`](evals/policy_ceiling.py)
+> *How much room is there above the rule policy? Measured: none.*
+
+**Size**: `126` lines (`4404` bytes)
+
+**Functions:**
+- `def bfs_distance(start, goal, blocked)` - *Shortest path length on the grid, or None when unreachable.*
+- `def optimal_steps(task, seed)` - *Shortest episode the task allows, or None when it is unreachable.*
+- `def _forage_optimum(items)` - *Best visiting order; each item costs its path plus one ``collect``.*
+- `def _match_optimum(target)` - *Reach the target, then collect; the reward needs two elapsed steps.*
+- `def headroom(seeds)` - *Compare rule steps with the optimum, per task and overall.*
+- `def main()` - *Print the ceiling report; 0 when the rule is already optimal.*
 
 ---
 
@@ -3642,6 +3657,36 @@
 
 **Functions:**
 - `def _logged_header(task, seed, backend)`
+
+---
+
+### [`tests/test_policy_ceiling.py`](tests/test_policy_ceiling.py)
+> *The rule policy already reaches the ceiling on every shipped task.*
+
+**Size**: `113` lines (`4674` bytes)
+
+**Classes:**
+- `class TestBfs`
+  - Method `.test_a_start_equal_to_the_goal_is_zero()`
+  - Method `.test_a_straight_line_is_manhattan()`
+  - Method `.test_an_obstacle_forces_a_detour()`
+  - Method `.test_edges_clamp_instead_of_escaping()`
+  - Method `.test_a_fully_walled_goal_is_unreachable()`
+  - Method `.test_a_blocked_goal_is_unreachable()`
+  - Method `.test_a_start_on_a_blocked_cell_still_reports_zero()`
+- `class TestOptimalSteps`
+  - Method `.test_forage_counts_a_collect_per_item()`
+  - Method `.test_forage_matches_a_brute_force_ordering()`
+  - Method `.test_match_waits_for_the_two_step_rule()`
+  - Method `.test_navigate_routes_around_the_seeded_obstacle()`
+  - Method `.test_every_task_has_a_finite_optimum_on_every_seed()`
+- `class TestNoHeadroom`
+  - Method `.setUpClass()`
+  - Method `.test_the_rule_is_optimal_on_every_task()`
+  - Method `.test_no_task_has_a_positive_gap()`
+  - Method `.test_the_rule_mean_equals_the_optimum_mean()`
+  - Method `.test_the_pinned_means_are_the_measured_ones()`
+  - Method `.test_the_report_covers_every_default_seed()`
 
 ---
 

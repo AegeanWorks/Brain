@@ -1,29 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-model-influence",
+    "task_id": "brain-policy-ceiling",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794593915.205253,
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794596227.595482,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": [],
-    "completed_at": 1794593915.4860094
+    "impact_assessment": {
+      "why": "the model seam looked like a capability; nobody had measured whether the rule leaves any steps to win",
+      "benefits": "the can-a-model-help question is closed with a number, and the battery exits 1 the moment a task gains headroom",
+      "risks": "contract: new eval module only, no product behaviour change; dependency: stdlib only; concurrency: none; state: none",
+      "mitigation": "the claim is pinned by a test and re-checked on every run; the boundary (task rules define the ceiling) is recorded in ADR-192"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-factored-learner",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 992/992 OK; aikit check brain 5/5; factored 0.9935/1.0 full, 0.0534/0.0 three; committed 2c061a3",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794517594.7928805,
-      "timestamp_str": "2026-11-13 00:06:34",
-      "agent": "kilo:brain191",
-      "checklists": "passed"
-    },
     {
       "task_id": "brain-factored-learner",
       "phase": "completed",
@@ -273,6 +266,24 @@
       "timestamp": 1794593915.486011,
       "timestamp_str": "2026-11-13 21:18:35",
       "agent": "kilo:goal"
+    },
+    {
+      "task_id": "brain-policy-ceiling",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan + implement the ceiling battery: evals/policy_ceiling.py (BFS optimum per task) proves the rule is optimal 20/20 seeds on all tasks; oracle model accepted 13/13, 13/13, 8/8; checklists: passed (freshness/call-site/deps/platform checked, unittest 1121 OK, aikit 5/5, secrets/compat clean)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794596227.595482,
+      "timestamp_str": "2026-11-13 21:57:07",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "the model seam looked like a capability; nobody had measured whether the rule leaves any steps to win",
+        "benefits": "the can-a-model-help question is closed with a number, and the battery exits 1 the moment a task gains headroom",
+        "risks": "contract: new eval module only, no product behaviour change; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "the claim is pinned by a test and re-checked on every run; the boundary (task rules define the ceiling) is recorded in ADR-192"
+      },
+      "plan_digest": "7e44eb3450984dc098e7cf3c0749c1f91316c3cfa2e8c6a4ba69568f9d6422a9"
     }
   ]
 }

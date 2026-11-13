@@ -4904,6 +4904,28 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 197 - the rule policy is at the ceiling, so a model cannot win
+
+- **Baseline** (commit d0689b7): 1104 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: cycle 196 showed a stuck model rejected 12 of 12 times, but that says nothing about whether the guards hide real value. Two measurements settle it. (a) An oracle stub replaying the rule actions is accepted **13/13 (T3:15), 13/13 (T1:3), 8/8 (T2:0)** with zero fallbacks, so rejection tracks disagreement, not incompetence. (b) The shortest possible episode matches the rule exactly: T1 15.40, T2 8.00, T3 7.15 mean steps over seeds 0-19, **maximum gap 0, `suboptimal_seeds` empty on all three tasks**.
+- **ANALYZE**: with no headroom, any disagreeing proposal is a mistake. The guards are therefore correct by construction on these tasks, and a model can only reproduce the rule. The honest conclusion is not "tune the model" but "there is nothing to win here".
+- **IMPLEMENT**: `evals/policy_ceiling.py` (`bfs_distance`, `optimal_steps`, `_forage_optimum` permutation search, `_match_optimum`, `headroom`, `main` exiting 0 only when the rule is optimal); `tests/test_policy_ceiling.py` (17). ADR-192.
+- **After** (seeds 0-19):
+  - `python -m evals.policy_ceiling` -> `optimal_everywhere: true`, max_gap 0, exit 0.
+  - rule means: T1 15.4, T2 8.0, T3 7.15; optimum means identical.
+  - oracle stub acceptance 13/13, 13/13, 8/8; stuck-model acceptance 0/12 (cycle 196).
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the oracle-vs-stuck pair is the ablation on the guard question; the BFS-optimum comparison is the ablation on the headroom question. Both point the same way: the rule is already maximal.
+- **Verdict**: closes the "can a model help?" question for the shipped tasks with a number rather than an opinion. The measured delta is an open-ended expectation becoming a ceiling: **gap 0 on 20/20 seeds for all three tasks**. Boundary: the ceiling is a property of today's reward rules; a task change can create headroom, and this battery exits 1 the moment it does.
+- **Gates**: unittest 1121/1121 OK; aikit check brain 5/5.
+- **Commands run**:
+  - `python -c "oracle stub replay of rule actions"` -> 13/13, 13/13, 8/8 accepted, 0 rejected.
+  - `python -c "rule vs BFS optimum, 20 seeds"` -> gap 0 everywhere.
+  - `python -m evals.policy_ceiling` -> exit 0, `optimal_everywhere: true`.
+  - `python -m unittest tests.test_policy_ceiling` -> 17 OK.
+  - `python -m unittest discover -s tests -t .` -> 1121 OK.
+- **Pinned regression baselines for cycle 198**: unittest 1121 OK; aikit 5/5; `policy_ceiling` exit 0 with `optimal_everywhere: true`; rule means T1 15.4 / T2 8.0 / T3 7.15 with max_gap 0; `suboptimal_seeds` empty per task; BFS straight-line 3/4, obstacle dogleg 4, walls unreachable, far corner 14; blocked goal unreachable but a blocked start reports 0; T1 optimum at least 3 and stable per seed; T2 optimum `max(hop+1, 2)`; T3 optimum equals the obstacle-aware BFS; oracle acceptance 13/13, 13/13, 8/8; all cycle 196 pins unchanged.
+
 ## Cycle 196 - report how much of a run the model actually decided
 
 - **Baseline** (commit 6b32ff5): 1091 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
