@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `241`
-- **Total Classes**: `293`
-- **Total Top-Level Functions**: `698`
-- **Total Class Methods**: `1519`
-- **Total Source Lines**: `34816`
+- **Total Python Modules**: `243`
+- **Total Classes**: `298`
+- **Total Top-Level Functions**: `707`
+- **Total Class Methods**: `1538`
+- **Total Source Lines**: `35139`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`241` module(s))
+- **Indexed**: python (`243` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -722,6 +722,23 @@
 - `def policy_collected(seed)` - *Replay the deadline plan through the backend seam.*
 - `def headroom(seeds)` - *Compare rule, deadline plan and optimum per seed.*
 - `def main()` - *Print the headroom report; 0 when a non-rule policy actually wins.*
+
+---
+
+### [`evals/headroom_learning.py`](evals/headroom_learning.py)
+> *Can the brain *learn* the deadline rule instead of being handed it?*
+
+**Size**: `155` lines (`5903` bytes)
+
+**Functions:**
+- `def order_for_weight(seed, weight)` - *Visit order under ``distance_rank + weight * deadline_rank``.*
+- `def run_order(seed, actions)` - *Execute one action list on the real world; return items collected.*
+- `def evaluate_weight(seed, weight)` - *Items collected when this weight chooses the order for ``seed``.*
+- `def success_rate(weight, seeds)` - *Fraction of seeds where this weight collects every item.*
+- `def _ucb(predict, counts, total, arm)` - *UCB1 score; an untried arm wins, which makes exploration explicit.*
+- `def learn(train_seeds, arms, episodes)` - *Choose a weight from outcomes alone, with the brain's own predictor.*
+- `def measure()` - *Learn on train seeds, score on held-out seeds, compare with the rule.*
+- `def main()` - *Print the learning report; 0 when the learned weight beats the rule.*
 
 ---
 
@@ -2747,6 +2764,42 @@
 - `class TestTheRuleItself`
   - Method `.test_the_rule_run_is_deterministic()`
   - Method `.test_the_deadline_plan_wins_through_the_real_seam()`
+
+---
+
+### [`tests/test_headroom_learning.py`](tests/test_headroom_learning.py)
+> *The deadline rule can be learned from outcomes, within its configuration.*
+
+**Size**: `168` lines (`7033` bytes)
+
+**Classes:**
+- `class TestOrderForWeight`
+  - Method `.test_weight_zero_is_the_distance_order()`
+  - Method `.test_a_large_weight_starts_with_the_urgent_item()`
+  - Method `.test_the_order_is_a_permutation_of_the_items()`
+  - Method `.test_the_order_is_deterministic()`
+- `class TestEvaluation`
+  - Method `.test_weight_zero_matches_the_rule_on_a_known_seed()`
+  - Method `.test_a_deadline_weight_collects_every_item()`
+  - Method `.test_run_order_never_exceeds_the_item_count()`
+  - Method `.test_the_success_rates_separate_the_arms()`
+  - Method `.test_success_is_a_fraction()`
+- `class TestLearning`
+  - Method `.setUpClass()`
+  - Method `.test_every_arm_is_tried_once_before_any_is_repeated()`
+  - Method `.test_the_chosen_weight_collects_everything_on_training_seeds()`
+  - Method `.test_the_chosen_weight_is_one_of_the_working_arms()`
+  - Method `.test_the_table_records_what_was_learned()`
+- `class TestHeldOut`
+  - Method `.setUpClass()`
+  - Method `.test_the_learned_weight_beats_the_rule_on_unseen_seeds()`
+  - Method `.test_the_holdout_and_training_seeds_do_not_overlap()`
+  - Method `.test_every_arm_was_tried()`
+- `class TestBoundary`
+  - Method `.test_the_scalar_does_not_carry_to_a_larger_item_count()`
+
+**Functions:**
+- `def _order_with_count(seed, weight, count)` - *The same ordering rule, for a world with ``count`` items.*
 
 ---
 

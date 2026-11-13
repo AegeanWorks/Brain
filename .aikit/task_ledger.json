@@ -1,29 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-headroom-task",
+    "task_id": "brain-headroom-learning",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794600743.5395038,
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794604122.1158905,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": [],
-    "completed_at": 1794600743.8816855
+    "impact_assessment": {
+      "why": "ADR-193 showed headroom only with a hand-built plan and left the learnability and guard questions open",
+      "benefits": "first learned policy that wins, plus proof the default guards do not block a better proposal",
+      "risks": "contract: new eval module only, no product change; dependency: stdlib only; concurrency: none; state: none",
+      "mitigation": "the family and the bandit are labelled hand-designed; portability failure is pinned as a test rather than omitted"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-policy-coverage",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1023/1023 OK; aikit check brain 5/5; learned-on-grid raises at step 0; committed 0d1c1b4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794546239.4299085,
-      "timestamp_str": "2026-11-13 08:03:59",
-      "agent": "kilo:brain193",
-      "checklists": "passed"
-    },
     {
       "task_id": "brain-policy-coverage",
       "phase": "completed",
@@ -273,6 +266,24 @@
       "timestamp": 1794600743.8816879,
       "timestamp_str": "2026-11-13 23:12:23",
       "agent": "kilo:goal"
+    },
+    {
+      "task_id": "brain-headroom-learning",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan + implement the learned deadline policy: one-parameter family + UCB1 bandit over OnlinePredictor; chosen w=4 after 7 episodes, held-out 4.00 vs rule 3.00; guards accept the better plan 0 rejections; boundary: scalar does not transfer across item counts; checklists: passed (unittest 1163 OK, aikit 5/5, secrets/compat clean)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794604122.1158905,
+      "timestamp_str": "2026-11-14 00:08:42",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "ADR-193 showed headroom only with a hand-built plan and left the learnability and guard questions open",
+        "benefits": "first learned policy that wins, plus proof the default guards do not block a better proposal",
+        "risks": "contract: new eval module only, no product change; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "the family and the bandit are labelled hand-designed; portability failure is pinned as a test rather than omitted"
+      },
+      "plan_digest": "4cdec849baac7b28a99dcf153b6b5efaba19633a998e6a8350dbcaf67df0973a"
     }
   ]
 }

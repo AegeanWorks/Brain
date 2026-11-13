@@ -130,20 +130,21 @@ so: an ignored model is not skill. T3:15 with always-`up` gives 13 steps,
 reward 1.0, 0 accepted, 12 refused; `--trust-model` accepts all 200 for 0.0.
 
 `python -m evals.policy_ceiling`: seeds 0-19, the rule equals the BFS
-optimum on every shipped task (gap 0 on 20/20), so disagreement there is a
-mistake. `worlds.deadline` creates headroom: the farthest item expires exactly
-when a direct approach reaches it, so the shortest-tour rule
-loses one item on 20/20 seeds (3.00 vs 4.00 items) while
-`python -m evals.headroom` replays a deadline-ordered plan through the real
-seam at the optimum.
+optimum on every shipped task (gap 0 on 20/20). `worlds.deadline` creates
+headroom: the farthest item expires exactly when a direct approach reaches
+it, so the shortest-tour rule loses one item on 20/20 seeds (3 vs 4)
+while `python -m evals.headroom` replays a deadline-ordered plan at the
+optimum; `evals.headroom_learning` learns it (UCB1 over `OnlinePredictor`
+picks deadline weight 4; held-out 4.00 vs 3.00). The weight does not carry
+to other item counts.
 
 ## 🤝 Model-Seam Trust Contract
 
 A legal backend proposal is trusted while fewer than 20 consecutive steps
 pass without reward. Past that window a differing proposal is
-rejected (counted in `fallbacks`) and the backend stays call-free. A no-op proposal (`wait`, `collect` before a
-collectable, a blocked direction) is rejected whenever the rule has a
-productive action; `noop_guard=False` removes that guard. A free-cell move
+rejected (counted in `fallbacks`). A no-op proposal (`wait`, `collect` before a
+collectable, a blocked direction) is rejected when the rule has a productive
+action; `noop_guard=False` removes that guard. A free-cell move
 that strictly increases BFS distance to a fixed target is rejected as
 `no-progress` when no items remain (T2/T3); `progress_guard=False`
 restores accept-until-stall, and T1 tours or no-target states are
@@ -152,7 +153,6 @@ untouched. Rejections count in `progress_rejections`. After
 outcome) calls stop with `reason=skipped-progress` and
 `progress_distrusted=True`; `progress_skip_after=None` keeps them for the
 guard-only ablation. `python -m evals.progress_guard` shows 33 -> 13, 26 -> 6, 34 -> 8 steps.
-`trust_window=None` with guards off is the raw control.
 
 ## 🧭 Rule Confidence Readout
 

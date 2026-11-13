@@ -4904,6 +4904,30 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 199 - the deadline rule is learnable, but the constant is not portable
+
+- **Baseline** (commit 70dfa03): 1146 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: two open questions from ADR-193. (a) Does the default guard stack block a better policy? No: the hand-built deadline plan runs guarded with **30/38/31 accepted, 0 rejected** and collects 4 items, because each early collect resets `steps_since_reward` inside the trust window. (b) Can the ordering be learned? Yes, within its configuration: a one-parameter family `distance_rank + w * deadline_rank` splits cleanly (w=0/0.5/1/2 -> success 0.0, w=4/8/16 -> 1.0 on train seeds), a UCB1 bandit over `OnlinePredictor` picks w=4 after one trial per arm, and held-out seeds 10-19 then score **4.00 vs the rule's 3.00**.
+- **ANALYZE**: the guard result matters more than it looks: the guards were designed to stop a bad model wasting steps, and the measurement shows they do not stop a good one. The learning result is real but narrow: seven arms, deterministic outcomes, exhaustive exploration, so it is learning-from-outcomes rather than representation discovery.
+- **IMPLEMENT**: `evals/headroom_learning.py` (`order_for_weight`, `run_order`, `evaluate_weight`, `success_rate`, `_ucb`, `learn`, `measure`, `main`); `tests/test_headroom_learning.py` (17). ADR-194.
+- **After**:
+  - guarded vs trusted on the ADR-193 plan: identical 4 items, 0 rejections.
+  - learned: chosen weight 4.0, 7 episodes, train success 0.0 for w<=2 and 1.0 for w>=4.
+  - held-out: 4.00 items vs rule 3.00; `python -m evals.headroom_learning` exits 0.
+  - boundary: at 6 items weight 4 gives 4.95 vs the rule's 5.00 (seeds 0-19) and weight 8 gives 5.80, so the scalar does not carry.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: weight 0 is the rule inside the same family, so the 3.00-vs-4.00 split is the ordering parameter alone; the guarded/trusted pair shows the guard is not the variable.
+- **Verdict**: the campaign now has both directions measured: on shipped tasks nothing can improve the rule (ADR-192), on a task with headroom the rule can be beaten and the winning parameter can be learned from outcomes (ADR-193/194), and the guard stack lets the better policy through. Boundary: the policy family is hand-designed and the learned constant is tied to the 4-item layout.
+- **Gates**: unittest 1163/1163 OK; aikit check brain 5/5.
+- **Commands run**:
+  - `python -c "guarded vs trusted deadline plan"` -> 4 items, 0 rejections both ways.
+  - `python -c "weight sweep 0..16"` -> 3.0 for w<=2, 4.0 for w>=4.
+  - `python -c "item-count transfer 3/5/6"` -> w=8 best at 5-6 items; w=4 does not improve.
+  - `python -m evals.headroom_learning` -> exit 0, chosen 4.0, held-out 4.00 vs 3.00.
+  - `python -m unittest tests.test_headroom_learning` -> 17 OK.
+  - `python -m unittest discover -s tests -t .` -> 1163 OK.
+- **Pinned regression baselines for cycle 200**: unittest 1163 OK; aikit 5/5; chosen weight 4.0 after 7 episodes; train success 0.0 for (0,0.5,1,2) and 1.0 for (4,8,16); held-out 4.00 vs rule 3.00; guard acceptance 0 rejections; weight 0 equals the rule on seed 0; weight 16 starts at the urgent item on seeds 0-9; order is a permutation and deterministic; success rates in [0,1]; every arm tried once; boundary at 6 items (`learned <= rule`, `better > learned`); `headroom` still 3.00 vs 4.00 with 20/20 gaps; all cycle 198 pins unchanged.
+
 ## Cycle 198 - build the missing headroom, then show a non-rule policy winning
 
 - **Baseline** (commit 92cebb3): 1121 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
