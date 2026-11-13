@@ -3,42 +3,15 @@
   "active_task": {
     "task_id": "brain-policy-coverage",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1794546178.251455,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794546239.4299085,
     "owner": "kilo:brain193",
     "started_by": "kilo:brain193",
     "continuations": [],
-    "impact_assessment": {
-      "why": "a policy that cannot emit the world alphabet spent the whole cap at reward 0.0 and was reported as a run",
-      "benefits": "configuration errors surface at step 0 with a working Fix, and the measured 2000/0.0 vs 305/50.0 gap is pinned",
-      "risks": "contract: new ACTIONS attribute and planner property, new startup ValueError; dependency: stdlib only; concurrency: none; state: none",
-      "mitigation": "guard skipped when either side declares nothing; rule planner and T5_choice verified unchanged; a test pins the residual under-declared failure"
-    }
+    "completed_at": 1794546239.610095
   },
   "checkpoints": [
-    {
-      "task_id": "brain-publish-private",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[publish] delivery baseline: codebase_map.md generated, assets tree + ui_kind refreshed; checklists: passed; ready to publish",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794128351.5549634,
-      "timestamp_str": "2026-11-08 11:59:11",
-      "agent": "opencode:publish"
-    },
-    {
-      "task_id": "brain-publish-private",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[publish] history cleanup: removed hmac_key=None false positive from introducing commit, rebased 18 commits, refreshed recorded hashes; commits scan clean",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794129021.4774873,
-      "timestamp_str": "2026-11-08 12:10:21",
-      "agent": "opencode:publish"
-    },
     {
       "task_id": "brain-publish-private",
       "phase": "in_progress",
@@ -277,6 +250,28 @@
         "mitigation": "guard skipped when either side declares nothing; rule planner and T5_choice verified unchanged; a test pins the residual under-declared failure"
       },
       "plan_digest": "96512afe881d5f230de074d703ed9d9ca58a729524586e9fac9245a8704cfc0c"
+    },
+    {
+      "task_id": "brain-policy-coverage",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checklists: passed; unittest 1023/1023 OK; aikit check brain 5/5; learned-on-grid raises at step 0; committed 0d1c1b4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794546239.4299085,
+      "timestamp_str": "2026-11-13 08:03:59",
+      "agent": "kilo:brain193",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "brain-policy-coverage",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-policy-coverage' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794546239.6100967,
+      "timestamp_str": "2026-11-13 08:03:59",
+      "agent": "kilo:brain193"
     }
   ]
 }
