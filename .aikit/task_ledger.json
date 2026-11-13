@@ -3,48 +3,15 @@
   "active_task": {
     "task_id": "brain-policy-ceiling",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1794596227.595482,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794596897.572055,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": [],
-    "impact_assessment": {
-      "why": "the model seam looked like a capability; nobody had measured whether the rule leaves any steps to win",
-      "benefits": "the can-a-model-help question is closed with a number, and the battery exits 1 the moment a task gains headroom",
-      "risks": "contract: new eval module only, no product behaviour change; dependency: stdlib only; concurrency: none; state: none",
-      "mitigation": "the claim is pinned by a test and re-checked on every run; the boundary (task rules define the ceiling) is recorded in ADR-192"
-    }
+    "completed_at": 1794596897.7500293
   },
   "checkpoints": [
-    {
-      "task_id": "brain-factored-learner",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-factored-learner' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794517594.9444556,
-      "timestamp_str": "2026-11-13 00:06:34",
-      "agent": "kilo:brain191"
-    },
-    {
-      "task_id": "brain-parity-transfer",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement a transfer test: ChoiceDualWorld(rule=parity), FactoredPredictor(feature_mode), measure_transfer on unseen magnitudes; parity 1.0 vs raw 0.5 (raw fully saturated), defaults unchanged; checklists: passed (freshness/call-site/deps/platform checked, unittest 1010 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794519840.3852599,
-      "timestamp_str": "2026-11-13 00:44:00",
-      "agent": "kilo:brain192",
-      "impact_assessment": {
-        "why": "ADR-186 fits a covered interaction, but behaviour outside the training range was untested and a magnitude-invariant rule can hide behind a scale-sensitive feature map",
-        "benefits": "separates capacity from representation: with world, coverage, sample count and learner fixed, only the feature map decides transfer (1.0 vs 0.5)",
-        "risks": "contract: new optional rule and feature_mode parameters, an extra rule kwarg on helpers; dependency: stdlib only; concurrency: none; state: per-key counts only",
-        "mitigation": "both parameters default to the shipped values; the ablation differs in one argument; probability saturation reported so a confident-looking wrong readout cannot be cited"
-      },
-      "plan_digest": "f6ac1ec3dacaf4efab0acf70e2c1cf6ee8563c24d4ffa8c9542d5b67e8b6b0df"
-    },
     {
       "task_id": "brain-parity-transfer",
       "phase": "in_progress",
@@ -284,6 +251,28 @@
         "mitigation": "the claim is pinned by a test and re-checked on every run; the boundary (task rules define the ceiling) is recorded in ADR-192"
       },
       "plan_digest": "7e44eb3450984dc098e7cf3c0749c1f91316c3cfa2e8c6a4ba69568f9d6422a9"
+    },
+    {
+      "task_id": "brain-policy-ceiling",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checklists: passed; unittest 1121/1121 OK; aikit check brain 5/5; policy_ceiling exit 0, gap 0 on 20/20 seeds for all tasks; committed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794596897.572055,
+      "timestamp_str": "2026-11-13 22:08:17",
+      "agent": "kilo:goal",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "brain-policy-ceiling",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-policy-ceiling' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794596897.7500305,
+      "timestamp_str": "2026-11-13 22:08:17",
+      "agent": "kilo:goal"
     }
   ]
 }
