@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `233`
-- **Total Classes**: `273`
+- **Total Classes**: `274`
 - **Total Top-Level Functions**: `675`
-- **Total Class Methods**: `1422`
-- **Total Source Lines**: `33488`
+- **Total Class Methods**: `1426`
+- **Total Source Lines**: `33541`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`233` module(s))
@@ -189,7 +189,7 @@
 ### [`chat_session.py`](chat_session.py)
 > *A conversation you can hold in a terminal, without losing your place.*
 
-**Size**: `103` lines (`3938` bytes)
+**Size**: `103` lines (`3936` bytes)
 
 **Classes:**
 - `class ChatSession` - *Hold a bounded conversation and render it for a person.*
@@ -1208,7 +1208,7 @@
 ### [`models/openai_compat.py`](models/openai_compat.py)
 > *Talk to any OpenAI-compatible local model server, with no surprises.*
 
-**Size**: `240` lines (`9142` bytes)
+**Size**: `240` lines (`9140` bytes)
 
 **Classes:**
 - `class EndpointUnavailable` - *Raised when no model server answers; the message is user-facing.*
@@ -1750,7 +1750,7 @@
 ### [`tests/test_brain_cli.py`](tests/test_brain_cli.py)
 > *The front door itself: exit codes, piped parity and readable output.*
 
-**Size**: `182` lines (`7348` bytes)
+**Size**: `235` lines (`9698` bytes)
 
 **Classes:**
 - `class TestRunMode`
@@ -1770,6 +1770,11 @@
 - `class TestStartup`
   - Method `.test_help_is_fast_and_lists_the_modes()`
   - Method `.test_the_module_documents_the_model_fallbacks()`
+- `class TestConsoleSafety` - *Windows consoles are often cp1254/cp437; a smart dash shows as '?'.*
+  - Method `._rendered_texts()`
+  - Method `.test_every_rendered_string_fits_a_legacy_console()`
+  - Method `.test_the_runtime_modules_hold_no_non_ascii_literals()`
+  - Method `.test_doctor_output_is_ascii()`
 
 **Functions:**
 - `def _transport(text, model)`

@@ -91,7 +91,7 @@ class ChatSession:
         where = "%s at %s" % (model or "server default model", base)
         if source:
             where += " (%s)" % source
-        return ("Brain chat — %s\n"
+        return ("Brain chat - %s\n"
                 "Type your message. /help for commands, /quit to leave."
                 % where)
 

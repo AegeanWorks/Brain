@@ -178,5 +178,58 @@ class TestStartup(unittest.TestCase):
             self.assertIn("BRAIN_ENDPOINT", handle.read())
 
 
+class TestConsoleSafety(unittest.TestCase):
+    """Windows consoles are often cp1254/cp437; a smart dash shows as '?'.
+
+    This was a real defect seen on a live run: the banner printed
+    "Brain chat ?" because an em dash could not be encoded. Runtime text is
+    now plain ASCII, and this test keeps it that way.
+    """
+
+    def _rendered_texts(self):
+        from chat_session import ChatSession
+        from models.openai_compat import describe_available
+        client = _client()
+        return [
+            ChatSession.banner(client, "test"),
+            ChatSession.help_text(),
+            ChatSession.footer({"model": "m", "seconds": 1.0}),
+            describe_available(),
+        ]
+
+    def test_every_rendered_string_fits_a_legacy_console(self):
+        for text in self._rendered_texts():
+            text.encode("cp1254")
+
+    def test_the_runtime_modules_hold_no_non_ascii_literals(self):
+        import ast
+        for name in ("brain.py", "chat_session.py", "models/openai_compat.py"):
+            path = os.path.join(os.path.dirname(brain.__file__),
+                                *name.split("/"))
+            with open(path, encoding="utf-8") as handle:
+                tree = ast.parse(handle.read())
+            docstrings = {id(node.body[0].value) for node in ast.walk(tree)
+                          if isinstance(node, (ast.Module, ast.FunctionDef,
+                                               ast.ClassDef))
+                          and node.body and isinstance(node.body[0], ast.Expr)
+                          and isinstance(node.body[0].value, ast.Constant)}
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Constant):
+                    continue
+                if not isinstance(node.value, str) or id(node) in docstrings:
+                    continue
+                self.assertTrue(node.value.isascii(),
+                                "%s:%d has non-ASCII text %r"
+                                % (name, node.lineno, node.value[:40]))
+
+    def test_doctor_output_is_ascii(self):
+        output = io.StringIO()
+        with mock.patch.object(brain, "resolve",
+                               return_value=(_client(), "test source")):
+            with contextlib.redirect_stdout(output):
+                brain.main(["doctor"])
+        output.getvalue().encode("cp1254")
+
+
 if __name__ == "__main__":
     unittest.main()

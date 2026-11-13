@@ -1,29 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-human-entry",
+    "task_id": "brain-console-safe",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794550763.6175168,
-    "owner": "kilo:brain194",
-    "started_by": "kilo:brain194",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794552359.6410117,
+    "owner": "kilo:brain194b",
+    "started_by": "kilo:brain194b",
     "continuations": [],
-    "completed_at": 1794550763.8239455
+    "impact_assessment": {
+      "why": "a live run against a local server showed the banner em dash printing as '?' on a Windows console",
+      "benefits": "runtime text renders on any console; the live HTTP path is now recorded evidence, not an assumption",
+      "risks": "contract: none (output text only); dependency: none; concurrency: none; state: none",
+      "mitigation": "a test encodes every rendered string to cp1254 and scans runtime literals for non-ASCII; docs may keep typographic dashes"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-context-channel",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 949/949 OK; aikit check brain 5/5 (test/hygiene/guidelines/secrets/compat); planted pair selected and noise/ablation empty; committed 2b80211",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794509121.1690984,
-      "timestamp_str": "2026-11-12 21:45:21",
-      "agent": "kilo:brain188",
-      "checklists": "passed"
-    },
     {
       "task_id": "brain-context-channel",
       "phase": "completed",
@@ -273,6 +266,24 @@
       "timestamp": 1794550763.823947,
       "timestamp_str": "2026-11-13 09:19:23",
       "agent": "kilo:brain194"
+    },
+    {
+      "task_id": "brain-console-safe",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Follow-up found by a live run: console output must be ASCII (em dash rendered as ? under cp1254); ASCII-ified banner and doctor hint, added console-safety tests and recorded the live stub-server proof; checklists: passed (freshness/call-site/deps/platform, unittest 1077 OK, aikit 5/5)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794552359.6410117,
+      "timestamp_str": "2026-11-13 09:45:59",
+      "agent": "kilo:brain194b",
+      "impact_assessment": {
+        "why": "a live run against a local server showed the banner em dash printing as '?' on a Windows console",
+        "benefits": "runtime text renders on any console; the live HTTP path is now recorded evidence, not an assumption",
+        "risks": "contract: none (output text only); dependency: none; concurrency: none; state: none",
+        "mitigation": "a test encodes every rendered string to cp1254 and scans runtime literals for non-ASCII; docs may keep typographic dashes"
+      },
+      "plan_digest": "5f9ed65a779bba8265d9c2a1aa914da22845d9cb2fbbf770de00b5ba96020ed9"
     }
   ]
 }

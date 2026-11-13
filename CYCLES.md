@@ -4915,20 +4915,22 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python brain.py run T3_navigate --seed 15` -> same 13 steps, exit 0.
   - `python brain.py doctor` -> exit 1, and names llama.cpp, LM Studio, Ollama and vLLM with exact start commands.
   - `python brain.py --help` -> under 1s (test-pinned).
+  - live HTTP proof: a throwaway OpenAI-compatible server on port 8199 answered `doctor --say ping`, `chat --prompt`, a two-line piped chat and the `$BRAIN_ENDPOINT` path, all exit 0 with the reply and footer printed.
+  - the live run found a Windows console bug: the banner em dash rendered as '?' under cp1254. Runtime text is now ASCII and a test encodes every rendered string to cp1254.
   - compat replay: `.aikit/compat.json` scripted command passes `project_compat --verify` (was exit 2 after the demo rewrite until `--scripted` was restored with real content).
   - standing 89/11.0 and `policy_digest` unchanged.
 - **Ablation**: the seed-7-versus-seed-1 delta comparison is the ablation: if the demo were still printing constants the two runs would be equal. They are not, and the repeat run is byte-identical.
-- **Verdict**: the project now has a front door. Boundary: no live checkpoint was available here, so the chat path is verified through an injected transport; nothing claims a real model was driven.
-- **Gates**: unittest 1074/1074 OK; aikit check brain 5/5 PASS; project_compat --verify OK.
+- **Verdict**: the project now has a front door. Boundary: no real checkpoint was available, so a stub server proved the HTTP path and injected transports cover the client logic; no claim is made about model quality.
+- **Gates**: unittest 1077/1077 OK; aikit check brain 5/5 PASS; project_compat --verify OK.
 - **Commands run**:
   - `python demo.py` -> 13 steps, done, exit 0.
   - `python demo.py --scripted --seed 7` (twice) -> identical; seed 1 -> different.
   - `python brain.py doctor` -> exit 1 with four start commands.
   - `python brain.py run T3_navigate --seed 15` -> exit 0.
   - `python ../../scripts/project_compat.py --verify --root .` -> `[OK] compat proof holds`.
-  - `python -m unittest discover -s tests -t .` -> 1074 OK.
+  - `python -m unittest discover -s tests -t .` -> 1077 OK.
   - `python aikit.py check brain` -> 5/5.
-- **Pinned regression baselines for cycle 195**: unittest 1074 OK; aikit 5/5; compat verify OK; demo human run 13 steps / `done (steps=13 reward=1.0)`; scripted seed 7 differs from seed 1 and repeats exactly; `WORLD-DELTA: items=0->1` present; `brain.py run T3_navigate --seed 15` exit 0; `brain.py doctor` with no server exit 1 naming four runtimes; endpoint normalization table; empty reply is an error; session cap keeps the system prompt; piped chat has no prompt noise; `--help` under 1s; all cycle 193 pins unchanged.
+- **Pinned regression baselines for cycle 195**: unittest 1077 OK; aikit 5/5; compat verify OK; demo human run 13 steps / `done (steps=13 reward=1.0)`; scripted seed 7 differs from seed 1 and repeats exactly; `WORLD-DELTA: items=0->1` present; `brain.py run T3_navigate --seed 15` exit 0; `brain.py doctor` with no server exit 1 naming four runtimes; endpoint normalization table; empty reply is an error; session cap keeps the system prompt; piped chat has no prompt noise; `--help` under 1s; all cycle 193 pins unchanged.
 
 ## Cycle 193 - a bounded policy that cannot act must refuse, not run
 

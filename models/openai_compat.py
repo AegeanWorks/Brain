@@ -87,7 +87,7 @@ def _explain_failure(base, cause):
     """Turn a transport exception into a message a person can act on."""
     return EndpointUnavailable(
         "Why: no model server answered at %s (%s: %s). "
-        "Fix: start one, then rerun — llama-server: "
+        "Fix: start one, then rerun - llama-server: "
         "`llama-server -m model.gguf --port 8080`; LM Studio: enable the "
         "local server; Ollama: `ollama serve` and `ollama pull qwen2.5:3b`."
         % (base, type(cause).__name__, cause))
