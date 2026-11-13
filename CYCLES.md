@@ -4904,6 +4904,28 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 193 - a bounded policy that cannot act must refuse, not run
+
+- **Baseline** (commit 0af40f6): 1010 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: the learned policy is bounded to `left`/`right` (`T5_choice`). Measured with 10 seeds per grid task: rule policy 305 steps / 50.0 reward; `LearnedPlanner` **2000 steps / 0.0 reward** — every seed burned the 200-step cap because it could never emit `up`, `down` or `collect`.
+- **ANALYZE**: a run that cannot possibly score is a configuration error, and reporting it as a completed 200-step run is worse than useless: it looks like a policy result. The world already knows its alphabet (`ChoiceDualWorld.ACTIONS`); `GridWorld` did not declare one, and the planner did not expose its own.
+- **IMPLEMENT**: `GridWorld.ACTIONS = ACTIONS`; `LearnedPlanner.actions`/`covers()` plus refusal of an empty or duplicate action set; `Agent._require_planner_coverage()` raises before step 1 with policy, world, missing actions and a working `Fix:`; `tests/test_policy_coverage.py` (13). ADR-188.
+- **After** (same seeds):
+  - `LearnedPlanner()` on T1/T2/T3 raises `ValueError` naming `up, down, left, right, collect, wait` instead of running 2000 zero-reward steps.
+  - `LearnedPlanner(actions=ACTIONS)` on `T3_navigate` runs normally; `T5_choice` and the rule planner are unchanged (rule T1 still 16 steps).
+  - a policy that declares the full alphabet but proposes one action still burns the cap — recorded as the residual boundary, with the measured 40-step/0.0 baseline pinned in a test.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the residual-boundary test (`_NarrowPlanner`) is the ablation: declarations alone do not prevent a useless run, so the guard is a declaration check and is labelled as one.
+- **Verdict**: converts a silent zero into a named error. The measured delta is "2000 steps, 0.0 reward, reported as a run" -> "raise at step 0 naming the missing actions". Boundary: it validates declarations, not behaviour.
+- **Gates**: unittest 1023/1023 OK; aikit check brain 5/5 PASS.
+- **Commands run**:
+  - `python -c "rule vs LearnedPlanner on 3 tasks x 10 seeds"` -> 305/50.0 vs 2000/0.0.
+  - `python -c "LearnedPlanner().run_task('T1_forage', 0)"` -> raises with Why/Fix.
+  - `python -m unittest tests.test_policy_coverage` -> 13 OK.
+  - `python -m unittest discover -s tests -t .` -> 1023 OK.
+  - `python aikit.py check brain` -> 5/5.
+- **Pinned regression baselines for cycle 194**: unittest 1023 OK; aikit 5/5; rule policy 10-seed totals T1 155/30.0, T2 80/10.0, T3 70/10.0 (305 steps, 50.0 reward); learned-on-grid raises for all three tasks naming each missing action; `LearnedPlanner.actions` `('left','right')`; empty and duplicate action sets refused; `covers(())` True; world without `ACTIONS` unaffected; `_NarrowPlanner` 40 steps / 0.0; `ChoiceDualWorld` 4 steps unaffected; `GridWorld.ACTIONS` is the six-action tuple; all cycle 192 pins unchanged.
+
 ## Cycle 192 - transfer measures the feature map, not the learner
 
 - **Baseline** (commit 4621fa9): 992 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

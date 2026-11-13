@@ -48,6 +48,10 @@ def _manhattan(a, b):
 class GridWorld:
     """Deterministic grid world for one task id and seed."""
 
+    #: Actions this world accepts; declared on the class so a caller can
+    #: check a policy's action set against it before running.
+    ACTIONS = ACTIONS
+
     def __init__(self, task_id: str, seed: int):
         if task_id not in TASKS:
             raise ValueError("unknown task_id: %r (expected one of %s)" % (task_id, TASKS))

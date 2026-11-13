@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `226`
-- **Total Classes**: `253`
+- **Total Python Modules**: `227`
+- **Total Classes**: `258`
 - **Total Top-Level Functions**: `653`
-- **Total Class Methods**: `1336`
-- **Total Source Lines**: `32166`
+- **Total Class Methods**: `1357`
+- **Total Source Lines**: `32352`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`226` module(s))
+- **Indexed**: python (`227` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1798` lines (`74814` bytes)
+**Size**: `1831` lines (`76457` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -74,6 +74,7 @@
   - Method `._world_context(state)` - *Return an optional world-provided context block for signals.*
   - Method `._step_vectors(idx, new_state, reward, memories)` - *Build numeric M/P/S/hub vectors for one step.*
   - Method `.run(max_steps, budget)` - *Run the loop; optionally install an execution budget.*
+  - Method `._require_planner_coverage()` - *Refuse a bounded policy that cannot emit the world's actions.*
   - Method `._run_loop(max_steps)` - *Run perceive/plan/act/observe loop; return trace list.*
   - Method `.run_task(task_id, seed, max_steps, budget)` - *Build GridWorld(task_id, seed) and run the loop.*
   - Method `._episode_verdict(trace, max_steps)` - *Return (verdict, reason) without mistaking the cap for success.*
@@ -1191,7 +1192,7 @@
 ### [`planner/plan.py`](planner/plan.py)
 > *Ordered step tracker with explicit ok/fail marks and recovery.*
 
-**Size**: `149` lines (`5745` bytes)
+**Size**: `168` lines (`6558` bytes)
 
 **Classes:**
 - `class Planner` - *Track a linear sequence of named operations.*
@@ -1204,6 +1205,8 @@
   - Method `.state()` - *Return cursor plus per-step status list.*
 - `class LearnedPlanner` - *Choose the action with the highest learned reward probability.*
   - Method `.__init__(actions, use_context, task_id, backoff)`
+  - Property `.actions` - *Return the bounded action set this policy can choose from.*
+  - Method `.covers(actions)` - *True when every action in ``actions`` is in this policy's set.*
   - Method `.bind_predictor(predictor)` - *Bind the online predictor this policy reads estimates from.*
   - Method `._context(state)`
   - Method `.scores(state)` - *Return ``{action: probability}`` for the current state.*
@@ -3384,6 +3387,38 @@
 
 ---
 
+### [`tests/test_policy_coverage.py`](tests/test_policy_coverage.py)
+> *A bounded policy and a world must agree on the action alphabet.*
+
+**Size**: `130` lines (`5078` bytes)
+
+**Classes:**
+- `class _NoDeclaredActions` - *A world that accepts any action and declares no alphabet.*
+  - Method `.__init__()`
+  - Method `.reset()`
+  - Method `.step(action)`
+- `class _NarrowPlanner` - *Declares the full alphabet but only ever emits two actions.*
+  - Method `.__init__(actions)`
+  - Method `.plan(state, memories)`
+- `class TestWorldAlphabet`
+  - Method `.test_the_grid_world_declares_its_actions()`
+  - Method `.test_the_choice_world_declares_two_actions()`
+- `class TestPlannerAlphabet`
+  - Method `.test_the_default_alphabet_is_left_and_right()`
+  - Method `.test_an_empty_alphabet_is_refused()`
+  - Method `.test_a_duplicate_action_is_refused()`
+  - Method `.test_coverage_is_reported_not_guessed()`
+- `class TestAgentCoverageGuard`
+  - Method `.test_a_mismatched_policy_raises_before_the_first_step()`
+  - Method `.test_the_error_is_raised_for_every_grid_task()`
+  - Method `.test_a_policy_that_covers_the_world_runs()`
+  - Method `.test_the_choice_world_is_unaffected()`
+  - Method `.test_the_rule_planner_is_unaffected()`
+  - Method `.test_a_world_without_a_declared_alphabet_is_unaffected()`
+  - Method `.test_a_zero_reward_baseline_confirms_the_old_failure_mode()`
+
+---
+
 ### [`tests/test_pool_corridor_policy.py`](tests/test_pool_corridor_policy.py)
 > *Pool-corridor gate accuracy: declared config matches shipped pooling.*
 
@@ -4499,7 +4534,7 @@
 ### [`worlds/grid.py`](worlds/grid.py)
 > *Deterministic 8x8 grid worlds with fixed-step updates.*
 
-**Size**: `224` lines (`7687` bytes)
+**Size**: `228` lines (`7845` bytes)
 
 **Classes:**
 - `class GridWorld` - *Deterministic grid world for one task id and seed.*

@@ -95,12 +95,31 @@ class LearnedPlanner:
 
     def __init__(self, actions=None, use_context=True, task_id=None,
                  backoff=False):
-        self._actions = tuple(actions) if actions else DEFAULT_ACTIONS
+        chosen = tuple(actions) if actions is not None else DEFAULT_ACTIONS
+        if not chosen:
+            raise ValueError(
+                "Why: the learned policy needs at least one action. "
+                "Fix: pass actions=('left', 'right') or omit it.")
+        duplicates = sorted({action for action in chosen if chosen.count(action) > 1})
+        if duplicates:
+            raise ValueError(
+                "Why: duplicate actions would be scored twice (%s). "
+                "Fix: pass each action once." % ", ".join(duplicates))
+        self._actions = chosen
         self._use_context = bool(use_context)
         self._task_id = task_id
         self._predictor = None
         self._backoff = bool(backoff)
         self.last_probe = {}
+
+    @property
+    def actions(self):
+        """Return the bounded action set this policy can choose from."""
+        return self._actions
+
+    def covers(self, actions):
+        """True when every action in ``actions`` is in this policy's set."""
+        return set(actions).issubset(set(self._actions))
 
     def bind_predictor(self, predictor):
         """Bind the online predictor this policy reads estimates from."""

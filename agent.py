@@ -1520,12 +1520,45 @@ class Agent:
         with use_budget(budget):
             return self._run_loop(max_steps)
 
+    def _require_planner_coverage(self):
+        """Refuse a bounded policy that cannot emit the world's actions.
+
+        A policy with a fixed action set (``LearnedPlanner``) can only ever
+        propose those actions. Paired with a world whose actions it does not
+        cover, it silently spends the whole step budget and scores zero:
+        ``LearnedPlanner()`` on ``T1_forage`` runs 200 steps with reward 0.0.
+        That is a configuration error, so it is raised here with the missing
+        actions named instead of being reported as a bad run.
+
+        The check is skipped when either side does not declare an action
+        set, so the rule planner and custom worlds are unaffected.
+        """
+        declared = getattr(self.planner, "actions", None)
+        expected = getattr(self.world, "ACTIONS", None)
+        if not isinstance(declared, (list, tuple)) or not declared:
+            return
+        if not isinstance(expected, (list, tuple)) or not expected:
+            return
+        missing = [action for action in expected if action not in declared]
+        if not missing:
+            return
+        raise ValueError(
+            "Why: %s can only emit %s, but %s requires %s; the run would "
+            "spend every step and score nothing. "
+            "Fix: use the rule planner for this world or pass "
+            "actions=(%s)."
+            % (type(self.planner).__name__, ", ".join(declared),
+               getattr(self.world, "task_id", type(self.world).__name__),
+               ", ".join(expected),
+               ", ".join(repr(action) for action in expected)))
+
     def _run_loop(self, max_steps):
         """Run perceive/plan/act/observe loop; return trace list."""
         if self.world is None:
             raise ValueError("Agent.world is None; pass a world or use run_task")
         if max_steps <= 0:
             raise ValueError("max_steps must be positive")
+        self._require_planner_coverage()
         reset_recall = getattr(self.planner, "reset_recall_cache", None)
         if callable(reset_recall):
             reset_recall()

@@ -1351,6 +1351,14 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Consequences**: parity map: seen 1.0, transfer 1.0 (correct p 0.9935, 8 of 32 steps saturated). Raw map: seen 1.0, transfer 0.5 with 32 of 32 steps saturated, so its probability readout is uninformative under extrapolation. Defaults unchanged (`rule="xor"`, `feature_mode="raw"`). 1010 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged.
 - **Boundary**: the parity map was chosen to match a parity rule; this shows that a representation aligned with the rule transfers, not that a learner discovers the alignment. A rule that is not parity-invariant would not transfer this way, and no claim is made about non-binary latents.
 
+### ADR-188: A bounded policy must declare and match the world's alphabet
+- **Date**: 2026-11-13
+- **Status**: Accepted
+- **Context**: `LearnedPlanner` chooses from a fixed action set (default `left`, `right` — the `T5_choice` alphabet). Pointed at a grid task it cannot emit `up`/`down`/`collect`, so it spent all 200 steps and scored 0.0 on every seed: measured 2000 steps / 0.0 reward across T1/T2/T3 (ten seeds each), against 305 steps / 50.0 for the rule policy. That is a configuration error reported as a bad run, which is exactly the failure mode this repository exists to prevent.
+- **Decision**: worlds declare their alphabet on the class (`GridWorld.ACTIONS`, already present on `ChoiceDualWorld`); `LearnedPlanner` exposes `actions` and `covers(...)` and refuses an empty or duplicate set; `Agent._require_planner_coverage` runs before the first step and raises a `Why:`/`Fix:` error naming the policy, the world, the missing actions and a working call. The check is skipped when either side declares nothing, so the rule planner and custom worlds are unaffected.
+- **Consequences**: `LearnedPlanner()` on any grid task now raises at step 0 instead of burning the cap; `LearnedPlanner(actions=ACTIONS)` runs normally; `T5_choice` and the rule planner are byte-identical to before. A policy that *declares* full coverage but proposes narrower still burns the cap, which is recorded as the residual boundary rather than claimed as fixed. 1023 tests OK; aikit check 5/5; standing 89/11.0 and `policy_digest decbfce3...` unchanged.
+- **Boundary**: the guard is a declaration check, not a promise that the plan will work. It cannot see a policy that under-uses a declared alphabet, and it does not validate that a policy's proposals are ever legal — that stays the world's `ValueError`.
+
 
 
 

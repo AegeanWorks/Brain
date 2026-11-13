@@ -1,28 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-parity-transfer",
+    "task_id": "brain-policy-coverage",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794520329.7823937,
-    "owner": "kilo:brain192",
-    "started_by": "kilo:brain192",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794546178.251455,
+    "owner": "kilo:brain193",
+    "started_by": "kilo:brain193",
     "continuations": [],
-    "completed_at": 1794520330.2747922
+    "impact_assessment": {
+      "why": "a policy that cannot emit the world alphabet spent the whole cap at reward 0.0 and was reported as a run",
+      "benefits": "configuration errors surface at step 0 with a working Fix, and the measured 2000/0.0 vs 305/50.0 gap is pinned",
+      "risks": "contract: new ACTIONS attribute and planner property, new startup ValueError; dependency: stdlib only; concurrency: none; state: none",
+      "mitigation": "guard skipped when either side declares nothing; rule planner and T5_choice verified unchanged; a test pins the residual under-declared failure"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-publish-private",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] checklists: passed (media audit clean, gates next); ready to commit assets and publish",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794127661.2735693,
-      "timestamp_str": "2026-11-08 11:47:41",
-      "agent": "opencode:publish"
-    },
     {
       "task_id": "brain-publish-private",
       "phase": "in_progress",
@@ -265,6 +259,24 @@
       "timestamp": 1794520330.2747946,
       "timestamp_str": "2026-11-13 00:52:10",
       "agent": "kilo:brain192"
+    },
+    {
+      "task_id": "brain-policy-coverage",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan + implement alphabet coverage guard: GridWorld.ACTIONS, LearnedPlanner.actions/covers + set validation, Agent raises before step 1 naming missing actions; learned-on-grid 2000 steps/0.0 becomes an error; checklists: passed (freshness/call-site/deps/platform checked, unittest 1023 OK, aikit 5/5, secrets/compat clean)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794546178.251455,
+      "timestamp_str": "2026-11-13 08:02:58",
+      "agent": "kilo:brain193",
+      "impact_assessment": {
+        "why": "a policy that cannot emit the world alphabet spent the whole cap at reward 0.0 and was reported as a run",
+        "benefits": "configuration errors surface at step 0 with a working Fix, and the measured 2000/0.0 vs 305/50.0 gap is pinned",
+        "risks": "contract: new ACTIONS attribute and planner property, new startup ValueError; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "guard skipped when either side declares nothing; rule planner and T5_choice verified unchanged; a test pins the residual under-declared failure"
+      },
+      "plan_digest": "96512afe881d5f230de074d703ed9d9ca58a729524586e9fac9245a8704cfc0c"
     }
   ]
 }
