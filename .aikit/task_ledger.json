@@ -3,48 +3,15 @@
   "active_task": {
     "task_id": "brain-console-safe",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1794552359.6410117,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1794552407.5415838,
     "owner": "kilo:brain194b",
     "started_by": "kilo:brain194b",
     "continuations": [],
-    "impact_assessment": {
-      "why": "a live run against a local server showed the banner em dash printing as '?' on a Windows console",
-      "benefits": "runtime text renders on any console; the live HTTP path is now recorded evidence, not an assumption",
-      "risks": "contract: none (output text only); dependency: none; concurrency: none; state: none",
-      "mitigation": "a test encodes every rendered string to cp1254 and scans runtime literals for non-ASCII; docs may keep typographic dashes"
-    }
+    "completed_at": 1794552407.7112432
   },
   "checkpoints": [
-    {
-      "task_id": "brain-context-channel",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-context-channel' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794509121.4040759,
-      "timestamp_str": "2026-11-12 21:45:21",
-      "agent": "kilo:brain188"
-    },
-    {
-      "task_id": "brain-learned-action",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement learning to act on an interaction: ChoiceDualWorld T5_choice, context_feature_key, Agent(learn_context) + bind_predictor, LearnedPlanner, measure_choice; learned last-half 1.0 vs blind 0.4875; checklists: passed (freshness/call-site/deps/platform checked, unittest 961 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794511327.9159057,
-      "timestamp_str": "2026-11-12 22:22:07",
-      "agent": "kilo:brain189",
-      "impact_assessment": {
-        "why": "ADR-183 measured an interaction but the agent still acted with the fixed rule; no learned policy could separate actions sharing a distance bucket",
-        "benefits": "the first improvement in action: 0.4875 blind -> 1.0 last-half accuracy on a context-dependent task",
-        "risks": "contract: new optional world field context plus learn_context flag and reader keyword; dependency: stdlib only; concurrency: none; state: default feature key unchanged",
-        "mitigation": "context optional and default-off; context_feature_key(None) is the shipped key; blind ablation is the same planner and world; failing-first tests pin both speeds"
-      },
-      "plan_digest": "5465b99d863d6a750f1627e7c180e0c7677ee0c690b275d95ef89d0dd8eb24ed"
-    },
     {
       "task_id": "brain-learned-action",
       "phase": "in_progress",
@@ -284,6 +251,28 @@
         "mitigation": "a test encodes every rendered string to cp1254 and scans runtime literals for non-ASCII; docs may keep typographic dashes"
       },
       "plan_digest": "5f9ed65a779bba8265d9c2a1aa914da22845d9cb2fbbf770de00b5ba96020ed9"
+    },
+    {
+      "task_id": "brain-console-safe",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checklists: passed; unittest 1077/1077 OK; aikit 5/5; console ASCII tests added; committed 2c141a5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794552407.5415838,
+      "timestamp_str": "2026-11-13 09:46:47",
+      "agent": "kilo:brain194b",
+      "checklists": "passed"
+    },
+    {
+      "task_id": "brain-console-safe",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-console-safe' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794552407.7112446,
+      "timestamp_str": "2026-11-13 09:46:47",
+      "agent": "kilo:brain194b"
     }
   ]
 }
