@@ -4904,6 +4904,29 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5.
 - **Pinned regression baselines for cycle 144**: unittest 736 OK; aikit 5/5; joint range 8x column range; `T1_forage:71` `bins=8` `ij 0.222647` / `syn -0.222647` vs `bins=64` `ij 0.482578` / `syn +0.037283`; `T3_navigate:15` `-0.164551` vs `-0.057913`; shipped `syn 0.0372826`; duplicate mechanism values; scope 17/17 insufficient; `phi_ar` floor/ceiling/AR(1); `phi_diagnosis`; `claim_forecasts` 6/5/1 Brier 0.2605; `syn_sign`; `prompt_stats` honesty; `store_capability_use`; `recall_terms` unicode-aware; `verify_run` isolation; `run_verify` CLI 0/1/2; `estimators` edges; `vector_audit` adapter; `calibration` fixtures; `execution_budget`; `resume_identity`; `header_reader`; `progress_guard`; `telemetry_lock`; `expected_model`; `expected_verdict_word`; `verify_result_records`; snapshot evidence; `confidence_is_outcome`; `SelfModel.size()`; recall cost; standing 89/11.0; T1 1581; holdout 738; cold-start 16/8/13/6; `syn` 0.054115320909768228 `phi` 0.0; policy decbfce3...; all earlier pins unchanged.
 
+## Cycle 198 - build the missing headroom, then show a non-rule policy winning
+
+- **Baseline** (commit 92cebb3): 1121 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.
+- **FIND**: ADR-192's verdict was conditional on the shipped reward rules, and the condition had never been tested in the other direction: no policy in this project had ever beaten the rule. A deadline task breaks the condition by construction.
+- **ANALYZE**: the rule tours by distance (`_first_of_best_tour`), so ordering by cost is rational unless time limits bind. Give the farthest item a deadline equal to its direct arrival time and every other item a patient deadline, and shortest-tour order must lose it.
+- **IMPLEMENT**: `worlds/deadline.py` (`DeadlineWorld`, inclusive deadline check, expiry after the action, no `target`/`obstacles` key so the existing planner treats it as forage-shaped); `evals/headroom.py` (`optimal_collected` brute force, `deadline_actions`, `rule_collected`, `policy_collected`, `headroom`, `main`); `tests/test_headroom.py` (25); export in `worlds/__init__.py`. ADR-193.
+- **After** (seeds 0-19):
+  - rule: **3.00** items, 200.00 steps; the episode burns the cap because it keeps chasing the expired item.
+  - deadline plan replayed through `StubBackend`: **4.00** items, 30.35 steps, 0 rejections.
+  - brute-force optimum: 4.00 items.
+  - rule gap on **20/20** seeds; `python -m evals.headroom` exits 0.
+  - shipped tasks unchanged: `policy_ceiling` still reports gap 0 on 20/20.
+  - standing 89/11.0 and `policy_digest` unchanged.
+- **Ablation**: the same world, seed and seam with the rule policy instead of the deadline plan is the ablation: 3.00 vs 4.00 items comes from ordering alone, not from a different world or a different agent.
+- **Verdict**: ADR-192's boundary is now demonstrated rather than asserted. The measured delta is "no policy can beat the rule anywhere" -> "on a deadline task the rule loses one item on 20 of 20 seeds and a deadline-ordered plan recovers all four at a sixth of the steps". Boundary: the plan is hand-built, not learned; whether a model finds it is the next question.
+- **Gates**: unittest 1146/1146 OK; aikit check brain 5/5.
+- **Commands run**:
+  - `python -c "probe deadline formulas over 20 seeds"` -> far-urgent slack=1 gives a gap on every seed.
+  - `python -m evals.headroom` -> exit 0, 3.00 vs 4.00, 20/20 gaps.
+  - `python -m unittest tests.test_headroom` -> 25 OK.
+  - `python -m unittest discover -s tests -t .` -> 1146 OK.
+- **Pinned regression baselines for cycle 199**: unittest 1146 OK; aikit 5/5; `headroom` exit 0 with rule 3.00 / policy 4.00 / optimum 4.00 items and 20/20 rule gaps; rule 200.00 steps vs policy 30.35; policy 0 rejections; urgent item deadline equals `distance + 1`; inclusive deadline rewards on the deadline step and refuses one step later; expired items leave `items_positions`; no `target`/`obstacles` key; movement clamps; unknown action refused; all-collected ends the episode; fingerprint stable across reset; `_moves_toward` exact paths; `deadline_actions` starts at the urgent item; `policy_ceiling` still gap 0 on 20/20; all cycle 197 pins unchanged.
+
 ## Cycle 197 - the rule policy is at the ceiling, so a model cannot win
 
 - **Baseline** (commit d0689b7): 1104 tests OK; aikit 5/5; `policy_digest` decbfce34c9517d1594dd9c27949ac9b144c8e8631aca68dd39f0a28ad88c010.

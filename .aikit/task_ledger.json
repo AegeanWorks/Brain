@@ -1,29 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-policy-ceiling",
+    "task_id": "brain-headroom-task",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794596897.572055,
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1794600277.3073068,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": [],
-    "completed_at": 1794596897.7500293
+    "impact_assessment": {
+      "why": "ADR-192's no-headroom verdict was conditional on the shipped reward rules and had never been tested the other way",
+      "benefits": "first measured non-rule win on this substrate and a concrete demonstration of ADR-192's boundary",
+      "risks": "contract: new world not in TASKS plus a new eval module; dependency: stdlib only; concurrency: none; state: none",
+      "mitigation": "existing TASKS and pins untouched; the winning plan is labelled hand-built, not learned; both world and plan are pinned by 25 tests"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "brain-parity-transfer",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1010/1010 OK; aikit check brain 5/5; parity transfer 1.0 vs raw 0.5 (32/32 saturated); committed a77e400",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794520329.7823937,
-      "timestamp_str": "2026-11-13 00:52:09",
-      "agent": "kilo:brain192",
-      "checklists": "passed"
-    },
     {
       "task_id": "brain-parity-transfer",
       "phase": "completed",
@@ -273,6 +266,24 @@
       "timestamp": 1794596897.7500305,
       "timestamp_str": "2026-11-13 22:08:17",
       "agent": "kilo:goal"
+    },
+    {
+      "task_id": "brain-headroom-task",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/1] Plan + implement the first task with headroom: worlds/deadline.py (inclusive deadlines, far item urgent), evals/headroom.py brute-force optimum + deadline plan replayed through StubBackend; rule 3.00 vs policy 4.00 items, gap 20/20; checklists: passed (freshness/call-site/deps/platform checked, unittest 1146 OK, aikit 5/5, secrets/compat clean)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794600277.3073068,
+      "timestamp_str": "2026-11-13 23:04:37",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "ADR-192's no-headroom verdict was conditional on the shipped reward rules and had never been tested the other way",
+        "benefits": "first measured non-rule win on this substrate and a concrete demonstration of ADR-192's boundary",
+        "risks": "contract: new world not in TASKS plus a new eval module; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "existing TASKS and pins untouched; the winning plan is labelled hand-built, not learned; both world and plan are pinned by 25 tests"
+      },
+      "plan_digest": "59648a56cdde37f20775541e4456b706271402f4c94851c93172ece61af5e920"
     }
   ]
 }

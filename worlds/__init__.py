@@ -2,6 +2,8 @@
 
 from .grid import GridWorld, stable_hash, viability, TASKS, ACTIONS, SIZE, MAX_STEPS, MAX_ENERGY
 from .dual import ChoiceDualWorld, DualWorld, NoiseDualWorld, PHASES as DUAL_PHASES
+from .deadline import DeadlineWorld
 
 __all__ = ["GridWorld", "stable_hash", "viability", "TASKS", "ACTIONS", "SIZE", "MAX_STEPS", "MAX_ENERGY",
-           "DualWorld", "NoiseDualWorld", "ChoiceDualWorld", "DUAL_PHASES"]
+           "DualWorld", "NoiseDualWorld", "ChoiceDualWorld", "DUAL_PHASES",
+           "DeadlineWorld"]

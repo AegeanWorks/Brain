@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `238`
-- **Total Classes**: `288`
-- **Total Top-Level Functions**: `689`
-- **Total Class Methods**: `1483`
-- **Total Source Lines**: `34279`
+- **Total Python Modules**: `241`
+- **Total Classes**: `293`
+- **Total Top-Level Functions**: `698`
+- **Total Class Methods**: `1519`
+- **Total Source Lines**: `34816`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`238` module(s))
+- **Indexed**: python (`241` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -704,6 +704,24 @@
 - `def run_battery(modes)`
 - `def checks(report)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
+
+---
+
+### [`evals/headroom.py`](evals/headroom.py)
+> *Measure the one task where the rule is beatable, and show it being beaten.*
+
+**Size**: `166` lines (`5694` bytes)
+
+**Functions:**
+- `def _manhattan(a, b)`
+- `def _moves_toward(start, goal)` - *Deterministic axis-by-axis action list from start to goal.*
+- `def _plan_actions(order)` - *Actions visiting ``order`` in sequence, collecting at each cell.*
+- `def optimal_collected(items)` - *Max items collectible over every visit order, honoring deadlines.*
+- `def deadline_actions(seed)` - *Earliest-deadline-first plan for one seed, as action tokens.*
+- `def rule_collected(seed)` - *What the shipped rule policy actually achieves on this world.*
+- `def policy_collected(seed)` - *Replay the deadline plan through the backend seam.*
+- `def headroom(seeds)` - *Compare rule, deadline plan and optimum per seed.*
+- `def main()` - *Print the headroom report; 0 when a non-rule policy actually wins.*
 
 ---
 
@@ -2690,6 +2708,45 @@
 
 **Functions:**
 - `def _mode(report, name)`
+
+---
+
+### [`tests/test_headroom.py`](tests/test_headroom.py)
+> *A task where the rule is beatable, and a plan that beats it.*
+
+**Size**: `208` lines (`8594` bytes)
+
+**Classes:**
+- `class TestDeadlineWorld`
+  - Method `.test_the_layout_is_deterministic_and_seeded()`
+  - Method `.test_the_farthest_item_is_the_urgent_one()`
+  - Method `.test_collecting_before_the_deadline_rewards_one()`
+  - Method `.test_an_expired_item_cannot_be_collected()`
+  - Method `.test_expiry_removes_the_item_from_the_observation()`
+  - Method `.test_the_state_has_no_fixed_target_or_obstacles()`
+  - Method `.test_movement_clamps_at_the_board_edge()`
+  - Method `.test_an_unknown_action_is_refused()`
+  - Method `.test_the_episode_ends_when_all_items_are_collected()`
+  - Method `.test_the_fingerprint_survives_reset_and_tracks_the_seed()`
+  - Method `.test_a_bad_item_count_is_refused()`
+- `class TestPlanActions`
+  - Method `.test_moves_toward_walks_one_cell_at_a_time()`
+  - Method `.test_moves_toward_handles_every_direction()`
+  - Method `.test_the_plan_reaches_every_cell_in_order()`
+  - Method `.test_deadline_actions_start_with_the_urgent_item()`
+- `class TestHeadroom`
+  - Method `.setUpClass()`
+  - Method `.test_the_rule_loses_an_item_on_every_seed()`
+  - Method `.test_the_deadline_plan_reaches_the_optimum_everywhere()`
+  - Method `.test_the_policy_beats_the_rule_on_average()`
+  - Method `.test_the_optimum_is_every_item()`
+  - Method `.test_the_policy_is_also_far_shorter()`
+  - Method `.test_optimal_collected_caps_at_the_item_count()`
+  - Method `.test_a_single_seed_agrees_with_the_batch()`
+  - Method `.test_the_replayed_plan_is_accepted_by_the_seam()`
+- `class TestTheRuleItself`
+  - Method `.test_the_rule_run_is_deterministic()`
+  - Method `.test_the_deadline_plan_wins_through_the_real_seam()`
 
 ---
 
@@ -4803,7 +4860,27 @@
 ### [`worlds/__init__.py`](worlds/__init__.py)
 > *Brain grid worlds package: deterministic fixed-step 8x8 tasks.*
 
-**Size**: `7` lines (`435` bytes)
+**Size**: `9` lines (`499` bytes)
+
+---
+
+### [`worlds/deadline.py`](worlds/deadline.py)
+> *A grid task where the shortest tour is the wrong plan.*
+
+**Size**: `161` lines (`6122` bytes)
+
+**Classes:**
+- `class DeadlineWorld` - *Collect items before they expire; the rule's tour ignores deadlines.*
+  - Method `.__init__(seed, items)`
+  - Method `._build()`
+  - Method `.reset()`
+  - Method `._remaining()`
+  - Method `._state()`
+  - Method `._key(cell)`
+  - Method `.layout_fingerprint()`
+  - Method `.is_viable()`
+  - Method `._expire()`
+  - Method `.step(action)`
 
 ---
 
