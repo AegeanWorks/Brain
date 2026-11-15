@@ -6324,3 +6324,38 @@ only integration scores, cross-module dependencies, and ablation differentials.
 
 
 
+
+## Cycle 200 - per-item deadline scheduling in the planner
+
+- **Baseline** (HEAD d4cbf7e, cycle 199 plus the license doc; same harness and seeds):
+  - canonical gate: 1163 tests OK; aikit check brain 5/5 PASS (stale-ledger warnings only).
+  - standing behavior: 30-seed totals T1 466 / T2 240 / T3 217; nine pins 16/8/13/6/9/7/14/6/10; T1 seeds 0-99 1581; fixed-rig syn 0.05411532, phi 0.0.
+  - `policy_digest` decbfce3... (the deadline rule was not declared).
+  - deadline pre-change (the exact `deadline_ordering=False` path): 4 items 3.00/200, 5 items 4.00/200, 6 items 5.00/200 on 20/20, 10/10, 10/10 seeds; `DeadlineWorld` emitted `deadlines`, but `Planner.plan` never read the key, and the model observation and prompt carried no deadline field.
+  - ADR-194 boundary: the learned scalar weight 4 ties the 4-item baseline but gives 5.00 at 6 items; weight 8 gives 5.70 on seeds 0-9.
+- **Gap**: the substrate had deadline state but no policy that used it. The eval-side hand plan and learned scalar were not the planner, so the shipped agent could not schedule the urgent item; the 5/6-item boundary showed a scalar was not the missing rule.
+- **Target delta**: shipped planner collects 4/4 in 26.65 mean steps (20-seed total 533), 5/5 in 30.05 and 6/6 in 33.15; the `deadline_ordering=False` ablation restores 3.00/4.00/5.00 at 200 steps; `probe.deadline`, model observation and prompt carry the schedule; standing pins and trace stay byte-identical; policy digest rotates only for the declared rule.
+- **Falsifier**: any standing pin moves, the ablation is not 3/4/5 at 200, the 5- or 6-item family does not reach the full count, or the probe/observation/prompt lacks deadlines.
+- **Change** (`agent.py`: `MAX_DEADLINE_ITEMS=7`, `_deadline_map`, `_first_of_deadline_tour`, `T6_deadline` task fields, `Planner(deadline_ordering=True)` with schedule readout/observation/readout goal, `PLANNER_POLICY["deadline_ordering"]`; `models/llamacpp.py`: `Deadlines:` prompt line; `evals/headroom.py`: shipped rule plus tour ablation; `evals/headroom_learning.py`: item-count parameter and tour/shipped report; `tests/test_deadline_planning.py` new; `tests/test_headroom.py` and `tests/test_headroom_learning.py` re-baselined; README and ADR-195): no new deps.
+- **After** (identical battery, same seeds):
+  - canonical gate: 1181 tests OK; aikit check brain 5/5 PASS.
+  - standing behavior: 30-seed totals T1 466 / T2 240 / T3 217; nine pins 16/8/13/6/9/7/14/6/10; T1 seeds 0-99 1581; fixed-rig syn 0.05411532, phi 0.0; T3 ranges, holdout, exhaustive T3 and all goldens carried by the suite.
+  - shipped deadline planner: 4 items 4.00/26.65 (total 533 over seeds 0-19), 5 items 5.00/30.05 (total 310 over seeds 0-9), 6 items 6.00/33.15 (total 336 over seeds 0-9); deterministic replays.
+  - trace: `probe.deadline` names `chosen [7,6]`, deadline 14, collectible 4, schedule and slack; `probe.rule.goal` follows the scheduled cell; the model observation gains `deadlines`, and the prompt gains a `Deadlines:` line.
+  - policy: `d00e947e81c11de2feb58afab3d65e6657a900ad8964dbe4041787a17259b113` (was decbfce3...).
+- **Ablation** (`Planner(deadline_ordering=False)`, same worlds and seeds):
+  - 4 items: 3.00 items / 200 steps vs shipped 4.00 / 26.65.
+  - 5 items: 4.00 / 200 vs shipped 5.00 / 30.05.
+  - 6 items: 5.00 / 200 vs shipped 6.00 / 33.15.
+  - The cut also removes `probe.deadline`, `resolved.deadlines`, the observation field and the prompt line, so behavior and readout die together; this is the pre-change path by construction.
+- **Cross-count control**: the learned scalar (weight 4) collects 4.00 at 4 items, tying the shipped schedule, but 5.00 at 6 items where the schedule collects 6.00; weight 8 reaches 5.70 on seeds 0-9. The schedule closes ADR-194's boundary with per-item urgency, not a tuned constant.
+- **Verdict**: substrate capability with a proven ablation (deadline scheduling is load-bearing on 4/5/6 item counts) and a sharper negative control for the learned scalar. No emergence claim; verdict UNKNOWN.
+- **Commands run**:
+  - `python -m unittest tests.test_deadline_planning -v` -> before: ImportError on `_first_of_deadline_tour`; mid-cycle 3 failures + 1 error; after: 13 OK.
+  - `python -m unittest tests.test_headroom tests.test_headroom_learning -v` -> 60 OK.
+  - `python -m evals.headroom` -> shipped 4.00/26.65, tour 3.00/200, hand plan 4.00/30.35, 20/20 tour gaps.
+  - `python -m evals.headroom_learning` -> chosen weight 4.0 after 7 episodes; held-out 4.00 vs tour 3.00 and shipped 4.00.
+  - `python -m unittest discover -s tests -t .` -> 1181 OK (268.7s).
+  - `python aikit.py check brain` -> 5/5 PASS (first run failed guidelines on a stale map; refreshed with `python scripts/update_knowledge_base.py --workspace ...` then 5/5).
+  - probes -> 4/5/6 shipped totals 533/310/336; ablations 3/4/5 at 200; scalar 6-item means 5.00 (weight 4) and 5.70 (weight 8).
+- **Pinned regression baselines for cycle 201**: unittest 1181 OK; aikit 5/5; standing 466/240/217; nine pins 16/8/13/6/9/7/14/6/10; T1 0-99 1581; holdout 500-599 1581/800/738; T3 ranges; exhaustive T3 3906/3906 total 27860; goldens 9/9 + multi 5/5 + three 5/5; deadline shipped 4.00/26.65 (533 total, 0-19), 5.00/30.05 (310, 0-9), 6.00/33.15 (336, 0-9); deadline ablation 3/4/5 at 200; scalar 6-item 5.00/5.70; fixed-rig syn 0.05411532 phi 0.0 n32; policy d00e947e...; all earlier pins unchanged.

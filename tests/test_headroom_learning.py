@@ -9,12 +9,14 @@ Measured (train seeds 0-9, held-out 10-19):
     weight     0   0.5   1    2    4    8   16
     train    0.0   0.0  0.0  0.0  1.0  1.0  1.0   (fraction collecting all 4)
     chosen   4.0 after 7 episodes
-    held-out 4.00 items vs the rule's 3.00
+    held-out 4.00 items vs the shortest-tour ablation's 3.00
+    shipped  4.00 items at weight 4.0: the learned scalar ties the schedule
 
 The boundary is part of the result: a *scalar* fitted to the 4-item task does
 not carry to other item counts (at 6 items weight 4 gives 4.95 against the
-rule's 5.00, while weight 8 gives 5.80). What would transfer is the per-item
-urgency rule, not a constant tuned to one layout.
+tour rule's 5.00, while weight 8 gives 5.80). The shipped per-item schedule
+collects 6/6 at the same count, so the missing piece was urgency per item,
+not a constant tuned to one layout.
 """
 
 import unittest
@@ -25,7 +27,7 @@ from evals.headroom_learning import (DEFAULT_WEIGHTS, HOLDOUT_SEEDS,
                                      success_rate)
 from worlds.deadline import DeadlineWorld
 
-from evals.headroom import _plan_actions, rule_collected
+from evals.headroom import _plan_actions, rule_collected, tour_rule_collected
 
 
 class TestOrderForWeight(unittest.TestCase):
@@ -54,9 +56,9 @@ class TestOrderForWeight(unittest.TestCase):
 
 
 class TestEvaluation(unittest.TestCase):
-    def test_weight_zero_matches_the_rule_on_a_known_seed(self):
+    def test_weight_zero_matches_the_tour_rule_on_a_known_seed(self):
         self.assertEqual(evaluate_weight(0, 0.0),
-                         rule_collected(0)["collected"])
+                         tour_rule_collected(0)["collected"])
 
     def test_a_deadline_weight_collects_every_item(self):
         for seed in (0, 1, 2):
@@ -107,10 +109,14 @@ class TestHeldOut(unittest.TestCase):
     def setUpClass(cls):
         cls.report = measure()
 
-    def test_the_learned_weight_beats_the_rule_on_unseen_seeds(self):
-        self.assertGreater(self.report["holdout_gain"], 0.5)
+    def test_the_learned_weight_beats_the_tour_rule_on_unseen_seeds(self):
+        self.assertGreater(self.report["holdout_tour_gain"], 0.5)
         self.assertEqual(self.report["holdout_items"], 4.0)
-        self.assertEqual(self.report["holdout_rule_items"], 3.0)
+        self.assertEqual(self.report["holdout_tour_items"], 3.0)
+
+    def test_the_learned_scalar_ties_the_shipped_schedule(self):
+        self.assertEqual(self.report["holdout_shipped_items"], 4.0)
+        self.assertEqual(self.report["holdout_shipped_gain"], 0.0)
 
     def test_the_holdout_and_training_seeds_do_not_overlap(self):
         self.assertFalse(set(TRAIN_SEEDS) & set(HOLDOUT_SEEDS))
@@ -121,14 +127,15 @@ class TestHeldOut(unittest.TestCase):
 
 class TestBoundary(unittest.TestCase):
     def test_the_scalar_does_not_carry_to_a_larger_item_count(self):
-        # Fitted on 4 items; at 6 items the rule is already ahead of weight 4
-        # and weight 8 is the better constant. Recorded, not wished away.
+        # Fitted on 4 items; at 6 items the scalar buys less than the
+        # per-item schedule. Recorded, not wished away.
         def mean_items(weight, count):
             total = 0.0
             for seed in range(10):
                 world = DeadlineWorld(seed, items=count)
                 world.reset()
-                actions = _plan_actions(_order_with_count(seed, weight, count))
+                actions = _plan_actions(order_for_weight(seed, weight,
+                                                         items=count))
                 collected = 0.0
                 for action in actions:
                     _state, reward, done = world.step(action)
@@ -141,27 +148,14 @@ class TestBoundary(unittest.TestCase):
         rule_six = mean_items(0.0, 6)
         learned_six = mean_items(4.0, 6)
         better_six = mean_items(8.0, 6)
-        # The learned constant buys nothing at 6 items (it ties the rule on
-        # this seed range and is slightly worse over seeds 0-19), while a
-        # larger deadline weight is better. What would transfer is the
-        # per-item urgency rule, not a constant tuned to one layout.
-        self.assertGreater(better_six, learned_six)
+        shipped_six = sum(rule_collected(seed, items=6)["collected"]
+                          for seed in range(10)) / 10
+        # The learned constant does not reach the schedule's 6/6, while the
+        # shipped per-item schedule does; the missing piece was urgency per
+        # item, not a larger constant.
+        self.assertEqual(shipped_six, 6.0)
+        self.assertLess(better_six, shipped_six)
         self.assertLessEqual(learned_six, rule_six)
-
-
-def _order_with_count(seed, weight, count):
-    """The same ordering rule, for a world with ``count`` items."""
-    items = list(DeadlineWorld(seed, items=count).items)
-    cells = [tuple(item["cell"]) for item in items]
-    by_distance = sorted(items, key=lambda item: (
-        abs(item["cell"][0]) + abs(item["cell"][1]), item["cell"]))
-    by_deadline = sorted(items, key=lambda item: (item["deadline"], item["cell"]))
-    distance_rank = {tuple(item["cell"]): rank
-                     for rank, item in enumerate(by_distance)}
-    deadline_rank = {tuple(item["cell"]): rank
-                     for rank, item in enumerate(by_deadline)}
-    return sorted(cells,
-                  key=lambda cell: distance_rank[cell] + weight * deadline_rank[cell])
 
 
 if __name__ == "__main__":

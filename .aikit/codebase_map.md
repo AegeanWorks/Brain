@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `243`
-- **Total Classes**: `298`
-- **Total Top-Level Functions**: `707`
-- **Total Class Methods**: `1538`
-- **Total Source Lines**: `35139`
+- **Total Python Modules**: `244`
+- **Total Classes**: `304`
+- **Total Top-Level Functions**: `712`
+- **Total Class Methods**: `1559`
+- **Total Source Lines**: `35552`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`243` module(s))
+- **Indexed**: python (`244` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1833` lines (`76518` bytes)
+**Size**: `1990` lines (`83102` bytes)
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -35,7 +35,7 @@
   - Method `.clear()`
   - Method `.__len__()`
 - `class Planner` - *Fixed rule-based policy over the state dict.*
-  - Method `.__init__(backend, trust_window, noop_guard, progress_guard, progress_skip_after, cycle_escape, skip_after_distrust, probe_manifest, dead_pool_filter, rule_readout)`
+  - Method `.__init__(backend, trust_window, noop_guard, progress_guard, progress_skip_after, cycle_escape, skip_after_distrust, probe_manifest, dead_pool_filter, rule_readout, deadline_ordering)`
   - Method `.bind_hub(getter)`
   - Method `.bind_recall_source(source)` - *Install a callable returning the persisted initial state.*
   - Method `.reset_recall_cache()` - *Forget any cached layout; called once per episode.*
@@ -92,6 +92,8 @@
 - `def _enters_blocked_corridor(nxt, goal, obstacles)` - *True when stepping onto the goal's column/row while an obstacle*
 - `def _bfs_step(pos, goal, obstacles)` - *Return one deterministic BFS step toward ``goal`` and its distance.*
 - `def _bfs_distance(pos, goal, obstacles)` - *Shortest free-cell BFS distance, or None when unreachable.*
+- `def _deadline_map(raw)` - *Normalize a world-provided deadline map to ``(x, y) -> deadline``.*
+- `def _first_of_deadline_tour(pos, cells, deadlines, steps, obstacles)` - *First cell of the order that collects the most items by deadline.*
 - `def _rule_confidence(pos, goal, obstacles, action, visits)` - *Return BFS move-tie facts for one rule action and its goal.*
 - `def _step_toward(pos, goal, obstacles, visits, probe, dead_pool_filter)`
 
@@ -708,37 +710,39 @@
 ---
 
 ### [`evals/headroom.py`](evals/headroom.py)
-> *Measure the one task where the rule is beatable, and show it being beaten.*
+> *Measure the one task where a shortest tour is beatable, and show it beaten.*
 
-**Size**: `166` lines (`5694` bytes)
+**Size**: `195` lines (`7264` bytes)
 
 **Functions:**
 - `def _manhattan(a, b)`
 - `def _moves_toward(start, goal)` - *Deterministic axis-by-axis action list from start to goal.*
 - `def _plan_actions(order)` - *Actions visiting ``order`` in sequence, collecting at each cell.*
 - `def optimal_collected(items)` - *Max items collectible over every visit order, honoring deadlines.*
-- `def deadline_actions(seed)` - *Earliest-deadline-first plan for one seed, as action tokens.*
-- `def rule_collected(seed)` - *What the shipped rule policy actually achieves on this world.*
-- `def policy_collected(seed)` - *Replay the deadline plan through the backend seam.*
-- `def headroom(seeds)` - *Compare rule, deadline plan and optimum per seed.*
-- `def main()` - *Print the headroom report; 0 when a non-rule policy actually wins.*
+- `def deadline_actions(seed, items)` - *Earliest-deadline-first plan for one seed, as action tokens.*
+- `def rule_collected(seed, items)` - *What the shipped, deadline-scheduling rule achieves on this world.*
+- `def tour_rule_collected(seed, items)` - *The shortest-tour ablation: no deadline scheduling.*
+- `def policy_collected(seed, items)` - *Replay the hand deadline plan through the backend seam.*
+- `def headroom(seeds, items)` - *Compare shipped rule, tour ablation, hand plan and optimum per seed.*
+- `def main()` - *Print the headroom report; 0 when the shipped rule and plan win.*
 
 ---
 
 ### [`evals/headroom_learning.py`](evals/headroom_learning.py)
 > *Can the brain *learn* the deadline rule instead of being handed it?*
 
-**Size**: `155` lines (`5903` bytes)
+**Size**: `168` lines (`6721` bytes)
 
 **Functions:**
-- `def order_for_weight(seed, weight)` - *Visit order under ``distance_rank + weight * deadline_rank``.*
-- `def run_order(seed, actions)` - *Execute one action list on the real world; return items collected.*
-- `def evaluate_weight(seed, weight)` - *Items collected when this weight chooses the order for ``seed``.*
-- `def success_rate(weight, seeds)` - *Fraction of seeds where this weight collects every item.*
+- `def _world(seed, items)` - *The deadline world for a seed, optionally with a different item count.*
+- `def order_for_weight(seed, weight, items)` - *Visit order under ``distance_rank + weight * deadline_rank``.*
+- `def run_order(seed, actions, items)` - *Execute one action list on the real world; return items collected.*
+- `def evaluate_weight(seed, weight, items)` - *Items collected when this weight chooses the order for ``seed``.*
+- `def success_rate(weight, seeds, items)` - *Fraction of seeds where this weight collects every item.*
 - `def _ucb(predict, counts, total, arm)` - *UCB1 score; an untried arm wins, which makes exploration explicit.*
 - `def learn(train_seeds, arms, episodes)` - *Choose a weight from outcomes alone, with the brain's own predictor.*
-- `def measure()` - *Learn on train seeds, score on held-out seeds, compare with the rule.*
-- `def main()` - *Print the learning report; 0 when the learned weight beats the rule.*
+- `def measure()` - *Learn on train seeds, score on held-out seeds, compare both rules.*
+- `def main()` - *Print the learning report; 0 when the learned weight beats the tour.*
 
 ---
 
@@ -1220,7 +1224,7 @@
 ### [`models/llamacpp.py`](models/llamacpp.py)
 > *llama.cpp backend: llama-server subprocess plus completion client.*
 
-**Size**: `266` lines (`10282` bytes)
+**Size**: `269` lines (`10461` bytes)
 
 **Classes:**
 - `class LlamaCppBackend` - *Drive a local llama-server for action proposals.*
@@ -2420,6 +2424,41 @@
 
 ---
 
+### [`tests/test_deadline_planning.py`](tests/test_deadline_planning.py)
+> *Failing-first harness: the planner should schedule items by deadline.*
+
+**Size**: `189` lines (`7356` bytes)
+
+**Classes:**
+- `class CaptureBackend` - *Record the observation and always propose a legal no-op.*
+  - Method `.__init__()`
+  - Method `.generate(observation)`
+  - Method `.identity()`
+- `class TestDeadlinePlanIntegration`
+  - Method `.test_the_shipped_planner_collects_every_item()`
+  - Method `.test_the_ablation_restores_the_shortest_tour_loss()`
+  - Method `.test_the_schedule_generalises_to_five_and_six_items()`
+  - Method `.test_the_learned_scalar_does_not_generalise_where_the_schedule_does()`
+- `class TestDeadlineReadout`
+  - Method `.test_the_probe_names_the_scheduled_item()`
+  - Method `.test_the_ablation_emits_no_deadline_readout()`
+  - Method `.test_the_model_observation_and_prompt_carry_deadlines()`
+- `class TestStandingBehavior`
+  - Method `.test_the_nine_pins_are_unchanged()`
+  - Method `.test_the_thirty_seed_totals_are_unchanged()`
+- `class TestDeadlinePolicy`
+  - Method `.test_the_declared_policy_matches_the_schedule()`
+  - Method `.test_the_flag_is_validated()`
+- `class TestScheduleHelper`
+  - Method `.test_it_picks_the_urgent_item_before_a_nearer_patient_one()`
+  - Method `.test_it_falls_back_when_there_are_too_many_items()`
+
+**Functions:**
+- `def _collected(trace)`
+- `def _run(seed, items, planner)`
+
+---
+
 ### [`tests/test_degenerate_confidence.py`](tests/test_degenerate_confidence.py)
 > *A calibration score must name circular confidence, not present it.*
 
@@ -2729,9 +2768,9 @@
 ---
 
 ### [`tests/test_headroom.py`](tests/test_headroom.py)
-> *A task where the rule is beatable, and a plan that beats it.*
+> *A task where a shortest tour is beatable, and the shipped rule beats it.*
 
-**Size**: `208` lines (`8594` bytes)
+**Size**: `234` lines (`9926` bytes)
 
 **Classes:**
 - `class TestDeadlineWorld`
@@ -2753,24 +2792,28 @@
   - Method `.test_deadline_actions_start_with_the_urgent_item()`
 - `class TestHeadroom`
   - Method `.setUpClass()`
-  - Method `.test_the_rule_loses_an_item_on_every_seed()`
+  - Method `.test_the_tour_rule_loses_an_item_on_every_seed()`
+  - Method `.test_the_shipped_rule_reaches_the_optimum_everywhere()`
   - Method `.test_the_deadline_plan_reaches_the_optimum_everywhere()`
-  - Method `.test_the_policy_beats_the_rule_on_average()`
+  - Method `.test_the_policy_beats_the_tour_rule_on_average()`
+  - Method `.test_the_shipped_rule_also_beats_the_tour_rule()`
   - Method `.test_the_optimum_is_every_item()`
-  - Method `.test_the_policy_is_also_far_shorter()`
+  - Method `.test_the_policy_is_also_far_shorter_than_the_tour()`
+  - Method `.test_the_shipped_rule_is_far_shorter_than_the_tour()`
   - Method `.test_optimal_collected_caps_at_the_item_count()`
   - Method `.test_a_single_seed_agrees_with_the_batch()`
   - Method `.test_the_replayed_plan_is_accepted_by_the_seam()`
 - `class TestTheRuleItself`
   - Method `.test_the_rule_run_is_deterministic()`
   - Method `.test_the_deadline_plan_wins_through_the_real_seam()`
+  - Method `.test_the_shipped_rule_wins_without_a_backend()`
 
 ---
 
 ### [`tests/test_headroom_learning.py`](tests/test_headroom_learning.py)
 > *The deadline rule can be learned from outcomes, within its configuration.*
 
-**Size**: `168` lines (`7033` bytes)
+**Size**: `162` lines (`6772` bytes)
 
 **Classes:**
 - `class TestOrderForWeight`
@@ -2779,7 +2822,7 @@
   - Method `.test_the_order_is_a_permutation_of_the_items()`
   - Method `.test_the_order_is_deterministic()`
 - `class TestEvaluation`
-  - Method `.test_weight_zero_matches_the_rule_on_a_known_seed()`
+  - Method `.test_weight_zero_matches_the_tour_rule_on_a_known_seed()`
   - Method `.test_a_deadline_weight_collects_every_item()`
   - Method `.test_run_order_never_exceeds_the_item_count()`
   - Method `.test_the_success_rates_separate_the_arms()`
@@ -2792,14 +2835,12 @@
   - Method `.test_the_table_records_what_was_learned()`
 - `class TestHeldOut`
   - Method `.setUpClass()`
-  - Method `.test_the_learned_weight_beats_the_rule_on_unseen_seeds()`
+  - Method `.test_the_learned_weight_beats_the_tour_rule_on_unseen_seeds()`
+  - Method `.test_the_learned_scalar_ties_the_shipped_schedule()`
   - Method `.test_the_holdout_and_training_seeds_do_not_overlap()`
   - Method `.test_every_arm_was_tried()`
 - `class TestBoundary`
   - Method `.test_the_scalar_does_not_carry_to_a_larger_item_count()`
-
-**Functions:**
-- `def _order_with_count(seed, weight, count)` - *The same ordering rule, for a world with ``count`` items.*
 
 ---
 
@@ -4920,10 +4961,10 @@
 ### [`worlds/deadline.py`](worlds/deadline.py)
 > *A grid task where the shortest tour is the wrong plan.*
 
-**Size**: `161` lines (`6122` bytes)
+**Size**: `163` lines (`6271` bytes)
 
 **Classes:**
-- `class DeadlineWorld` - *Collect items before they expire; the rule's tour ignores deadlines.*
+- `class DeadlineWorld` - *Collect items before they expire; the planner schedules the order.*
   - Method `.__init__(seed, items)`
   - Method `._build()`
   - Method `.reset()`

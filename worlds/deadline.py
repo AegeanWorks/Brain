@@ -11,8 +11,10 @@ fewer collections than a plan that visits by deadline. That makes the
 task the first one where a better-than-rule policy can actually win, which
 is the precondition ADR-192 set for measuring a learned policy.
 
-Deterministic from the seed; state keys match the grid worlds so the
-existing planner and backend seam drive it unchanged.
+The shipped planner now reads the ``deadlines`` map; the shortest-tour
+behavior is kept as the ``deadline_ordering=False`` ablation. Deterministic
+from the seed; state keys match the grid worlds so the existing planner and
+backend seam drive it unchanged.
 """
 
 import hashlib
@@ -26,7 +28,7 @@ ITEMS = 4
 
 
 class DeadlineWorld:
-    """Collect items before they expire; the rule's tour ignores deadlines."""
+    """Collect items before they expire; the planner schedules the order."""
 
     task_id = "T6_deadline"
     ACTIONS = ("up", "down", "left", "right", "collect", "wait")
@@ -52,11 +54,11 @@ class DeadlineWorld:
         picked.sort(key=lambda cell: (abs(cell[0]) + abs(cell[1]),
                                       cell[0], cell[1]))
         # The farthest item is due at the moment a direct approach reaches
-        # it; every other item is patient. A shortest tour therefore spends
-        # its early steps on patient items and arrives at the urgent one
-        # after it expired, while a deadline-aware plan goes there first.
-        # Measured over seeds 0-19: the rule loses exactly one item on 20 of
-        # 20 seeds, so this task has headroom by construction.
+        # it; every other item is patient. A shortest-tour ablation therefore
+        # spends its early steps on patient items and arrives at the urgent
+        # one after it expired, while a deadline-aware plan goes there first.
+        # Measured over seeds 0-19: the tour ablation loses exactly one item
+        # on 20 of 20 seeds, so this task has headroom by construction.
         deadlines = []
         last = len(picked) - 1
         for index, cell in enumerate(picked):

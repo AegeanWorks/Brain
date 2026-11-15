@@ -29,6 +29,7 @@ from self_model.prediction import predict_outcome
 from workspace import workspace_digest
 
 SIZE = 8
+MAX_DEADLINE_ITEMS = 7
 
 _LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
 
@@ -38,6 +39,7 @@ _TASK_FIELDS = {
     "T1_forage": ("items_positions",),
     "T2_delayed_match": ("target", "cue"),
     "T3_navigate": ("target", "obstacles"),
+    "T6_deadline": ("items_positions", "deadlines"),
 }
 
 PLANNER_POLICY = {
@@ -58,6 +60,7 @@ PLANNER_POLICY = {
     "cycle_escape": "repeat>=2->bfs",
     "dead_pool_filter": "2-blockers:live<=dead-bfs",
     "rule_readout": "bfs-move-ties",
+    "deadline_ordering": "max-collected-then-shortest",
 }
 
 
@@ -336,6 +339,108 @@ def _bfs_distance(pos, goal, obstacles):
     return None
 
 
+def _deadline_map(raw):
+    """Normalize a world-provided deadline map to ``(x, y) -> deadline``.
+
+    Accepts ``{"x,y": deadline}`` as emitted by ``DeadlineWorld`` or a
+    mapping keyed by ``[x, y]`` pairs. Returns ``None`` when any entry is
+    malformed, so a partial map can never silently drive a schedule.
+    """
+    if not isinstance(raw, dict):
+        return None
+    parsed = {}
+    for key, value in raw.items():
+        try:
+            if isinstance(key, str):
+                x_text, y_text = key.split(",", 1)
+                x, y = int(x_text), int(y_text)
+            elif isinstance(key, (list, tuple)) and len(key) == 2:
+                x, y = int(key[0]), int(key[1])
+            else:
+                return None
+            deadline = int(value)
+        except (TypeError, ValueError):
+            return None
+        parsed[(x, y)] = deadline
+    return parsed
+
+
+def _first_of_deadline_tour(pos, cells, deadlines, steps=0, obstacles=None):
+    """First cell of the order that collects the most items by deadline.
+
+    Enumerates visit orders (at most ``MAX_DEADLINE_ITEMS``) and scores
+    each by ``(-collected, finish_time, path, permutation)``: maximize
+    the number of items collected before their inclusive deadlines, then
+    finish earliest, then keep the lexicographic order deterministic.
+    Travel uses BFS distance, so static obstacles are honored. Returns
+    ``([x, y], info)`` for a collectible schedule, ``(None, info)`` when
+    the planner must fall back to the shortest tour, or ``(None, None)``
+    when the deadline metadata is unusable. Pure function.
+    """
+    try:
+        origin = (int(pos[0]), int(pos[1]))
+        uniq = sorted({(int(cell[0]), int(cell[1])) for cell in cells})
+        clock = int(steps)
+    except (TypeError, ValueError, IndexError):
+        return (None, None)
+    if not uniq or not isinstance(deadlines, dict):
+        return (None, None)
+    if any(cell not in deadlines for cell in uniq):
+        return (None, None)
+    if len(uniq) > MAX_DEADLINE_ITEMS:
+        return (None, {"order": "fallback-tour", "reason": "item-limit",
+                       "items": len(uniq), "limit": MAX_DEADLINE_ITEMS})
+    points = [origin] + uniq
+    distances = {}
+    for start in points:
+        for goal in points:
+            distances[(start, goal)] = (
+                0 if start == goal else _bfs_distance(start, goal, obstacles))
+    best = None
+    for order in itertools.permutations(uniq):
+        current = origin
+        time = clock
+        path = []
+        for cell in order:
+            hop = distances[(current, cell)]
+            if hop is None:
+                continue
+            arrival = time + hop + 1
+            if arrival <= deadlines[cell]:
+                time = arrival
+                path.append(cell)
+                current = cell
+        if not path:
+            continue
+        key = (-len(path), time, tuple(path), order)
+        if best is None or key < best[0]:
+            best = (key, path, time)
+    if best is None:
+        return (None, {"order": "fallback-tour",
+                       "reason": "no-collectible-item",
+                       "items": len(uniq), "steps": clock})
+    _key, path, finish = best
+    chosen = path[0]
+    hop = distances[(origin, chosen)]
+    arrival = clock + hop + 1
+    info = {
+        "order": "max-collected-then-shortest",
+        "chosen": [chosen[0], chosen[1]],
+        "deadline": int(deadlines[chosen]),
+        "distance": int(hop),
+        "steps": clock,
+        "arrival": int(arrival),
+        "slack": int(deadlines[chosen] - arrival),
+        "collectible": len(path),
+        "total": len(uniq),
+        "schedule": [[cell[0], cell[1]] for cell in path],
+        "skipped": [[cell[0], cell[1]] for cell in uniq
+                    if cell not in path],
+        "finish": int(finish),
+    }
+    return ([chosen[0], chosen[1]], info)
+
+
 def _rule_confidence(pos, goal, obstacles, action, visits=None):
     """Return BFS move-tie facts for one rule action and its goal.
 
@@ -568,14 +673,18 @@ class Planner:
     with the rule goal, best post-move BFS distance, tie count,
     confidence (1/ties), the rule action's distance and whether it is
     optimal; ``rule_readout=False`` removes the field for the readout
-    ablation. It never selects an action.
+    ablation. It never selects an action. ``deadline_ordering=True``
+    uses a world-provided ``deadlines`` map to schedule remaining items
+    by maximum collectible count then earliest finish, instead of the
+    shortest tour; ``False`` restores the tour rule and suppresses the
+    deadline readout for the ablation.
     """
 
     def __init__(self, backend=None, trust_window=20, noop_guard=True,
                  progress_guard=True, progress_skip_after=3,
                  cycle_escape=True, skip_after_distrust=True,
                  probe_manifest=True, dead_pool_filter=True,
-                 rule_readout=True):
+                 rule_readout=True, deadline_ordering=True):
         if trust_window is not None:
             if (isinstance(trust_window, bool)
                     or not isinstance(trust_window, int)
@@ -617,6 +726,10 @@ class Planner:
             raise ValueError(
                 "Why: rule_readout must be a bool. "
                 "Fix: pass rule_readout=True or False.")
+        if not isinstance(deadline_ordering, bool):
+            raise ValueError(
+                "Why: deadline_ordering must be a bool. "
+                "Fix: pass deadline_ordering=True or False.")
         self._get_hub = None
         self.backend = backend
         self.trust_window = trust_window
@@ -628,6 +741,7 @@ class Planner:
         self.probe_manifest = probe_manifest
         self.dead_pool_filter = dead_pool_filter
         self.rule_readout = rule_readout
+        self.deadline_ordering = deadline_ordering
         self._backend_distrusted = False
         self._progress_distrusted = False
         self._progress_streak = 0
@@ -754,6 +868,27 @@ class Planner:
                              if (int(c[0]), int(c[1])) not in done_set]
             except Exception:
                 remaining = list(remaining)
+        deadline_map = None
+        raw_deadlines = None
+        if self.deadline_ordering:
+            raw_deadlines = state.get("deadlines")
+            if raw_deadlines is None:
+                task_fields = _TASK_FIELDS.get(state.get("task"))
+                if task_fields is None or "deadlines" in task_fields:
+                    raw_deadlines = _recall("deadlines")
+            deadline_map = _deadline_map(raw_deadlines)
+        deadline_view = None
+        if deadline_map is not None:
+            try:
+                cells_for_view = [(int(c[0]), int(c[1]))
+                                  for c in (remaining or [])]
+            except (TypeError, ValueError, IndexError):
+                cells_for_view = []
+            if not cells_for_view:
+                cells_for_view = sorted(deadline_map)
+            if all(cell in deadline_map for cell in cells_for_view):
+                deadline_view = [[cell[0], cell[1], int(deadline_map[cell])]
+                                 for cell in cells_for_view]
         recalled_target = _recall("target")
         if "cue" in state:
             cue_val = state.get("cue")
@@ -765,6 +900,8 @@ class Planner:
             "obstacles": _probe_safe(obstacles),
             "cue": _probe_safe(cue_val),
         }
+        if deadline_view is not None:
+            probe["resolved"]["deadlines"] = _probe_safe(deadline_view)
         self.last_probe = probe
         if self.backend is not None:
             obs = {"task": state.get("task"), "x": x, "y": y,
@@ -779,16 +916,34 @@ class Planner:
                     isinstance(m, dict) and "cue" in m for m in mem_list):
                 if cue_val is not None:
                     obs["cue"] = cue_val
+            if deadline_view is not None:
+                obs["deadlines"] = [list(entry) for entry in deadline_view]
             if visits:
                 obs["visits"] = [[int(px), int(py), int(visits[(px, py)])]
                                  for (px, py) in sorted(visits)]
             probe["model_obs_keys"] = sorted(obs)
 
+        deadline_goal = None
+
         def _rule_action():
+            nonlocal deadline_goal
             if remaining:
-                if pos in [list(c) for c in remaining]:
+                cells = [list(c) for c in remaining]
+                if deadline_map is not None:
+                    goal, info = _first_of_deadline_tour(
+                        pos, cells, deadline_map, steps, obstacles)
+                    if info is not None:
+                        probe["deadline"] = info
+                    if goal is not None:
+                        deadline_goal = list(goal)
+                        if pos == deadline_goal:
+                            return "collect"
+                        return _toward(deadline_goal)
+                    if pos in cells:
+                        return "collect"
+                elif pos in cells:
                     return "collect"
-                goal = _first_of_best_tour(pos, [list(c) for c in remaining])
+                goal = _first_of_best_tour(pos, cells)
                 return _toward(goal)
             target = recalled_target
             if target is not None:
@@ -858,7 +1013,9 @@ class Planner:
             rule_goal = None
             if remaining:
                 cells = [list(cell) for cell in remaining]
-                if pos in cells:
+                if deadline_goal is not None:
+                    rule_goal = list(deadline_goal)
+                elif pos in cells:
                     rule_goal = list(pos)
                 else:
                     rule_goal = _first_of_best_tour(pos, cells)

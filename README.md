@@ -44,7 +44,7 @@ back to the rule policy and the run still completes).
   snapshot_diff, snapshot_digest, calibration, calibration_store,
   calibration_bridge, calibration_retention, calibration_autoretention,
   claims, claims_store, claim_evidence, claim_ref_verify, episode_header,
-  header_reader.
+  header_reader, headroom, headroom_learning.
 - **Demo**: `python demo.py` runs one real episode and prints the trace.
 
 ### 🛠️ AIKit Commands (run from the AIKit folder)
@@ -91,7 +91,7 @@ brain/
 ├── memory/                   <- SQLite FTS5 store + layout anchors
 ├── planner/                  <- explicit steps + recover
 ├── self_model/               <- budget/error/confidence counters + prediction
-├── worlds/                   <- 8x8 grid tasks T1-T3 + dual-latent T4
+├── worlds/                   <- 8x8 grid tasks T1-T3 + dual-latent T4 + deadline T6
 ├── telemetry/                <- JSONL append-only + ablation ops
 ├── evals/                    <- evidence and verification batteries
 ├── tests/                    <- unittest gate, tempdir only
@@ -132,11 +132,26 @@ reward 1.0, 0 accepted, 12 refused; `--trust-model` accepts all 200 for 0.0.
 `python -m evals.policy_ceiling`: seeds 0-19, the rule equals the BFS
 optimum on every shipped task (gap 0 on 20/20). `worlds.deadline` creates
 headroom: the farthest item expires exactly when a direct approach reaches
-it, so the shortest-tour rule loses one item on 20/20 seeds (3 vs 4)
-while `python -m evals.headroom` replays a deadline-ordered plan at the
-optimum; `evals.headroom_learning` learns it (UCB1 over `OnlinePredictor`
-picks deadline weight 4; held-out 4.00 vs 3.00). The weight does not carry
-to other item counts.
+it, so a shortest-tour ablation loses one item on 20/20 seeds (3 vs 4).
+The shipped planner schedules against the world's `deadlines` map
+(`deadline_ordering`), collecting all four in 26.65 mean steps; the
+`deadline_ordering=False` cut restores 3/200. The same per-item schedule
+collects 5/5 and 6/6, where the learned scalar from
+`evals.headroom_learning` (UCB1 over `OnlinePredictor`, weight 4) ties the
+shipped rule on 4 items but loses a full item at 6.
+
+## ⏱️ Deadline-Aware Scheduling
+
+When a world's state carries `deadlines` (`{"x,y": step}`) and every
+remaining item has one, the planner enumerates visit orders (up to seven
+items), picks the order that collects the most items by its inclusive
+deadline and then finishes soonest, and routes to that first item.
+`probe.deadline` records the chosen cell, deadline, distance, arrival,
+slack, full schedule and skipped items; the model observation and prompt
+carry the same `deadlines` list. `deadline_ordering=False` restores the
+shortest-tour rule and removes the readout. `python -m evals.headroom`
+shows the 4-item win; `python -m evals.headroom_learning` shows the scalar
+boundary.
 
 ## 🤝 Model-Seam Trust Contract
 

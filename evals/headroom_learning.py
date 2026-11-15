@@ -5,17 +5,19 @@ reaches the optimum. The open question is whether a policy can be learned
 from outcomes and carry to seeds it never trained on.
 
 The policy family is one number: order items by
-``distance_rank + weight * deadline_rank``. ``weight=0`` is the shipped rule's
-distance order; a large weight is earliest-deadline-first.
+``distance_rank + weight * deadline_rank``. ``weight=0`` is the shortest-tour
+ablation's distance order; a large weight is earliest-deadline-first.
 
     weight      0  0.5    1    2    4    8   16
-    items    3.0  3.0  3.0  3.0 4.0 4.0 4.0     (mean over seeds 0-19)
+    tour items 3.0  3.0  3.0  3.0 4.0 4.0 4.0     (mean over seeds 0-19)
 
 The learner is the project's own ``OnlinePredictor`` behind a deterministic
 UCB1 bandit: an arm is a weight, an episode evaluates that weight on every
 training seed, and the outcome is "collected every item, yes or no". After
 one trial per arm it picks the first arm with the best success rate, then
-that single choice is scored on held-out seeds.
+that single choice is scored on held-out seeds. The shipped planner now
+schedules per item, so the learned scalar ties it on 4 items (4.00 vs 4.00)
+and still does not carry to 5 or 6 items, where the schedule collects all.
 """
 
 import json
@@ -30,9 +32,14 @@ TRAIN_SEEDS = tuple(range(10))
 HOLDOUT_SEEDS = tuple(range(10, 20))
 
 
-def order_for_weight(seed, weight):
+def _world(seed, items=None):
+    """The deadline world for a seed, optionally with a different item count."""
+    return DeadlineWorld(seed) if items is None else DeadlineWorld(seed, items=items)
+
+
+def order_for_weight(seed, weight, items=None):
     """Visit order under ``distance_rank + weight * deadline_rank``."""
-    items = list(DeadlineWorld(seed).items)
+    items = list(_world(seed, items).items)
     cells = [tuple(item["cell"]) for item in items]
     by_distance = sorted(items, key=lambda item: (
         abs(item["cell"][0]) + abs(item["cell"][1]), item["cell"]))
@@ -45,9 +52,9 @@ def order_for_weight(seed, weight):
                   key=lambda cell: distance_rank[cell] + weight * deadline_rank[cell])
 
 
-def run_order(seed, actions):
+def run_order(seed, actions, items=None):
     """Execute one action list on the real world; return items collected."""
-    world = DeadlineWorld(seed)
+    world = _world(seed, items)
     world.reset()
     collected = 0
     for action in actions:
@@ -58,16 +65,17 @@ def run_order(seed, actions):
     return collected
 
 
-def evaluate_weight(seed, weight):
+def evaluate_weight(seed, weight, items=None):
     """Items collected when this weight chooses the order for ``seed``."""
-    return run_order(seed, _plan_actions(order_for_weight(seed, weight)))
+    return run_order(seed, _plan_actions(order_for_weight(seed, weight, items)),
+                     items=items)
 
 
-def success_rate(weight, seeds):
+def success_rate(weight, seeds, items=None):
     """Fraction of seeds where this weight collects every item."""
-    full = float(DeadlineWorld(0).item_count)
+    full = float(_world(seeds[0], items).item_count)
     hits = sum(1 for seed in seeds
-               if evaluate_weight(seed, weight) == full)
+               if evaluate_weight(seed, weight, items) == full)
     return hits / len(seeds)
 
 
@@ -114,13 +122,15 @@ def learn(train_seeds=TRAIN_SEEDS, arms=DEFAULT_WEIGHTS, episodes=None):
 
 
 def measure():
-    """Learn on train seeds, score on held-out seeds, compare with the rule."""
-    from evals.headroom import rule_collected
+    """Learn on train seeds, score on held-out seeds, compare both rules."""
+    from evals.headroom import rule_collected, tour_rule_collected
 
     learned = learn()
     chosen = learned["chosen"]
-    rule_mean = sum(rule_collected(seed)["collected"]
+    tour_mean = sum(tour_rule_collected(seed)["collected"]
                     for seed in HOLDOUT_SEEDS) / len(HOLDOUT_SEEDS)
+    shipped_mean = sum(rule_collected(seed)["collected"]
+                       for seed in HOLDOUT_SEEDS) / len(HOLDOUT_SEEDS)
     held_mean = sum(evaluate_weight(seed, chosen)
                     for seed in HOLDOUT_SEEDS) / len(HOLDOUT_SEEDS)
     return {
@@ -131,23 +141,26 @@ def measure():
                           for arm, rate in ((arm, success_rate(arm, TRAIN_SEEDS))
                                             for arm in DEFAULT_WEIGHTS)},
         "holdout_items": held_mean,
-        "holdout_rule_items": rule_mean,
-        "holdout_gain": held_mean - rule_mean,
+        "holdout_tour_items": tour_mean,
+        "holdout_shipped_items": shipped_mean,
+        "holdout_tour_gain": held_mean - tour_mean,
+        "holdout_shipped_gain": held_mean - shipped_mean,
         "table": learned["table"],
     }
 
 
 def main():
-    """Print the learning report; 0 when the learned weight beats the rule."""
+    """Print the learning report; 0 when the learned weight beats the tour."""
     report = measure()
     print(json.dumps(report, indent=2, sort_keys=True))
-    if report["holdout_gain"] <= 0:
-        print("headroom_learning: the learned weight did not beat the rule")
+    if report["holdout_tour_gain"] <= 0:
+        print("headroom_learning: the learned weight did not beat the tour")
         raise SystemExit(1)
     print("headroom_learning: chose weight %s after %d episodes; held-out "
-          "%.2f vs rule %.2f items."
+          "%.2f vs tour %.2f and shipped %.2f items."
           % (report["chosen_weight"], report["episodes"],
-             report["holdout_items"], report["holdout_rule_items"]))
+             report["holdout_items"], report["holdout_tour_items"],
+             report["holdout_shipped_items"]))
     return 0
 
 

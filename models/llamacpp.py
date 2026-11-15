@@ -71,6 +71,9 @@ def _prompt_lines(observation):
         essentials.append("Target: %s." % ([int(v) for v in observation.get("target")],))
     if observation.get("items_positions") is not None:
         essentials.append("Items: %s." % ([[int(v) for v in c] for c in observation.get("items_positions")],))
+    if observation.get("deadlines") is not None:
+        essentials.append("Deadlines: %s." % (
+            [[int(v) for v in entry] for entry in observation.get("deadlines")],))
     if observation.get("obstacles") is not None:
         essentials.append("Obstacles: %s." % ([[int(v) for v in c] for c in observation.get("obstacles")],))
     if "cue" in observation and observation.get("cue") is not None:

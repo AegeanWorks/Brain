@@ -1,19 +1,20 @@
-"""A task where the rule is beatable, and a plan that beats it.
+"""A task where a shortest tour is beatable, and the shipped rule beats it.
 
 ADR-192 measured no headroom on the shipped tasks, so nothing could improve
 them. `DeadlineWorld` creates the missing case: the farthest item expires
-exactly when a direct approach reaches it, so the rule's shortest-tour order
-spends its early steps on patient items and loses it.
+exactly when a direct approach reaches it, so a shortest-tour order spends
+its early steps on patient items and loses it.
 
 Measured over seeds 0-19 (see `evals.headroom`):
 
-    rule                 3.00 items, 200.00 steps
+    tour ablation        3.00 items, 200.00 steps
+    shipped rule         4.00 items,  26.65 steps
     deadline plan        4.00 items,  30.35 steps
     optimum              4.00 items
-    rule gap on 20 of 20 seeds
+    tour gap on 20 of 20 seeds; shipped and plan gap 0
 
-The deadline plan is replayed through the real backend seam, so this is the
-first measured case of a non-rule policy winning on this substrate.
+The deadline plan is replayed through the real backend seam, and the shipped
+planner now uses the same deadline information without a backend.
 """
 
 import unittest
@@ -21,7 +22,8 @@ import unittest
 from agent import Agent, Planner
 from evals.headroom import (DEFAULT_SEEDS, _manhattan, _moves_toward,
                             _plan_actions, deadline_actions, headroom,
-                            optimal_collected, policy_collected, rule_collected)
+                            optimal_collected, policy_collected, rule_collected,
+                            tour_rule_collected)
 from models.backend import StubBackend
 from worlds.deadline import DeadlineWorld
 
@@ -148,23 +150,40 @@ class TestHeadroom(unittest.TestCase):
     def setUpClass(cls):
         cls.report = headroom()
 
-    def test_the_rule_loses_an_item_on_every_seed(self):
-        self.assertEqual(self.report["seeds_with_rule_gap"], self.report["seeds"])
+    def test_the_tour_rule_loses_an_item_on_every_seed(self):
+        self.assertEqual(self.report["tour_rule_gap_seeds"],
+                         self.report["seeds"])
+        self.assertEqual(self.report["tour_rule_mean"], 3.0)
+        self.assertEqual(self.report["tour_rule_steps_mean"], 200.0)
+
+    def test_the_shipped_rule_reaches_the_optimum_everywhere(self):
+        self.assertTrue(self.report["rule_reaches_optimum"])
+        self.assertEqual(self.report["rule_gap_seeds"], 0)
+        self.assertEqual(self.report["rule_mean"],
+                         self.report["optimal_mean"])
 
     def test_the_deadline_plan_reaches_the_optimum_everywhere(self):
         self.assertTrue(self.report["policy_reaches_optimum"])
 
-    def test_the_policy_beats_the_rule_on_average(self):
+    def test_the_policy_beats_the_tour_rule_on_average(self):
         self.assertGreater(self.report["policy_mean"],
-                           self.report["rule_mean"] + 0.5)
+                           self.report["tour_rule_mean"] + 0.5)
+
+    def test_the_shipped_rule_also_beats_the_tour_rule(self):
+        self.assertGreater(self.report["rule_mean"],
+                           self.report["tour_rule_mean"] + 0.5)
 
     def test_the_optimum_is_every_item(self):
         self.assertEqual(self.report["optimal_mean"],
                          float(DeadlineWorld(0).item_count))
 
-    def test_the_policy_is_also_far_shorter(self):
+    def test_the_policy_is_also_far_shorter_than_the_tour(self):
         self.assertLess(self.report["policy_steps_mean"],
-                        self.report["rule_steps_mean"] / 3.0)
+                        self.report["tour_rule_steps_mean"] / 3.0)
+
+    def test_the_shipped_rule_is_far_shorter_than_the_tour(self):
+        self.assertLess(self.report["rule_steps_mean"],
+                        self.report["tour_rule_steps_mean"] / 3.0)
 
     def test_optimal_collected_caps_at_the_item_count(self):
         # Both reachable when deadlines are loose.
@@ -178,6 +197,8 @@ class TestHeadroom(unittest.TestCase):
         seed = DEFAULT_SEEDS[0]
         self.assertEqual(rule_collected(seed)["collected"],
                          self.report["rows"][0]["rule"])
+        self.assertEqual(tour_rule_collected(seed)["collected"],
+                         self.report["rows"][0]["tour_rule"])
         self.assertEqual(policy_collected(seed)["collected"],
                          self.report["rows"][0]["policy"])
 
@@ -201,7 +222,12 @@ class TestTheRuleItself(unittest.TestCase):
                           noop_guard=False, progress_guard=False)
         trace = Agent(planner=planner, world=DeadlineWorld(seed)).run(max_steps=200)
         won = sum(float(step.get("reward", 0.0)) for step in trace)
-        self.assertGreater(won, rule_collected(seed)["collected"])
+        self.assertGreater(won, tour_rule_collected(seed)["collected"])
+
+    def test_the_shipped_rule_wins_without_a_backend(self):
+        seed = DEFAULT_SEEDS[0]
+        self.assertGreater(rule_collected(seed)["collected"],
+                           tour_rule_collected(seed)["collected"])
 
 
 if __name__ == "__main__":

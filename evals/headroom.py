@@ -1,20 +1,22 @@
-"""Measure the one task where the rule is beatable, and show it being beaten.
+"""Measure the one task where a shortest tour is beatable, and show it beaten.
 
 ADR-192 found no headroom on the shipped tasks, so no policy could improve
 them. `worlds.deadline.DeadlineWorld` is built to have headroom: the farthest
-item expires at the moment a direct approach reaches it, so the rule's
-shortest-tour order spends its early steps on patient items and loses it.
+item expires at the moment a direct approach reaches it, so a shortest-tour
+order spends its early steps on patient items and loses it.
 
-Measured over seeds 0-19:
+Measured over seeds 0-19 with four items:
 
-    rule (shortest tour)   3.00 items, 200.00 steps
-    deadline-aware plan    4.00 items,  30.35 steps
-    optimum (brute force)  4.00 items
-    rule gap on 20 of 20 seeds
+    tour ablation         3.00 items, 200.00 steps
+    shipped rule          4.00 items,  26.65 steps
+    hand deadline plan    4.00 items,  30.35 steps
+    optimum (brute force) 4.00 items
+    tour gap on 20 of 20 seeds; shipped and hand plan gap 0
 
-`deadline_actions` produces the plan the rule cannot, and it is replayed
-through the real backend seam (`StubBackend`), so this is the first measured
-case of a non-rule policy winning on this substrate.
+The shipped rule schedules against the world's ``deadlines`` map; the
+``tour_rule_collected`` function builds the shortest-tour ablation. The hand
+plan is still replayed through the real backend seam (`StubBackend`), so the
+battery measures both a rule integration and a non-rule plan.
 """
 
 import itertools
@@ -82,28 +84,40 @@ def optimal_collected(items):
     return best
 
 
-def deadline_actions(seed):
+def deadline_actions(seed, items=4):
     """Earliest-deadline-first plan for one seed, as action tokens."""
-    world = DeadlineWorld(seed)
+    world = DeadlineWorld(seed, items=items)
     order = [tuple(item["cell"]) for item in
              sorted(world.items, key=lambda item: (item["deadline"], item["cell"]))]
     return _plan_actions(order)
 
 
-def rule_collected(seed):
-    """What the shipped rule policy actually achieves on this world."""
-    trace = Agent(world=DeadlineWorld(seed)).run(max_steps=200)
+def rule_collected(seed, items=4):
+    """What the shipped, deadline-scheduling rule achieves on this world."""
+    trace = Agent(world=DeadlineWorld(seed, items=items)).run(max_steps=200)
     return {
         "collected": sum(float(step.get("reward", 0.0)) for step in trace),
         "steps": len(trace),
     }
 
 
-def policy_collected(seed):
-    """Replay the deadline plan through the backend seam."""
-    planner = Planner(backend=StubBackend(script=deadline_actions(seed)),
+def tour_rule_collected(seed, items=4):
+    """The shortest-tour ablation: no deadline scheduling."""
+    planner = Planner(deadline_ordering=False)
+    trace = Agent(planner=planner,
+                  world=DeadlineWorld(seed, items=items)).run(max_steps=200)
+    return {
+        "collected": sum(float(step.get("reward", 0.0)) for step in trace),
+        "steps": len(trace),
+    }
+
+
+def policy_collected(seed, items=4):
+    """Replay the hand deadline plan through the backend seam."""
+    planner = Planner(backend=StubBackend(script=deadline_actions(seed, items)),
                       noop_guard=False, progress_guard=False)
-    trace = Agent(planner=planner, world=DeadlineWorld(seed)).run(max_steps=200)
+    trace = Agent(planner=planner,
+                  world=DeadlineWorld(seed, items=items)).run(max_steps=200)
     return {
         "collected": sum(float(step.get("reward", 0.0)) for step in trace),
         "steps": len(trace),
@@ -112,53 +126,68 @@ def policy_collected(seed):
     }
 
 
-def headroom(seeds=DEFAULT_SEEDS):
-    """Compare rule, deadline plan and optimum per seed."""
+def headroom(seeds=DEFAULT_SEEDS, items=4):
+    """Compare shipped rule, tour ablation, hand plan and optimum per seed."""
     rows = []
     for seed in seeds:
-        world = DeadlineWorld(seed)
-        items = [(tuple(item["cell"]), item["deadline"])
-                 for item in world.items]
-        rule = rule_collected(seed)
-        policy = policy_collected(seed)
-        optimum = optimal_collected(items)
+        world = DeadlineWorld(seed, items=items)
+        item_rows = [(tuple(item["cell"]), item["deadline"])
+                     for item in world.items]
+        rule = rule_collected(seed, items)
+        tour = tour_rule_collected(seed, items)
+        policy = policy_collected(seed, items)
+        optimum = optimal_collected(item_rows)
         rows.append({
             "seed": seed,
             "rule": rule["collected"],
+            "tour_rule": tour["collected"],
             "policy": policy["collected"],
             "optimal": optimum,
             "rule_steps": rule["steps"],
+            "tour_rule_steps": tour["steps"],
             "policy_steps": policy["steps"],
         })
-    gaps = [row["optimal"] - row["rule"] for row in rows]
+    tour_gaps = [row["optimal"] - row["tour_rule"] for row in rows]
+    rule_gaps = [row["optimal"] - row["rule"] for row in rows]
+    policy_gaps = [row["optimal"] - row["policy"] for row in rows]
     return {
         "seeds": len(rows),
+        "items": items,
         "rule_mean": sum(row["rule"] for row in rows) / len(rows),
+        "tour_rule_mean": sum(row["tour_rule"] for row in rows) / len(rows),
         "policy_mean": sum(row["policy"] for row in rows) / len(rows),
         "optimal_mean": sum(row["optimal"] for row in rows) / len(rows),
-        "seeds_with_rule_gap": sum(1 for gap in gaps if gap > 0),
+        "tour_rule_gap_seeds": sum(1 for gap in tour_gaps if gap > 0),
+        "rule_gap_seeds": sum(1 for gap in rule_gaps if gap > 0),
+        "policy_gap_seeds": sum(1 for gap in policy_gaps if gap > 0),
+        "rule_reaches_optimum": all(row["rule"] == row["optimal"]
+                                    for row in rows),
         "policy_reaches_optimum": all(row["policy"] == row["optimal"]
                                       for row in rows),
         "rule_steps_mean": sum(row["rule_steps"] for row in rows) / len(rows),
+        "tour_rule_steps_mean": (sum(row["tour_rule_steps"] for row in rows)
+                                 / len(rows)),
         "policy_steps_mean": sum(row["policy_steps"] for row in rows) / len(rows),
         "rows": rows,
     }
 
 
 def main():
-    """Print the headroom report; 0 when a non-rule policy actually wins."""
+    """Print the headroom report; 0 when the shipped rule and plan win."""
     report = headroom()
     printable = {key: value for key, value in report.items() if key != "rows"}
     print(json.dumps(printable, indent=2, sort_keys=True))
-    ok = (report["policy_reaches_optimum"]
-          and report["policy_mean"] > report["rule_mean"])
+    ok = (report["rule_reaches_optimum"]
+          and report["policy_reaches_optimum"]
+          and report["rule_mean"] > report["tour_rule_mean"])
     if not ok:
-        print("headroom: the deadline plan did not beat the rule")
+        print("headroom: the deadline schedule did not preserve the win")
         raise SystemExit(1)
-    print("headroom: the rule loses %.2f items per episode and a deadline-"
-          "ordered plan recovers them all (%d/%d seeds show the rule gap)."
-          % (report["optimal_mean"] - report["rule_mean"],
-             report["seeds_with_rule_gap"], report["seeds"]))
+    print("headroom: the tour ablation loses %.2f items per episode; the "
+          "shipped schedule and hand plan recover them (%d/%d seeds show "
+          "the tour gap)."
+          % (report["optimal_mean"] - report["tour_rule_mean"],
+             report["tour_rule_gap_seeds"], report["seeds"]))
     return 0
 
 

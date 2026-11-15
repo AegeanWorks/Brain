@@ -1,39 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-headroom-learning",
-    "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794604575.1728427,
+    "task_id": "brain-deadline-schedule",
+    "last_phase": "phase 4",
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794746857.3505979,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": [],
-    "completed_at": 1794604575.3616316
+    "workspaces": [
+      {
+        "name": "brain",
+        "path": "projects/brain"
+      }
+    ]
   },
   "checkpoints": [
-    {
-      "task_id": "brain-human-entry",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1074/1074 OK; aikit check brain 5/5; compat verify OK; demo 13 real steps; doctor lists four runtimes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794550763.6175168,
-      "timestamp_str": "2026-11-13 09:19:23",
-      "agent": "kilo:brain194",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "brain-human-entry",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-human-entry' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794550763.823947,
-      "timestamp_str": "2026-11-13 09:19:23",
-      "agent": "kilo:brain194"
-    },
     {
       "task_id": "brain-console-safe",
       "phase": "in_progress",
@@ -273,6 +256,59 @@
       "timestamp": 1794604575.361633,
       "timestamp_str": "2026-11-14 00:16:15",
       "agent": "kilo:goal"
+    },
+    {
+      "task_id": "brain-deadline-schedule",
+      "phase": "phase 1",
+      "phase_num": 1,
+      "description": "[1/1] plan: add Planner(deadline_ordering) with an exhaustive per-item schedule (max collected, then earliest finish), probe.deadline, deadline observations/prompts, and a tour ablation; re-baseline headroom tests.",
+      "files_affected": [
+        "agent.py",
+        "models/llamacpp.py",
+        "evals/headroom.py",
+        "evals/headroom_learning.py",
+        "tests/test_deadline_planning.py",
+        "tests/test_headroom.py",
+        "tests/test_headroom_learning.py",
+        "worlds/deadline.py",
+        "README.md",
+        ".aikit/decisions.md",
+        "CYCLES.md"
+      ],
+      "status": "in_progress",
+      "timestamp": 1794746833.0516038,
+      "timestamp_str": "2026-11-15 15:47:13",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "DeadlineWorld emits deadlines but the shipped planner ignored them; ADR-194's scalar did not carry past 4 items.",
+        "benefits": "Substrate uses deadline state: 4/4, 5/5 and 6/6 where the tour ablation loses one item at the cap.",
+        "risks": "contract: new planner knob and policy digest rotation; dependency: none; concurrency: none; state: probe/obs schema additive for T6 only; regression: standing pins must stay byte-identical.",
+        "mitigation": "T6-only gating, failing-first tests, deadline_ordering=False ablation, full test gate and aikit 5/5."
+      },
+      "workspaces": [
+        {
+          "name": "brain",
+          "path": "projects/brain"
+        }
+      ]
+    },
+    {
+      "task_id": "brain-deadline-schedule",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "checks: unittest 1181/1181 OK; aikit check brain 5/5; hygiene/guidelines/secrets/compat pass; deadline shipped 4.00/26.65 (533), 5.00/30.05 (310), 6.00/33.15 (336) vs ablation 3/4/5 at 200; standing 466/240/217; policy d00e947e.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794746857.3505979,
+      "timestamp_str": "2026-11-15 15:47:37",
+      "agent": "kilo:goal",
+      "checklists": "passed",
+      "workspaces": [
+        {
+          "name": "brain",
+          "path": "projects/brain"
+        }
+      ]
     }
   ]
 }
