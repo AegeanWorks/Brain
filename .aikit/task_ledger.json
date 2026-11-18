@@ -3,38 +3,29 @@
   "active_task": {
     "task_id": "brain-deadline-schedule",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794746857.3505979,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": [],
+    "continuations": [
+      {
+        "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+        "from": "kilo:goal",
+        "at": 1795038261.6945848
+      }
+    ],
     "workspaces": [
       {
         "name": "brain",
         "path": "projects/brain"
       }
-    ]
+    ],
+    "completed_at": 1795038261.6945875,
+    "completed_head": "5f4a9cfbb8a3438ab559a58d77c3c360908a6f89",
+    "completed_tree": "9a138c9a66ca047395df234cefb005d9038443c3"
   },
   "checkpoints": [
-    {
-      "task_id": "brain-console-safe",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Follow-up found by a live run: console output must be ASCII (em dash rendered as ? under cp1254); ASCII-ified banner and doctor hint, added console-safety tests and recorded the live stub-server proof; checklists: passed (freshness/call-site/deps/platform, unittest 1077 OK, aikit 5/5)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794552359.6410117,
-      "timestamp_str": "2026-11-13 09:45:59",
-      "agent": "kilo:brain194b",
-      "impact_assessment": {
-        "why": "a live run against a local server showed the banner em dash printing as '?' on a Windows console",
-        "benefits": "runtime text renders on any console; the live HTTP path is now recorded evidence, not an assumption",
-        "risks": "contract: none (output text only); dependency: none; concurrency: none; state: none",
-        "mitigation": "a test encodes every rendered string to cp1254 and scans runtime literals for non-ASCII; docs may keep typographic dashes"
-      },
-      "plan_digest": "5f9ed65a779bba8265d9c2a1aa914da22845d9cb2fbbf770de00b5ba96020ed9"
-    },
     {
       "task_id": "brain-console-safe",
       "phase": "in_progress",
@@ -309,6 +300,24 @@
           "path": "projects/brain"
         }
       ]
+    },
+    {
+      "task_id": "brain-deadline-schedule",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-deadline-schedule' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795038261.9817119,
+      "timestamp_str": "2026-11-19 00:44:21",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "head": "5f4a9cfbb8a3438ab559a58d77c3c360908a6f89",
+      "continued_from": "kilo:goal",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
