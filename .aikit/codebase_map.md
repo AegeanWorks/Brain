@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1990` lines (`83102` bytes)
+**Size**: `1990` lines
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -102,7 +102,7 @@
 ### [`brain.py`](brain.py)
 > *Brain, the way a person actually uses it.*
 
-**Size**: `239` lines (`9403` bytes)
+**Size**: `239` lines
 
 **Functions:**
 - `def _connect(args)` - *Resolve a live model; return ``(client, source)`` or ``(None, None)``.*
@@ -118,7 +118,7 @@
 ### [`budget.py`](budget.py)
 > *Per-run execution budget: steps, LLM calls, tokens and wall time.*
 
-**Size**: `158` lines (`5838` bytes)
+**Size**: `158` lines
 
 **Classes:**
 - `class BudgetExceeded` - *Raised when one dimension of the run budget is exhausted.*
@@ -144,7 +144,7 @@
 ### [`calibration.py`](calibration.py)
 > *Forecast calibration: Brier, log loss, skill and reliability bins.*
 
-**Size**: `173` lines (`7287` bytes)
+**Size**: `173` lines
 
 **Functions:**
 - `def _clip(probability)`
@@ -158,7 +158,7 @@
 ### [`calibration_store.py`](calibration_store.py)
 > *Append-only calibration forecast journal with per-record checksums.*
 
-**Size**: `573` lines (`21809` bytes)
+**Size**: `573` lines
 
 **Functions:**
 - `def _canonical(value)`
@@ -192,7 +192,7 @@
 ### [`chat_session.py`](chat_session.py)
 > *A conversation you can hold in a terminal, without losing your place.*
 
-**Size**: `103` lines (`3936` bytes)
+**Size**: `103` lines
 
 **Classes:**
 - `class ChatSession` - *Hold a bounded conversation and render it for a person.*
@@ -209,7 +209,7 @@
 ### [`claims.py`](claims.py)
 > *Immutable claims, kill tests and verdict history (research-engine transfer).*
 
-**Size**: `257` lines (`9394` bytes)
+**Size**: `257` lines
 
 **Classes:**
 - `class Verdict`
@@ -241,7 +241,7 @@
 ### [`claims_store.py`](claims_store.py)
 > *Durable claim-ledger snapshots with checksums, backups and quarantine.*
 
-**Size**: `371` lines (`13812` bytes)
+**Size**: `371` lines
 
 **Classes:**
 - `class ClaimStoreMacError` - *The caller's key cannot authenticate the snapshot; do not quarantine.*
@@ -270,7 +270,7 @@
 ### [`claims_verify.py`](claims_verify.py)
 > *Read-only verification of claim verdict refs against logged episodes.*
 
-**Size**: `266` lines (`11382` bytes)
+**Size**: `266` lines
 
 **Functions:**
 - `def _validate_options(hmac_key, verify_logs)`
@@ -285,7 +285,7 @@
 ### [`demo.py`](demo.py)
 > *Ten-second demo: run a real episode and print what actually happened.*
 
-**Size**: `90` lines (`3388` bytes)
+**Size**: `90` lines
 
 **Functions:**
 - `def _parse(argv)`
@@ -299,7 +299,7 @@
 ### [`episode_replay.py`](episode_replay.py)
 > *Replay a log's actions through the world its header names.*
 
-**Size**: `217` lines (`9216` bytes)
+**Size**: `217` lines
 
 **Functions:**
 - `def parse_verdict_reason(reason)` - *Parse ``"steps=<n> reward=<r>"`` into ``{"steps", "reward"}`` or None.*
@@ -314,7 +314,7 @@
 ### [`episode_verify.py`](episode_verify.py)
 > *Independent verification of a log header's episode digest.*
 
-**Size**: `122` lines (`5270` bytes)
+**Size**: `122` lines
 
 **Functions:**
 - `def _valid_digest(value)`
@@ -325,14 +325,14 @@
 ### [`evals/__init__.py`](evals/__init__.py)
 > *Brain evals package: task pins, estimators, recompute.*
 
-**Size**: `1` lines (`61` bytes)
+**Size**: `1` lines
 
 ---
 
 ### [`evals/anchor_journal.py`](evals/anchor_journal.py)
 > *Anchor-journal battery: chained run anchors and truncation detection.*
 
-**Size**: `88` lines (`3028` bytes)
+**Size**: `88` lines
 
 **Functions:**
 - `def _build(path)`
@@ -346,7 +346,7 @@
 ### [`evals/backend_conformance.py`](evals/backend_conformance.py)
 > *Backend conformance battery: the seam is checkable without reading code.*
 
-**Size**: `144` lines (`4715` bytes)
+**Size**: `144` lines
 
 **Classes:**
 - `class Conforming`
@@ -372,7 +372,7 @@
 ### [`evals/battery_check.py`](evals/battery_check.py)
 > *One exit-code contract for the eval batteries.*
 
-**Size**: `124` lines (`4551` bytes)
+**Size**: `124` lines
 
 **Functions:**
 - `def exit_code_for(findings)` - *Return the process exit code for one battery's findings.*
@@ -388,7 +388,7 @@
 ### [`evals/calibration.py`](evals/calibration.py)
 > *Calibration battery: proper scores over fixtures and a real run.*
 
-**Size**: `162` lines (`5547` bytes)
+**Size**: `162` lines
 
 **Functions:**
 - `def _forecast(identifier, probability, outcome)`
@@ -407,7 +407,7 @@
 ### [`evals/calibration_autoretention.py`](evals/calibration_autoretention.py)
 > *Automatic calibration-retention battery at the logged-run bridge.*
 
-**Size**: `154` lines (`6405` bytes)
+**Size**: `154` lines
 
 **Functions:**
 - `def _run(tmp, agent, task, seed, name, calibration_path, keep)`
@@ -422,7 +422,7 @@
 ### [`evals/calibration_bridge.py`](evals/calibration_bridge.py)
 > *Calibration bridge battery: logged runs persist their own forecasts.*
 
-**Size**: `177` lines (`7603` bytes)
+**Size**: `177` lines
 
 **Functions:**
 - `def _run(agent, task, seed, tmp, name, calibration_path, hmac_key)`
@@ -436,7 +436,7 @@
 ### [`evals/calibration_retention.py`](evals/calibration_retention.py)
 > *Calibration retention battery: archive older forecasts, keep the newest.*
 
-**Size**: `178` lines (`7378` bytes)
+**Size**: `178` lines
 
 **Functions:**
 - `def _forecasts(rows)`
@@ -450,7 +450,7 @@
 ### [`evals/calibration_store.py`](evals/calibration_store.py)
 > *Calibration-store battery: cross-run forecasts and named defects.*
 
-**Size**: `234` lines (`9699` bytes)
+**Size**: `234` lines
 
 **Functions:**
 - `def _forecasts(rows)`
@@ -464,7 +464,7 @@
 ### [`evals/chain_anchor.py`](evals/chain_anchor.py)
 > *Terminal-anchor battery: truncated telemetry tails are detected.*
 
-**Size**: `84` lines (`2859` bytes)
+**Size**: `84` lines
 
 **Functions:**
 - `def _build_log(path)`
@@ -478,7 +478,7 @@
 ### [`evals/claim_evidence.py`](evals/claim_evidence.py)
 > *Claim/evidence battery: verdict refs cite logged episode digests.*
 
-**Size**: `115` lines (`4639` bytes)
+**Size**: `115` lines
 
 **Functions:**
 - `def _run(tmp, task, seed, name)`
@@ -491,7 +491,7 @@
 ### [`evals/claim_ref_verify.py`](evals/claim_ref_verify.py)
 > *Claim-ref battery: verdict refs checked against live log headers.*
 
-**Size**: `262` lines (`11489` bytes)
+**Size**: `262` lines
 
 **Functions:**
 - `def _run(tmp, task, seed, name)`
@@ -506,7 +506,7 @@
 ### [`evals/claims.py`](evals/claims.py)
 > *Claim/verdict battery: kill tests over real T3 run outcomes.*
 
-**Size**: `90` lines (`3420` bytes)
+**Size**: `90` lines
 
 **Functions:**
 - `def measure()`
@@ -518,7 +518,7 @@
 ### [`evals/claims_store.py`](evals/claims_store.py)
 > *Claim-store battery: durable snapshots vs the in-memory ledger.*
 
-**Size**: `242` lines (`10426` bytes)
+**Size**: `242` lines
 
 **Functions:**
 - `def _ledger(limit)`
@@ -532,7 +532,7 @@
 ### [`evals/coldstart.py`](evals/coldstart.py)
 > *Cold-start recovery battery: behavior plus trace, before/after.*
 
-**Size**: `329` lines (`12666` bytes)
+**Size**: `329` lines
 
 **Classes:**
 - `class ColdWorld` - *GridWorld whose observations omit the task's goal fields.*
@@ -560,7 +560,7 @@
 ### [`evals/context_channel.py`](evals/context_channel.py)
 > *Measure a world-provided context channel against the pair gate.*
 
-**Size**: `351` lines (`14917` bytes)
+**Size**: `351` lines
 
 **Classes:**
 - `class _FrozenPredictor` - *A predictor that predicts from its counts but learns nothing new.*
@@ -589,7 +589,7 @@
 ### [`evals/dead_pool.py`](evals/dead_pool.py)
 > *Dead-pool guard battery: behavior plus the dead_pool probe.*
 
-**Size**: `194` lines (`7177` bytes)
+**Size**: `194` lines
 
 **Classes:**
 - `class _ForcedMultiWorld`
@@ -614,7 +614,7 @@
 ### [`evals/episode_header.py`](evals/episode_header.py)
 > *Episode-header battery: recompute episode_sha256 from the logged seed.*
 
-**Size**: `235` lines (`10289` bytes)
+**Size**: `235` lines
 
 **Functions:**
 - `def _run(tmp, name, workspace_root)`
@@ -629,7 +629,7 @@
 ### [`evals/escape.py`](evals/escape.py)
 > *Repeated-position cycle-escape battery: behavior plus model-seam trace.*
 
-**Size**: `202` lines (`7411` bytes)
+**Size**: `202` lines
 
 **Classes:**
 - `class _ForcedWorld`
@@ -656,7 +656,7 @@
 ### [`evals/estimators.py`](evals/estimators.py)
 > *Stdlib-only estimators for Brain evals.*
 
-**Size**: `270` lines (`9743` bytes)
+**Size**: `270` lines
 
 **Functions:**
 - `def _discretize(values, bins)`
@@ -677,7 +677,7 @@
 ### [`evals/execution_budget.py`](evals/execution_budget.py)
 > *Execution-budget battery: generous, step, LLM, token and time caps.*
 
-**Size**: `170` lines (`5909` bytes)
+**Size**: `170` lines
 
 **Classes:**
 - `class WaitingBackend`
@@ -698,7 +698,7 @@
 ### [`evals/header_reader.py`](evals/header_reader.py)
 > *Header-reader battery: streaming headers vs decoding every record.*
 
-**Size**: `125` lines (`4546` bytes)
+**Size**: `125` lines
 
 **Functions:**
 - `def _write_log(path)`
@@ -712,7 +712,7 @@
 ### [`evals/headroom.py`](evals/headroom.py)
 > *Measure the one task where a shortest tour is beatable, and show it beaten.*
 
-**Size**: `195` lines (`7264` bytes)
+**Size**: `195` lines
 
 **Functions:**
 - `def _manhattan(a, b)`
@@ -731,7 +731,7 @@
 ### [`evals/headroom_learning.py`](evals/headroom_learning.py)
 > *Can the brain *learn* the deadline rule instead of being handed it?*
 
-**Size**: `168` lines (`6721` bytes)
+**Size**: `168` lines
 
 **Functions:**
 - `def _world(seed, items)` - *The deadline world for a seed, optionally with a different item count.*
@@ -749,7 +749,7 @@
 ### [`evals/lesion_audit.py`](evals/lesion_audit.py)
 > *Lesion detectability: can a readout tell a lesion from arbitrary noise?*
 
-**Size**: `122` lines (`4536` bytes)
+**Size**: `122` lines
 
 **Functions:**
 - `def module_columns(module, width)` - *Column indices belonging to ``module`` within a row of ``width``.*
@@ -763,7 +763,7 @@
 ### [`evals/manifest_binding.py`](evals/manifest_binding.py)
 > *Generation-manifest binding battery: behavior plus model-seam trace.*
 
-**Size**: `167` lines (`6453` bytes)
+**Size**: `167` lines
 
 **Classes:**
 - `class ManifestBackend` - *Decline every proposal while recording its generation manifest.*
@@ -783,7 +783,7 @@
 ### [`evals/merkle_anchor.py`](evals/merkle_anchor.py)
 > *Merkle batch-anchor battery: root, proof, truncation and tamper.*
 
-**Size**: `102` lines (`3663` bytes)
+**Size**: `102` lines
 
 **Functions:**
 - `def _build(path, records)`
@@ -797,7 +797,7 @@
 ### [`evals/merkle_compaction.py`](evals/merkle_compaction.py)
 > *Merkle compaction battery: three anchors to one union root, safely.*
 
-**Size**: `146` lines (`5898` bytes)
+**Size**: `146` lines
 
 **Functions:**
 - `def _log(path, records)`
@@ -813,7 +813,7 @@
 ### [`evals/merkle_journal.py`](evals/merkle_journal.py)
 > *Merkle journal battery: chained batches and retained historical proofs.*
 
-**Size**: `163` lines (`6091` bytes)
+**Size**: `163` lines
 
 **Functions:**
 - `def _log(path, records)`
@@ -831,7 +831,7 @@
 ### [`evals/module_state.py`](evals/module_state.py)
 > *Read the optional six-value module-state channel from telemetry.*
 
-**Size**: `215` lines (`7996` bytes)
+**Size**: `215` lines
 
 **Functions:**
 - `def _row(args, include_context)` - *Return one six-signal row plus target, or None when malformed.*
@@ -851,7 +851,7 @@
 ### [`evals/pair_scan.py`](evals/pair_scan.py)
 > *Searching for an interacting column pair needs a per-pair validity gate.*
 
-**Size**: `393` lines (`16083` bytes)
+**Size**: `393` lines
 
 **Functions:**
 - `def _function(first, second)` - *True when every value of ``first`` maps to one value of ``second``.*
@@ -880,7 +880,7 @@
 ### [`evals/phi_diagnosis.py`](evals/phi_diagnosis.py)
 > *A pinned 0.0 must say whether the estimator *could* have moved.*
 
-**Size**: `64` lines (`2281` bytes)
+**Size**: `64` lines
 
 **Functions:**
 - `def _columns(rows)`
@@ -892,7 +892,7 @@
 ### [`evals/policy_ceiling.py`](evals/policy_ceiling.py)
 > *How much room is there above the rule policy? Measured: none.*
 
-**Size**: `126` lines (`4404` bytes)
+**Size**: `126` lines
 
 **Functions:**
 - `def bfs_distance(start, goal, blocked)` - *Shortest path length on the grid, or None when unreachable.*
@@ -907,7 +907,7 @@
 ### [`evals/progress_guard.py`](evals/progress_guard.py)
 > *Progress-guard battery: wrong-way moves, the guard, and the skip.*
 
-**Size**: `204` lines (`8282` bytes)
+**Size**: `204` lines
 
 **Classes:**
 - `class WrongWayBackend` - *Legal free-cell movement away from the fixed target.*
@@ -926,7 +926,7 @@
 ### [`evals/prompt_budget.py`](evals/prompt_budget.py)
 > *Prompt-budget battery: capped model prompts, unchanged rule actions.*
 
-**Size**: `166` lines (`6260` bytes)
+**Size**: `166` lines
 
 **Classes:**
 - `class PromptBackend` - *Record the rendered prompt/manifest, then decline to the rule.*
@@ -945,7 +945,7 @@
 ### [`evals/recompute.py`](evals/recompute.py)
 > *Recompute eval statistics from a JSONL log without trusting self-reports.*
 
-**Size**: `171` lines (`6659` bytes)
+**Size**: `171` lines
 
 **Functions:**
 - `def _mean(xs)`
@@ -961,7 +961,7 @@
 ### [`evals/replication.py`](evals/replication.py)
 > *A scan candidate must survive a held-out pool.*
 
-**Size**: `203` lines (`8404` bytes)
+**Size**: `203` lines
 
 **Functions:**
 - `def _direction_of(report, alpha, requested)` - *Return the candidate direction, or None when it does not clear.*
@@ -976,7 +976,7 @@
 ### [`evals/resume_identity.py`](evals/resume_identity.py)
 > *Episode-identity battery: canonical digests, resume decisions, headers.*
 
-**Size**: `177` lines (`7058` bytes)
+**Size**: `177` lines
 
 **Functions:**
 - `def _config(seed)`
@@ -991,7 +991,7 @@
 ### [`evals/rule_confidence.py`](evals/rule_confidence.py)
 > *Rule-confidence battery: BFS move ties with the action held fixed.*
 
-**Size**: `221` lines (`8777` bytes)
+**Size**: `221` lines
 
 **Functions:**
 - `def _state(x, y, target, task, items)`
@@ -1009,7 +1009,7 @@
 ### [`evals/snapshot_diff.py`](evals/snapshot_diff.py)
 > *Snapshot-diff battery: portable run records and deterministic deltas.*
 
-**Size**: `78` lines (`2558` bytes)
+**Size**: `78` lines
 
 **Functions:**
 - `def _battery(directory)`
@@ -1022,7 +1022,7 @@
 ### [`evals/snapshot_digest.py`](evals/snapshot_digest.py)
 > *Snapshot content-vs-graph digest battery.*
 
-**Size**: `90` lines (`3446` bytes)
+**Size**: `90` lines
 
 **Functions:**
 - `def _battery(directory)`
@@ -1035,7 +1035,7 @@
 ### [`evals/synergy_null.py`](evals/synergy_null.py)
 > *A synergy gap plus the null it has to be read against.*
 
-**Size**: `91` lines (`3633` bytes)
+**Size**: `91` lines
 
 **Functions:**
 - `def permutation_null(trace, target, trials, seed)` - *Return ``trials`` synergy gaps for shuffled copies of ``target``.*
@@ -1046,7 +1046,7 @@
 ### [`evals/telemetry_lock.py`](evals/telemetry_lock.py)
 > *Concurrent telemetry battery: serialized append vs lock-off ablation.*
 
-**Size**: `114` lines (`4247` bytes)
+**Size**: `114` lines
 
 **Functions:**
 - `def _no_lock(_path, timeout_seconds)`
@@ -1059,7 +1059,7 @@
 ### [`evals/telemetry_mac.py`](evals/telemetry_mac.py)
 > *Keyed telemetry battery: HMAC-signed records and named tamper findings.*
 
-**Size**: `92` lines (`3236` bytes)
+**Size**: `92` lines
 
 **Functions:**
 - `def _build(path, key)`
@@ -1073,7 +1073,7 @@
 ### [`evals/trust.py`](evals/trust.py)
 > *Backend-trust battery: stalled legal proposals versus the rule fallback.*
 
-**Size**: `222` lines (`8891` bytes)
+**Size**: `222` lines
 
 **Classes:**
 - `class WaitingBackend` - *Legal but stalled proposal: never moves or rewards.*
@@ -1097,7 +1097,7 @@
 ### [`evals/vector_audit.py`](evals/vector_audit.py)
 > *Audit a telemetry vector matrix for degenerate (non-independent) columns.*
 
-**Size**: `110` lines (`3847` bytes)
+**Size**: `110` lines
 
 **Functions:**
 - `def _width(rows)`
@@ -1114,7 +1114,7 @@
 ### [`evals/workspace_binding.py`](evals/workspace_binding.py)
 > *Workspace-binding battery: source digest in logged run headers.*
 
-**Size**: `91` lines (`3282` bytes)
+**Size**: `91` lines
 
 **Functions:**
 - `def _workspace(root)`
@@ -1128,7 +1128,7 @@
 ### [`identity.py`](identity.py)
 > *Episode identity and the resume guard (neurocore transfer).*
 
-**Size**: `116` lines (`4172` bytes)
+**Size**: `116` lines
 
 **Functions:**
 - `def _clean(value)`
@@ -1145,21 +1145,21 @@
 ### [`inventory.py`](inventory.py)
 > *Project-owned UI inventory: one `kind|name|locator` line per control.*
 
-**Size**: `6` lines (`233` bytes)
+**Size**: `6` lines
 
 ---
 
 ### [`memory/__init__.py`](memory/__init__.py)
 > *Memory package: SQLite-backed key/content store with FTS5 index.*
 
-**Size**: `4` lines (`135` bytes)
+**Size**: `4` lines
 
 ---
 
 ### [`memory/store.py`](memory/store.py)
 > *SQLite-backed store with FTS5 index and LIKE fallback.*
 
-**Size**: `343` lines (`13678` bytes)
+**Size**: `343` lines
 
 **Classes:**
 - `class MemoryStore` - *Persisted key/content map with full-text lookup.*
@@ -1188,14 +1188,14 @@
 ### [`models/__init__.py`](models/__init__.py)
 > *Swappable small-model backends for Brain policies.*
 
-**Size**: `13` lines (`661` bytes)
+**Size**: `13` lines
 
 ---
 
 ### [`models/backend.py`](models/backend.py)
 > *ModelBackend interface and deterministic StubBackend for protocol pins.*
 
-**Size**: `52` lines (`1870` bytes)
+**Size**: `52` lines
 
 **Classes:**
 - `class ModelBackend` - *Propose one action token for an observation mapping.*
@@ -1211,7 +1211,7 @@
 ### [`models/conformance.py`](models/conformance.py)
 > *Check a provider against the backend contract, without reading its code.*
 
-**Size**: `124` lines (`5263` bytes)
+**Size**: `124` lines
 
 **Functions:**
 - `def check_backend(provider, observation, calls)` - *Exercise ``provider`` and return ``ok`` plus named findings.*
@@ -1224,7 +1224,7 @@
 ### [`models/llamacpp.py`](models/llamacpp.py)
 > *llama.cpp backend: llama-server subprocess plus completion client.*
 
-**Size**: `269` lines (`10461` bytes)
+**Size**: `269` lines
 
 **Classes:**
 - `class LlamaCppBackend` - *Drive a local llama-server for action proposals.*
@@ -1250,7 +1250,7 @@
 ### [`models/manifest.py`](models/manifest.py)
 > *Generation manifest fingerprints for the model seam.*
 
-**Size**: `70` lines (`2619` bytes)
+**Size**: `70` lines
 
 **Functions:**
 - `def canonical(obj)` - *Render canonical JSON: sorted keys, compact separators, ASCII.*
@@ -1263,7 +1263,7 @@
 ### [`models/openai_backend.py`](models/openai_backend.py)
 > *Drive any OpenAI-compatible local server as an action backend.*
 
-**Size**: `94` lines (`4321` bytes)
+**Size**: `94` lines
 
 **Classes:**
 - `class OpenAIBackend` - *Propose one action token through an OpenAI-compatible endpoint.*
@@ -1280,7 +1280,7 @@
 ### [`models/openai_compat.py`](models/openai_compat.py)
 > *Talk to any OpenAI-compatible local model server, with no surprises.*
 
-**Size**: `240` lines (`9140` bytes)
+**Size**: `240` lines
 
 **Classes:**
 - `class EndpointUnavailable` - *Raised when no model server answers; the message is user-facing.*
@@ -1306,7 +1306,7 @@
 ### [`models/registry.py`](models/registry.py)
 > *A name-to-provider registry so a backend can be selected without code.*
 
-**Size**: `66` lines (`2164` bytes)
+**Size**: `66` lines
 
 **Functions:**
 - `def register(name, factory)` - *Register ``factory`` under ``name``; a duplicate name raises.*
@@ -1320,14 +1320,14 @@
 ### [`planner/__init__.py`](planner/__init__.py)
 > *Planner package: ordered step tracker with skip-on-error recovery, plus*
 
-**Size**: `6` lines (`257` bytes)
+**Size**: `6` lines
 
 ---
 
 ### [`planner/plan.py`](planner/plan.py)
 > *Ordered step tracker with explicit ok/fail marks and recovery.*
 
-**Size**: `168` lines (`6558` bytes)
+**Size**: `168` lines
 
 **Classes:**
 - `class Planner` - *Track a linear sequence of named operations.*
@@ -1352,7 +1352,7 @@
 ### [`run_agent.py`](run_agent.py)
 > *Run one episode, optionally with a backend chosen by name.*
 
-**Size**: `121` lines (`5123` bytes)
+**Size**: `121` lines
 
 **Functions:**
 - `def _parse_script(text)` - *Split a comma-separated action script, ignoring blanks.*
@@ -1365,7 +1365,7 @@
 ### [`run_verify.py`](run_verify.py)
 > *One call that runs every shipped verifier over a finished log.*
 
-**Size**: `129` lines (`5341` bytes)
+**Size**: `129` lines
 
 **Functions:**
 - `def verify_run(log_path, expected_policy_sha256, expected_workspace_sha256, expected_model, hmac_key, anchor_path, journal_path)` - *Run every shipped verifier over one log; return the union.*
@@ -1377,14 +1377,14 @@
 ### [`self_model/__init__.py`](self_model/__init__.py)
 > *Self-model package: budget/error/confidence counters.*
 
-**Size**: `4` lines (`124` bytes)
+**Size**: `4` lines
 
 ---
 
 ### [`self_model/model.py`](self_model/model.py)
 > *Running counters for cost, step outcomes, and reported confidence.*
 
-**Size**: `120` lines (`4820` bytes)
+**Size**: `120` lines
 
 **Classes:**
 - `class SelfModel` - *Tally budget use, step counts, errors, and confidence values.*
@@ -1402,7 +1402,7 @@
 ### [`self_model/online.py`](self_model/online.py)
 > *Learn the reward probability from error, without being told the rule.*
 
-**Size**: `294` lines (`10907` bytes)
+**Size**: `294` lines
 
 **Classes:**
 - `class OnlinePredictor` - *Laplace-smoothed outcome frequencies that improve with every step.*
@@ -1446,7 +1446,7 @@
 ### [`self_model/prediction.py`](self_model/prediction.py)
 > *Rung 1: a pre-outcome self-prediction the agent can be scored on.*
 
-**Size**: `83` lines (`3185` bytes)
+**Size**: `83` lines
 
 **Functions:**
 - `def _goal_cells(state, task)`
@@ -1458,7 +1458,7 @@
 ### [`snapshot.py`](snapshot.py)
 > *Deterministic run snapshots and record-set diffing (lattice transfer).*
 
-**Size**: `274` lines (`9598` bytes)
+**Size**: `274` lines
 
 **Functions:**
 - `def run_record(task, seed, trace, stats)` - *Build one snapshot record from a task/seed trace and trace stats.*
@@ -1483,7 +1483,7 @@
 ### [`state_machines.py`](state_machines.py)
 > *Explicit state-machine registry for Brain (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `523` lines (`22720` bytes)
+**Size**: `523` lines
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its source.*
@@ -1501,14 +1501,14 @@
 ### [`telemetry/__init__.py`](telemetry/__init__.py)
 > *Telemetry package: append-only JSONL record store plus trace ablation.*
 
-**Size**: `5` lines (`192` bytes)
+**Size**: `5` lines
 
 ---
 
 ### [`telemetry/ablate.py`](telemetry/ablate.py)
 > *Deterministic trace transforms for ablation.*
 
-**Size**: `194` lines (`6643` bytes)
+**Size**: `194` lines
 
 **Functions:**
 - `def _zero_value(value)`
@@ -1530,7 +1530,7 @@
 ### [`telemetry/log.py`](telemetry/log.py)
 > *Append-only JSONL record store, schema 2.*
 
-**Size**: `820` lines (`33109` bytes)
+**Size**: `820` lines
 
 **Classes:**
 - `class Telemetry` - *JSONL append-only store at ``path``.*
@@ -1574,7 +1574,7 @@
 ### [`telemetry/merkle.py`](telemetry/merkle.py)
 > *Domain-separated Merkle batch anchors and inclusion proofs.*
 
-**Size**: `621` lines (`23733` bytes)
+**Size**: `621` lines
 
 **Functions:**
 - `def pack(data)` - *Prefix ``data`` with its length so concatenated parts are unambiguous.*
@@ -1609,14 +1609,14 @@
 ---
 
 ### [`tests/__init__.py`](tests/__init__.py)
-**Size**: `0` lines (`0` bytes)
+**Size**: `0` lines
 
 ---
 
 ### [`tests/test_ablation.py`](tests/test_ablation.py)
 > *Ablation transform checks.*
 
-**Size**: `58` lines (`2109` bytes)
+**Size**: `58` lines
 
 **Classes:**
 - `class TestAblation`
@@ -1632,7 +1632,7 @@
 ### [`tests/test_adjacent_block.py`](tests/test_adjacent_block.py)
 > *Adjacent block: target directly behind a column obstacle.*
 
-**Size**: `50` lines (`1742` bytes)
+**Size**: `50` lines
 
 **Classes:**
 - `class BlindPlanner`
@@ -1650,7 +1650,7 @@
 ### [`tests/test_agent.py`](tests/test_agent.py)
 > *Agent loop checks: run completes with a non-empty trace.*
 
-**Size**: `63` lines (`2256` bytes)
+**Size**: `63` lines
 
 **Classes:**
 - `class TestAgent`
@@ -1664,7 +1664,7 @@
 ### [`tests/test_agent_online.py`](tests/test_agent_online.py)
 > *The agent learns across episodes, not inside one.*
 
-**Size**: `67` lines (`2656` bytes)
+**Size**: `67` lines
 
 **Classes:**
 - `class TestAgentLearnsOnline`
@@ -1679,7 +1679,7 @@
 ### [`tests/test_agent_positive_control.py`](tests/test_agent_positive_control.py)
 > *An agent-produced positive control for the signed module scan.*
 
-**Size**: `120` lines (`4247` bytes)
+**Size**: `120` lines
 
 **Classes:**
 - `class _BaseWorld`
@@ -1706,7 +1706,7 @@
 ### [`tests/test_anchor_journal.py`](tests/test_anchor_journal.py)
 > *Anchor journal: each run head commits to the previous anchor.*
 
-**Size**: `124` lines (`5167` bytes)
+**Size**: `124` lines
 
 **Classes:**
 - `class TestAnchorJournal`
@@ -1727,7 +1727,7 @@
 ### [`tests/test_backend_conformance_checks.py`](tests/test_backend_conformance_checks.py)
 > *The conformance battery must check its own controls.*
 
-**Size**: `78` lines (`3244` bytes)
+**Size**: `78` lines
 
 **Classes:**
 - `class TestBackendConformanceChecks`
@@ -1747,7 +1747,7 @@
 ### [`tests/test_backend_contract.py`](tests/test_backend_contract.py)
 > *A backend seam is only pluggable if a provider can be checked, not read.*
 
-**Size**: `147` lines (`5262` bytes)
+**Size**: `147` lines
 
 **Classes:**
 - `class _Echo` - *Minimal conforming provider: returns the first legal token.*
@@ -1784,7 +1784,7 @@
 ### [`tests/test_battery_contract.py`](tests/test_battery_contract.py)
 > *A battery must fail loudly, not merely print.*
 
-**Size**: `117` lines (`4786` bytes)
+**Size**: `117` lines
 
 **Classes:**
 - `class TestBatteryContract`
@@ -1806,7 +1806,7 @@
 ### [`tests/test_blocked_corridor.py`](tests/test_blocked_corridor.py)
 > *Blocked-corridor entry: goal column/row with an obstacle in between.*
 
-**Size**: `52` lines (`1843` bytes)
+**Size**: `52` lines
 
 **Classes:**
 - `class BlindPlanner`
@@ -1824,7 +1824,7 @@
 ### [`tests/test_brain_cli.py`](tests/test_brain_cli.py)
 > *The front door itself: exit codes, piped parity and readable output.*
 
-**Size**: `235` lines (`9698` bytes)
+**Size**: `235` lines
 
 **Classes:**
 - `class TestRunMode`
@@ -1859,7 +1859,7 @@
 ### [`tests/test_budget.py`](tests/test_budget.py)
 > *Execution budgets: steps, LLM calls, tokens and wall time.*
 
-**Size**: `137` lines (`5425` bytes)
+**Size**: `137` lines
 
 **Classes:**
 - `class WaitingBackend`
@@ -1885,7 +1885,7 @@
 ### [`tests/test_budget_surface.py`](tests/test_budget_surface.py)
 > *Shipped public API must be reachable or it is dead weight.*
 
-**Size**: `81` lines (`3364` bytes)
+**Size**: `81` lines
 
 **Classes:**
 - `class TestBudgetSurface`
@@ -1901,7 +1901,7 @@
 ### [`tests/test_calibration.py`](tests/test_calibration.py)
 > *Calibration scoring: Brier, log loss, skill and reliability bins.*
 
-**Size**: `115` lines (`4567` bytes)
+**Size**: `115` lines
 
 **Classes:**
 - `class TestCalibration`
@@ -1923,7 +1923,7 @@
 ### [`tests/test_calibration_autoretention.py`](tests/test_calibration_autoretention.py)
 > *Automatic calibration retention at the logged-run bridge.*
 
-**Size**: `176` lines (`8163` bytes)
+**Size**: `176` lines
 
 **Classes:**
 - `class TestCalibrationAutoRetention`
@@ -1944,7 +1944,7 @@
 ### [`tests/test_calibration_bridge.py`](tests/test_calibration_bridge.py)
 > *SelfModel forecast bridge: logged runs persist their own forecasts.*
 
-**Size**: `210` lines (`9797` bytes)
+**Size**: `210` lines
 
 **Classes:**
 - `class TestCalibrationBridge`
@@ -1968,7 +1968,7 @@
 ### [`tests/test_calibration_checks.py`](tests/test_calibration_checks.py)
 > *The calibration battery must check its own fixtures.*
 
-**Size**: `106` lines (`4133` bytes)
+**Size**: `106` lines
 
 **Classes:**
 - `class TestCalibrationChecks`
@@ -1991,7 +1991,7 @@
 ### [`tests/test_calibration_retention.py`](tests/test_calibration_retention.py)
 > *Calibration-journal retention: archive older forecasts, keep the newest.*
 
-**Size**: `278` lines (`12718` bytes)
+**Size**: `278` lines
 
 **Classes:**
 - `class TestCalibrationRetention`
@@ -2018,7 +2018,7 @@
 ### [`tests/test_calibration_store.py`](tests/test_calibration_store.py)
 > *Calibration forecast journal: append-only, checksummed, cross-run.*
 
-**Size**: `319` lines (`14829` bytes)
+**Size**: `319` lines
 
 **Classes:**
 - `class TestCalibrationStore`
@@ -2051,7 +2051,7 @@
 ### [`tests/test_chain.py`](tests/test_chain.py)
 > *Tamper-evident telemetry: hash-chain probes.*
 
-**Size**: `110` lines (`4108` bytes)
+**Size**: `110` lines
 
 **Classes:**
 - `class TestChain`
@@ -2072,7 +2072,7 @@
 ### [`tests/test_chain_anchor.py`](tests/test_chain_anchor.py)
 > *Terminal telemetry anchor: a truncated tail must not read back as valid.*
 
-**Size**: `105` lines (`4186` bytes)
+**Size**: `105` lines
 
 **Classes:**
 - `class TestChainAnchor`
@@ -2093,7 +2093,7 @@
 ### [`tests/test_choice_generalization.py`](tests/test_choice_generalization.py)
 > *A joint lookup memorises a context; an additive model cannot express it.*
 
-**Size**: `163` lines (`7440` bytes)
+**Size**: `163` lines
 
 **Classes:**
 - `class TestPinnedLatents`
@@ -2127,7 +2127,7 @@
 ### [`tests/test_choice_learning.py`](tests/test_choice_learning.py)
 > *Learning to act on an interaction, not only to predict it.*
 
-**Size**: `117` lines (`5124` bytes)
+**Size**: `117` lines
 
 **Classes:**
 - `class TestChoiceWorld`
@@ -2151,7 +2151,7 @@
 ### [`tests/test_claim_evidence.py`](tests/test_claim_evidence.py)
 > *Claim/evidence cross-link: verdict refs cite logged episode digests.*
 
-**Size**: `98` lines (`3993` bytes)
+**Size**: `98` lines
 
 **Classes:**
 - `class TestClaimEvidence`
@@ -2168,7 +2168,7 @@
 ### [`tests/test_claim_forecasts.py`](tests/test_claim_forecasts.py)
 > *A claim's declared confidence must be scoreable, not just stored.*
 
-**Size**: `83` lines (`3488` bytes)
+**Size**: `83` lines
 
 **Classes:**
 - `class TestClaimForecasts`
@@ -2188,7 +2188,7 @@
 ### [`tests/test_claim_ref_verify.py`](tests/test_claim_ref_verify.py)
 > *Claim-ref verification: every referenced verdict must match a live log.*
 
-**Size**: `320` lines (`15315` bytes)
+**Size**: `320` lines
 
 **Classes:**
 - `class TestClaimRefVerifier`
@@ -2226,7 +2226,7 @@
 ### [`tests/test_claim_replay.py`](tests/test_claim_replay.py)
 > *Claim refs must be checkable against the trajectory, not just the header.*
 
-**Size**: `114` lines (`5140` bytes)
+**Size**: `114` lines
 
 **Classes:**
 - `class TestClaimReplay`
@@ -2245,7 +2245,7 @@
 ### [`tests/test_claims.py`](tests/test_claims.py)
 > *Claim/verdict records with kill tests and an immutable ledger.*
 
-**Size**: `205` lines (`8938` bytes)
+**Size**: `205` lines
 
 **Classes:**
 - `class TestClaims`
@@ -2271,7 +2271,7 @@
 ### [`tests/test_claims_store.py`](tests/test_claims_store.py)
 > *Durable claim-ledger store: atomic snapshots, backups and quarantine.*
 
-**Size**: `296` lines (`13574` bytes)
+**Size**: `296` lines
 
 **Classes:**
 - `class TestClaimStore`
@@ -2303,7 +2303,7 @@
 ### [`tests/test_coldstart_recovery.py`](tests/test_coldstart_recovery.py)
 > *Cold-start recovery: restart re-reads the persisted task layout.*
 
-**Size**: `207` lines (`9159` bytes)
+**Size**: `207` lines
 
 **Classes:**
 - `class TestColdStartRecovery`
@@ -2325,7 +2325,7 @@
 ### [`tests/test_column_traps.py`](tests/test_column_traps.py)
 > *Column-blocking traps: depth-2 lookahead enters blocked columns early.*
 
-**Size**: `54` lines (`2030` bytes)
+**Size**: `54` lines
 
 **Classes:**
 - `class BlindPlanner`
@@ -2343,7 +2343,7 @@
 ### [`tests/test_context_channel.py`](tests/test_context_channel.py)
 > *A world-provided context block carries a detectable interaction.*
 
-**Size**: `97` lines (`3914` bytes)
+**Size**: `97` lines
 
 **Classes:**
 - `class TestContextChannel`
@@ -2365,7 +2365,7 @@
 ### [`tests/test_corrected_counts.py`](tests/test_corrected_counts.py)
 > *The corrected distinguishability counts, at one observation per step.*
 
-**Size**: `77` lines (`3297` bytes)
+**Size**: `77` lines
 
 **Classes:**
 - `class TestCorrectedDistinguishability`
@@ -2380,7 +2380,7 @@
 ### [`tests/test_cycle_escape.py`](tests/test_cycle_escape.py)
 > *Repeated-position cycle escape: memory drives a BFS exit from a loop.*
 
-**Size**: `139` lines (`5550` bytes)
+**Size**: `139` lines
 
 **Classes:**
 - `class _ForcedWorld`
@@ -2408,7 +2408,7 @@
 ### [`tests/test_dead_pool.py`](tests/test_dead_pool.py)
 > *Dead-pool guard: drop a dead goal step only when a live path is closer.*
 
-**Size**: `96` lines (`3894` bytes)
+**Size**: `96` lines
 
 **Classes:**
 - `class DeclineBackend`
@@ -2427,7 +2427,7 @@
 ### [`tests/test_deadline_planning.py`](tests/test_deadline_planning.py)
 > *Failing-first harness: the planner should schedule items by deadline.*
 
-**Size**: `189` lines (`7356` bytes)
+**Size**: `189` lines
 
 **Classes:**
 - `class CaptureBackend` - *Record the observation and always propose a legal no-op.*
@@ -2462,7 +2462,7 @@
 ### [`tests/test_degenerate_confidence.py`](tests/test_degenerate_confidence.py)
 > *A calibration score must name circular confidence, not present it.*
 
-**Size**: `93` lines (`3851` bytes)
+**Size**: `93` lines
 
 **Classes:**
 - `class TestConfidenceDiagnosis`
@@ -2485,7 +2485,7 @@
 ### [`tests/test_demo.py`](tests/test_demo.py)
 > *The demo must prove something: real episodes, real deltas.*
 
-**Size**: `93` lines (`3784` bytes)
+**Size**: `93` lines
 
 **Classes:**
 - `class TestScriptedOutput`
@@ -2511,7 +2511,7 @@
 ### [`tests/test_dual_world.py`](tests/test_dual_world.py)
 > *The dual world carries two independent latents and rewards their XOR.*
 
-**Size**: `56` lines (`2158` bytes)
+**Size**: `56` lines
 
 **Classes:**
 - `class TestDualWorld`
@@ -2526,7 +2526,7 @@
 ### [`tests/test_duplicate_rows.py`](tests/test_duplicate_rows.py)
 > *Every step emits two identical vector rows, so every statistic is over n=2T.*
 
-**Size**: `94` lines (`3534` bytes)
+**Size**: `94` lines
 
 **Classes:**
 - `class TestDuplicateVectorRows`
@@ -2548,7 +2548,7 @@
 ### [`tests/test_episode_replay.py`](tests/test_episode_replay.py)
 > *Action-replay verification: a valid chain does not prove the trajectory.*
 
-**Size**: `122` lines (`5561` bytes)
+**Size**: `122` lines
 
 **Classes:**
 - `class TestActionReplay`
@@ -2568,7 +2568,7 @@
 ### [`tests/test_episode_verify.py`](tests/test_episode_verify.py)
 > *Episode-header verification: recompute episode_sha256 from the seed.*
 
-**Size**: `273` lines (`12419` bytes)
+**Size**: `273` lines
 
 **Classes:**
 - `class TestEpisodeVerify`
@@ -2603,7 +2603,7 @@
 ### [`tests/test_estimator_edges.py`](tests/test_estimator_edges.py)
 > *Pin the estimator edge cases their docstrings promise.*
 
-**Size**: `81` lines (`3067` bytes)
+**Size**: `81` lines
 
 **Classes:**
 - `class TestEstimatorEdges`
@@ -2621,7 +2621,7 @@
 ### [`tests/test_estimators.py`](tests/test_estimators.py)
 > *Estimator unit checks: stdlib only.*
 
-**Size**: `75` lines (`2595` bytes)
+**Size**: `75` lines
 
 **Classes:**
 - `class TestEstimators`
@@ -2638,7 +2638,7 @@
 ### [`tests/test_execution_budget_checks.py`](tests/test_execution_budget_checks.py)
 > *The execution-budget battery must enforce its own caps.*
 
-**Size**: `96` lines (`3643` bytes)
+**Size**: `96` lines
 
 **Classes:**
 - `class TestExecutionBudgetChecks`
@@ -2662,7 +2662,7 @@
 ### [`tests/test_exhaustive_t3.py`](tests/test_exhaustive_t3.py)
 > *Exhaustive T3 coverage: every (target, obstacle) config optimal.*
 
-**Size**: `97` lines (`3468` bytes)
+**Size**: `97` lines
 
 **Classes:**
 - `class _ForcedLayoutWorld` - *GridWorld with a fixed T3 layout, built through the class hook.*
@@ -2680,7 +2680,7 @@
 ### [`tests/test_factored_learning.py`](tests/test_factored_learning.py)
 > *A product feature can express XOR; three quadrants still do not pin it.*
 
-**Size**: `155` lines (`6499` bytes)
+**Size**: `155` lines
 
 **Classes:**
 - `class TestQuadraticFeatures`
@@ -2714,7 +2714,7 @@
 ### [`tests/test_file_locks.py`](tests/test_file_locks.py)
 > *Advisory lock ownership: a stale-lock victim must not delete its successor.*
 
-**Size**: `70` lines (`2568` bytes)
+**Size**: `70` lines
 
 **Classes:**
 - `class TestFileLockOwnership`
@@ -2733,7 +2733,7 @@
 ### [`tests/test_golden_traces.py`](tests/test_golden_traces.py)
 > *Golden trace hashes: exact action sequences for the pin seeds.*
 
-**Size**: `47` lines (`2090` bytes)
+**Size**: `47` lines
 
 **Classes:**
 - `class TestGoldenTraces`
@@ -2747,7 +2747,7 @@
 ### [`tests/test_header_reader_checks.py`](tests/test_header_reader_checks.py)
 > *The header-reader battery must check its own memory claim.*
 
-**Size**: `87` lines (`3466` bytes)
+**Size**: `87` lines
 
 **Classes:**
 - `class TestHeaderReaderChecks`
@@ -2770,7 +2770,7 @@
 ### [`tests/test_headroom.py`](tests/test_headroom.py)
 > *A task where a shortest tour is beatable, and the shipped rule beats it.*
 
-**Size**: `234` lines (`9926` bytes)
+**Size**: `234` lines
 
 **Classes:**
 - `class TestDeadlineWorld`
@@ -2813,7 +2813,7 @@
 ### [`tests/test_headroom_learning.py`](tests/test_headroom_learning.py)
 > *The deadline rule can be learned from outcomes, within its configuration.*
 
-**Size**: `162` lines (`6772` bytes)
+**Size**: `162` lines
 
 **Classes:**
 - `class TestOrderForWeight`
@@ -2847,7 +2847,7 @@
 ### [`tests/test_hidden_goal.py`](tests/test_hidden_goal.py)
 > *Hidden-goal recovery: planner recalls missing goals from episode memory.*
 
-**Size**: `94` lines (`2949` bytes)
+**Size**: `94` lines
 
 **Classes:**
 - `class _Capture`
@@ -2867,7 +2867,7 @@
 ### [`tests/test_holdout_500s.py`](tests/test_holdout_500s.py)
 > *Frozen holdout split: seeds 500-599 pinned as regression holdout.*
 
-**Size**: `35` lines (`1199` bytes)
+**Size**: `35` lines
 
 **Classes:**
 - `class TestHoldout500s`
@@ -2881,7 +2881,7 @@
 ### [`tests/test_identity.py`](tests/test_identity.py)
 > *Episode identity and resume policy (neurocore transfer).*
 
-**Size**: `146` lines (`5881` bytes)
+**Size**: `146` lines
 
 **Classes:**
 - `class FakeEpisode`
@@ -2906,7 +2906,7 @@
 ### [`tests/test_integration_differentials.py`](tests/test_integration_differentials.py)
 > *Integration-structure differentials: hub/M lesions kill syn, P/S change nothing.*
 
-**Size**: `103` lines (`4407` bytes)
+**Size**: `103` lines
 
 **Classes:**
 - `class TestIntegrationDifferentials`
@@ -2925,7 +2925,7 @@
 ### [`tests/test_joint_binning_scale.py`](tests/test_joint_binning_scale.py)
 > *The joint MI must not be the coarsest of the three scalings.*
 
-**Size**: `93` lines (`3747` bytes)
+**Size**: `93` lines
 
 **Classes:**
 - `class TestJointBinningScale`
@@ -2944,7 +2944,7 @@
 ### [`tests/test_layout_fingerprint.py`](tests/test_layout_fingerprint.py)
 > *Layout fingerprints: distinct worlds sharing (task, seed) must not collide.*
 
-**Size**: `119` lines (`4684` bytes)
+**Size**: `119` lines
 
 **Classes:**
 - `class _World` - *T3 world with forced geometry, optionally hiding goal fields.*
@@ -2965,7 +2965,7 @@
 ### [`tests/test_lesion_detectability.py`](tests/test_lesion_detectability.py)
 > *Lesion detectability: a differential must be able to fail for its reason.*
 
-**Size**: `99` lines (`4108` bytes)
+**Size**: `99` lines
 
 **Classes:**
 - `class TestLesionDetectability`
@@ -2985,7 +2985,7 @@
 ### [`tests/test_llamacpp.py`](tests/test_llamacpp.py)
 > *llama.cpp backend: deterministic prompt building and action parsing.*
 
-**Size**: `31` lines (`1129` bytes)
+**Size**: `31` lines
 
 **Classes:**
 - `class TestLlamaCppProtocol`
@@ -2998,7 +2998,7 @@
 ### [`tests/test_manifest.py`](tests/test_manifest.py)
 > *Generation manifest fingerprints: determinism + prompt-set versioning.*
 
-**Size**: `94` lines (`3861` bytes)
+**Size**: `94` lines
 
 **Classes:**
 - `class TestManifest`
@@ -3018,7 +3018,7 @@
 ### [`tests/test_manifest_binding.py`](tests/test_manifest_binding.py)
 > *Model-manifest binding: every model decision carries its generation hash.*
 
-**Size**: `132` lines (`5316` bytes)
+**Size**: `132` lines
 
 **Classes:**
 - `class ManifestBackend` - *Record the observation, compute its manifest, then decline.*
@@ -3044,7 +3044,7 @@
 ### [`tests/test_memory.py`](tests/test_memory.py)
 > *Unit tests for memory.store.MemoryStore.*
 
-**Size**: `69` lines (`2517` bytes)
+**Size**: `69` lines
 
 **Classes:**
 - `class TestMemoryStore`
@@ -3059,7 +3059,7 @@
 ### [`tests/test_merkle.py`](tests/test_merkle.py)
 > *Merkle batch anchors and inclusion proofs (merklock transfer).*
 
-**Size**: `150` lines (`6078` bytes)
+**Size**: `150` lines
 
 **Classes:**
 - `class TestMerkleTree`
@@ -3086,7 +3086,7 @@
 ### [`tests/test_merkle_compaction.py`](tests/test_merkle_compaction.py)
 > *Merkle journal compaction: one union root, original preserved or backed up.*
 
-**Size**: `171` lines (`7359` bytes)
+**Size**: `171` lines
 
 **Classes:**
 - `class TestMerkleCompaction`
@@ -3110,7 +3110,7 @@
 ### [`tests/test_merkle_journal.py`](tests/test_merkle_journal.py)
 > *Append-only Merkle batch journal and historical inclusion proofs.*
 
-**Size**: `214` lines (`9379` bytes)
+**Size**: `214` lines
 
 **Classes:**
 - `class TestMerkleJournal`
@@ -3138,7 +3138,7 @@
 ### [`tests/test_model_access.py`](tests/test_model_access.py)
 > *Model access must be reachable, honest and testable without a socket.*
 
-**Size**: `261` lines (`11397` bytes)
+**Size**: `261` lines
 
 **Classes:**
 - `class TestNormalize`
@@ -3184,7 +3184,7 @@
 ### [`tests/test_model_backend.py`](tests/test_model_backend.py)
 > *Model-backend seam: replay fidelity, invalid, raising, no-op and stall fallbacks.*
 
-**Size**: `413` lines (`19066` bytes)
+**Size**: `413` lines
 
 **Classes:**
 - `class RaisingBackend`
@@ -3236,7 +3236,7 @@
 ### [`tests/test_model_influence.py`](tests/test_model_influence.py)
 > *Say plainly how much of a run the model actually decided.*
 
-**Size**: `157` lines (`6017` bytes)
+**Size**: `157` lines
 
 **Classes:**
 - `class _UpClient` - *A client that always proposes one action, like a stuck model.*
@@ -3272,7 +3272,7 @@
 ### [`tests/test_model_pin.py`](tests/test_model_pin.py)
 > *The header's model label must be pinnable, like the policy digest.*
 
-**Size**: `108` lines (`4782` bytes)
+**Size**: `108` lines
 
 **Classes:**
 - `class TestModelPin`
@@ -3291,7 +3291,7 @@
 ### [`tests/test_module_pair_scan.py`](tests/test_module_pair_scan.py)
 > *A module interaction needs two module blocks, not the world hub.*
 
-**Size**: `144` lines (`5787` bytes)
+**Size**: `144` lines
 
 **Classes:**
 - `class TestModulePairScan`
@@ -3315,7 +3315,7 @@
 ### [`tests/test_module_signals.py`](tests/test_module_signals.py)
 > *The module-state channel must add testable state without changing actions.*
 
-**Size**: `470` lines (`22732` bytes)
+**Size**: `470` lines
 
 **Classes:**
 - `class TestModuleSignals`
@@ -3368,7 +3368,7 @@
 ### [`tests/test_multi_goldens.py`](tests/test_multi_goldens.py)
 > *Multi-obstacle golden paths: exact action sequences for two-blocker traps.*
 
-**Size**: `46` lines (`1969` bytes)
+**Size**: `46` lines
 
 **Classes:**
 - `class TestMultiGoldens`
@@ -3382,7 +3382,7 @@
 ### [`tests/test_multi_obstacle.py`](tests/test_multi_obstacle.py)
 > *Multi-obstacle recovery: leaf viability alone truncates with two blockers.*
 
-**Size**: `84` lines (`3235` bytes)
+**Size**: `84` lines
 
 **Classes:**
 - `class _ForcedMultiWorld`
@@ -3403,7 +3403,7 @@
 ### [`tests/test_negative_control.py`](tests/test_negative_control.py)
 > *Executable negative controls for shipped planner integrations.*
 
-**Size**: `52` lines (`1972` bytes)
+**Size**: `52` lines
 
 **Classes:**
 - `class TestNegativeControl`
@@ -3418,7 +3418,7 @@
 ### [`tests/test_obs_coverage.py`](tests/test_obs_coverage.py)
 > *Model-seam observation coverage: backend sees the goal state.*
 
-**Size**: `106` lines (`3933` bytes)
+**Size**: `106` lines
 
 **Classes:**
 - `class _Capture`
@@ -3441,7 +3441,7 @@
 ### [`tests/test_obs_visits.py`](tests/test_obs_visits.py)
 > *Model-seam visit coverage: backend sees loop-avoidance memory.*
 
-**Size**: `107` lines (`3647` bytes)
+**Size**: `107` lines
 
 **Classes:**
 - `class _Capture`
@@ -3465,7 +3465,7 @@
 ### [`tests/test_online_learning.py`](tests/test_online_learning.py)
 > *A predictor that is never told the reward rule must still learn it.*
 
-**Size**: `126` lines (`5162` bytes)
+**Size**: `126` lines
 
 **Classes:**
 - `class TestOnlineLearning`
@@ -3487,7 +3487,7 @@
 ### [`tests/test_openai_backend.py`](tests/test_openai_backend.py)
 > *The agent must be able to use the server a person already has running.*
 
-**Size**: `152` lines (`6731` bytes)
+**Size**: `152` lines
 
 **Classes:**
 - `class _Client` - *A chat client double: fixed reply, records every call.*
@@ -3520,7 +3520,7 @@
 ### [`tests/test_pair_conclusions.py`](tests/test_pair_conclusions.py)
 > *Pair-level conclusions must be re-derived at one observation per step.*
 
-**Size**: `128` lines (`5594` bytes)
+**Size**: `128` lines
 
 **Classes:**
 - `class TestPairConclusionsAtCorrectN`
@@ -3541,7 +3541,7 @@
 ### [`tests/test_pair_equivalence.py`](tests/test_pair_equivalence.py)
 > *Equivalent pairs are one piece of evidence, not two.*
 
-**Size**: `120` lines (`5085` bytes)
+**Size**: `120` lines
 
 **Classes:**
 - `class TestPairEquivalence`
@@ -3562,7 +3562,7 @@
 ### [`tests/test_pair_scan.py`](tests/test_pair_scan.py)
 > *A pair search must refuse artifacts before it reports a gap.*
 
-**Size**: `128` lines (`5517` bytes)
+**Size**: `128` lines
 
 **Classes:**
 - `class TestPairScan`
@@ -3584,7 +3584,7 @@
 ### [`tests/test_pair_scan_fwer.py`](tests/test_pair_scan_fwer.py)
 > *Scanning every pair needs a family-wise null, not per-pair tails.*
 
-**Size**: `127` lines (`5509` bytes)
+**Size**: `127` lines
 
 **Classes:**
 - `class TestPairScanFamilyWise`
@@ -3606,7 +3606,7 @@
 ### [`tests/test_pair_scan_target_column.py`](tests/test_pair_scan_target_column.py)
 > *The target column is not a feature.*
 
-**Size**: `112` lines (`4191` bytes)
+**Size**: `112` lines
 
 **Classes:**
 - `class TestPairScanTargetColumn`
@@ -3626,7 +3626,7 @@
 ### [`tests/test_pair_scan_target_leak.py`](tests/test_pair_scan_target_leak.py)
 > *A feature that determines the target is not an interaction partner.*
 
-**Size**: `92` lines (`3575` bytes)
+**Size**: `92` lines
 
 **Classes:**
 - `class TestPairScanTargetLeak`
@@ -3647,7 +3647,7 @@
 ### [`tests/test_parity_transfer.py`](tests/test_parity_transfer.py)
 > *A representation that matches the rule transfers; the same weights do not.*
 
-**Size**: `174` lines (`7542` bytes)
+**Size**: `174` lines
 
 **Classes:**
 - `class TestParityRule`
@@ -3683,7 +3683,7 @@
 ### [`tests/test_persistent_hidden_forage.py`](tests/test_persistent_hidden_forage.py)
 > *Persistent-hidden forage: episode recall goes stale after collects.*
 
-**Size**: `63` lines (`2273` bytes)
+**Size**: `63` lines
 
 **Classes:**
 - `class HiddenT1`
@@ -3702,7 +3702,7 @@
 ### [`tests/test_phi_clip.py`](tests/test_phi_clip.py)
 > *A non-negativity assertion must test the clip, not restate it.*
 
-**Size**: `79` lines (`3056` bytes)
+**Size**: `79` lines
 
 **Classes:**
 - `class TestPhiClipIsWhatIsPinned`
@@ -3721,7 +3721,7 @@
 ### [`tests/test_phi_diagnosis.py`](tests/test_phi_diagnosis.py)
 > *The phi == 0.0 pin must carry its own scope, like the synergy one.*
 
-**Size**: `85` lines (`3413` bytes)
+**Size**: `85` lines
 
 **Classes:**
 - `class TestPhiDiagnosis`
@@ -3741,7 +3741,7 @@
 ### [`tests/test_planner.py`](tests/test_planner.py)
 > *Unit tests for planner.plan.Planner.*
 
-**Size**: `55` lines (`1627` bytes)
+**Size**: `55` lines
 
 **Classes:**
 - `class TestPlanner`
@@ -3756,7 +3756,7 @@
 ### [`tests/test_plugin_seam.py`](tests/test_plugin_seam.py)
 > *Two mock LLM providers to prove the seam, without a network or a model.*
 
-**Size**: `106` lines (`3893` bytes)
+**Size**: `106` lines
 
 **Classes:**
 - `class EchoProvider` - *Conforming mock: deterministic, identity declared, legal token.*
@@ -3784,7 +3784,7 @@
 ### [`tests/test_policy_accuracy.py`](tests/test_policy_accuracy.py)
 > *Policy accuracy: declared config matches the shipped planner.*
 
-**Size**: `27` lines (`816` bytes)
+**Size**: `27` lines
 
 **Classes:**
 - `class TestPolicyAccuracy`
@@ -3797,7 +3797,7 @@
 ### [`tests/test_policy_binding.py`](tests/test_policy_binding.py)
 > *Policy binding: run headers cite the producing configuration.*
 
-**Size**: `68` lines (`2724` bytes)
+**Size**: `68` lines
 
 **Classes:**
 - `class TestPolicyBinding`
@@ -3814,7 +3814,7 @@
 ### [`tests/test_policy_ceiling.py`](tests/test_policy_ceiling.py)
 > *The rule policy already reaches the ceiling on every shipped task.*
 
-**Size**: `113` lines (`4674` bytes)
+**Size**: `113` lines
 
 **Classes:**
 - `class TestBfs`
@@ -3844,7 +3844,7 @@
 ### [`tests/test_policy_coverage.py`](tests/test_policy_coverage.py)
 > *A bounded policy and a world must agree on the action alphabet.*
 
-**Size**: `130` lines (`5078` bytes)
+**Size**: `130` lines
 
 **Classes:**
 - `class _NoDeclaredActions` - *A world that accepts any action and declares no alphabet.*
@@ -3876,7 +3876,7 @@
 ### [`tests/test_pool_corridor_policy.py`](tests/test_pool_corridor_policy.py)
 > *Pool-corridor gate accuracy: declared config matches shipped pooling.*
 
-**Size**: `30` lines (`973` bytes)
+**Size**: `30` lines
 
 **Classes:**
 - `class TestPoolCorridorPolicy`
@@ -3889,7 +3889,7 @@
 ### [`tests/test_pool_policy.py`](tests/test_pool_policy.py)
 > *Detour-pooling policy accuracy: declared config matches shipped planner.*
 
-**Size**: `29` lines (`949` bytes)
+**Size**: `29` lines
 
 **Classes:**
 - `class TestPoolPolicy`
@@ -3902,7 +3902,7 @@
 ### [`tests/test_pre_outcome_calibration.py`](tests/test_pre_outcome_calibration.py)
 > *A pre-outcome prediction must not be flagged as circular.*
 
-**Size**: `77` lines (`3225` bytes)
+**Size**: `77` lines
 
 **Classes:**
 - `class TestPreOutcomeCalibration`
@@ -3918,7 +3918,7 @@
 ### [`tests/test_pre_outcome_prediction.py`](tests/test_pre_outcome_prediction.py)
 > *A self-prediction must be made before the outcome and score above chance.*
 
-**Size**: `120` lines (`4783` bytes)
+**Size**: `120` lines
 
 **Classes:**
 - `class TestPreOutcomePrediction`
@@ -3939,7 +3939,7 @@
 ### [`tests/test_progress_guard_checks.py`](tests/test_progress_guard_checks.py)
 > *The progress-guard battery must check its own documented claims.*
 
-**Size**: `105` lines (`4564` bytes)
+**Size**: `105` lines
 
 **Classes:**
 - `class TestProgressGuardChecks`
@@ -3962,7 +3962,7 @@
 ### [`tests/test_prompt_budget.py`](tests/test_prompt_budget.py)
 > *Prompt budgeting: estimate_tokens/pack in the model seam.*
 
-**Size**: `109` lines (`4207` bytes)
+**Size**: `109` lines
 
 **Classes:**
 - `class _FakeResponse`
@@ -3985,7 +3985,7 @@
 ### [`tests/test_prompt_budget_checks.py`](tests/test_prompt_budget_checks.py)
 > *The prompt-budget battery must check that the cap changes no behavior.*
 
-**Size**: `93` lines (`3691` bytes)
+**Size**: `93` lines
 
 **Classes:**
 - `class TestPromptBudgetChecks`
@@ -4008,7 +4008,7 @@
 ### [`tests/test_prompt_budget_honesty.py`](tests/test_prompt_budget_honesty.py)
 > *A prompt budget must be reportable as honoured or exceeded.*
 
-**Size**: `80` lines (`3188` bytes)
+**Size**: `80` lines
 
 **Classes:**
 - `class TestPromptBudgetHonesty`
@@ -4025,7 +4025,7 @@
 ### [`tests/test_random_floor.py`](tests/test_random_floor.py)
 > *Random-policy floor: rule must beat chance by a margin.*
 
-**Size**: `90` lines (`3308` bytes)
+**Size**: `90` lines
 
 **Classes:**
 - `class RandomBackend` - *Uniform choice among legal actions, seeded for determinism.*
@@ -4043,7 +4043,7 @@
 ### [`tests/test_range_pins_0_199.py`](tests/test_range_pins_0_199.py)
 > *Backfill range pins 0-199: ledger-verified totals without test pins.*
 
-**Size**: `35` lines (`1157` bytes)
+**Size**: `35` lines
 
 **Classes:**
 - `class TestRangePins0199`
@@ -4057,7 +4057,7 @@
 ### [`tests/test_recall_cost.py`](tests/test_recall_cost.py)
 > *Recall cost: the loop must not deep-copy history it does not read.*
 
-**Size**: `99` lines (`3674` bytes)
+**Size**: `99` lines
 
 **Classes:**
 - `class _CountingList` - *A list that records how often it is deep-copied.*
@@ -4075,7 +4075,7 @@
 ### [`tests/test_recall_depth.py`](tests/test_recall_depth.py)
 > *Recall depth: full-history recall for persistent hidden goals.*
 
-**Size**: `63` lines (`2133` bytes)
+**Size**: `63` lines
 
 **Classes:**
 - `class HiddenWorld` - *GridWorld that omits the target after the initial state.*
@@ -4093,7 +4093,7 @@
 ### [`tests/test_recall_fallback.py`](tests/test_recall_fallback.py)
 > *A malformed FTS query must not make the fallback find nothing.*
 
-**Size**: `90` lines (`3296` bytes)
+**Size**: `90` lines
 
 **Classes:**
 - `class TestRecallFallback`
@@ -4110,7 +4110,7 @@
 ### [`tests/test_recall_terms_unicode.py`](tests/test_recall_terms_unicode.py)
 > *Search terms must keep non-ASCII words whole.*
 
-**Size**: `79` lines (`3247` bytes)
+**Size**: `79` lines
 
 **Classes:**
 - `class TestRecallTermsUnicode`
@@ -4127,7 +4127,7 @@
 ### [`tests/test_recompute.py`](tests/test_recompute.py)
 > *Recompute check: log written via telemetry recomputes to direct estimates.*
 
-**Size**: `60` lines (`2486` bytes)
+**Size**: `60` lines
 
 **Classes:**
 - `class TestRecompute`
@@ -4142,7 +4142,7 @@
 ### [`tests/test_replication.py`](tests/test_replication.py)
 > *A scan candidate must replicate on held-out episodes.*
 
-**Size**: `302` lines (`14931` bytes)
+**Size**: `302` lines
 
 **Classes:**
 - `class TestHoldoutReplication`
@@ -4174,7 +4174,7 @@
 ### [`tests/test_repro.py`](tests/test_repro.py)
 > *Repro mode: triple-run determinism gate for the standing pins.*
 
-**Size**: `50` lines (`1570` bytes)
+**Size**: `50` lines
 
 **Classes:**
 - `class TestRepro`
@@ -4188,7 +4188,7 @@
 ### [`tests/test_result_records.py`](tests/test_result_records.py)
 > *Result records are self-reports and must be checked against the step.*
 
-**Size**: `163` lines (`7801` bytes)
+**Size**: `163` lines
 
 **Classes:**
 - `class TestResultRecords`
@@ -4208,7 +4208,7 @@
 ### [`tests/test_resume_identity_checks.py`](tests/test_resume_identity_checks.py)
 > *The resume-identity battery must enforce its own identity claims.*
 
-**Size**: `104` lines (`4187` bytes)
+**Size**: `104` lines
 
 **Classes:**
 - `class TestResumeIdentityChecks`
@@ -4232,7 +4232,7 @@
 ### [`tests/test_rule_confidence.py`](tests/test_rule_confidence.py)
 > *Rule-path confidence readout: BFS move ties in the planner probe.*
 
-**Size**: `260` lines (`10880` bytes)
+**Size**: `260` lines
 
 **Classes:**
 - `class TestRuleConfidence`
@@ -4271,7 +4271,7 @@
 ### [`tests/test_run_agent_cli.py`](tests/test_run_agent_cli.py)
 > *A registry nobody can reach is not pluggable.*
 
-**Size**: `89` lines (`3648` bytes)
+**Size**: `89` lines
 
 **Classes:**
 - `class TestRunAgentCli`
@@ -4292,7 +4292,7 @@
 ### [`tests/test_selfmodel.py`](tests/test_selfmodel.py)
 > *Unit tests for self_model.model.SelfModel.*
 
-**Size**: `42` lines (`1301` bytes)
+**Size**: `42` lines
 
 **Classes:**
 - `class TestSelfModel`
@@ -4305,7 +4305,7 @@
 ### [`tests/test_selfmodel_size.py`](tests/test_selfmodel_size.py)
 > *Self-model history size must be readable without copying the history.*
 
-**Size**: `119` lines (`4171` bytes)
+**Size**: `119` lines
 
 **Classes:**
 - `class TestSelfModelSize`
@@ -4323,7 +4323,7 @@
 ### [`tests/test_snapshot.py`](tests/test_snapshot.py)
 > *Snapshot capture and diff (lattice transfer).*
 
-**Size**: `85` lines (`3773` bytes)
+**Size**: `85` lines
 
 **Classes:**
 - `class TestSnapshotDiff`
@@ -4342,7 +4342,7 @@
 ### [`tests/test_snapshot_digest.py`](tests/test_snapshot_digest.py)
 > *Content-vs-graph snapshot digests and meta verification.*
 
-**Size**: `94` lines (`4074` bytes)
+**Size**: `94` lines
 
 **Classes:**
 - `class TestSnapshotDigest`
@@ -4361,7 +4361,7 @@
 ### [`tests/test_snapshot_evidence.py`](tests/test_snapshot_evidence.py)
 > *Snapshot records must carry the integrity evidence, not just the score.*
 
-**Size**: `88` lines (`3787` bytes)
+**Size**: `88` lines
 
 **Classes:**
 - `class TestSnapshotEvidence`
@@ -4380,7 +4380,7 @@
 ### [`tests/test_state_machines.py`](tests/test_state_machines.py)
 > *Explicit state-machine registry: consistency, CLI contract and live drift.*
 
-**Size**: `110` lines (`5117` bytes)
+**Size**: `110` lines
 
 **Classes:**
 - `class TestStateMachineRegistry`
@@ -4396,7 +4396,7 @@
 ### [`tests/test_store_capability_use.py`](tests/test_store_capability_use.py)
 > *The agent must declare whether its store writes are consumed.*
 
-**Size**: `115` lines (`4784` bytes)
+**Size**: `115` lines
 
 **Classes:**
 - `class TestStoreCapabilityUse`
@@ -4415,7 +4415,7 @@
 ### [`tests/test_store_recovery.py`](tests/test_store_recovery.py)
 > *Store recovery: a corrupt database file is quarantined, never fatal.*
 
-**Size**: `52` lines (`1917` bytes)
+**Size**: `52` lines
 
 **Classes:**
 - `class TestStoreRecovery`
@@ -4427,7 +4427,7 @@
 ### [`tests/test_store_schema.py`](tests/test_store_schema.py)
 > *Layouts schema: the declared shape matches the migrated shape.*
 
-**Size**: `65` lines (`2475` bytes)
+**Size**: `65` lines
 
 **Classes:**
 - `class TestLayoutSchema`
@@ -4443,7 +4443,7 @@
 ### [`tests/test_substrate_errors.py`](tests/test_substrate_errors.py)
 > *Substrate error visibility: counters exist, ok reflects reward, faults counted.*
 
-**Size**: `80` lines (`3261` bytes)
+**Size**: `80` lines
 
 **Classes:**
 - `class FaultyStore` - *Minimal memory_store double whose save always raises.*
@@ -4460,7 +4460,7 @@
 ### [`tests/test_synergy_cost.py`](tests/test_synergy_cost.py)
 > *Synergy estimator cost: the c1 discretization is computed once.*
 
-**Size**: `41` lines (`1436` bytes)
+**Size**: `41` lines
 
 **Classes:**
 - `class TestSynergyCost`
@@ -4472,7 +4472,7 @@
 ### [`tests/test_synergy_duplicate_mechanism.py`](tests/test_synergy_duplicate_mechanism.py)
 > *Equal scope columns: state the real mechanism, not the wrong one.*
 
-**Size**: `84` lines (`3325` bytes)
+**Size**: `84` lines
 
 **Classes:**
 - `class TestEqualColumnsMechanism`
@@ -4491,7 +4491,7 @@
 ### [`tests/test_synergy_null.py`](tests/test_synergy_null.py)
 > *A ``syn`` value needs its null, or it is a number without a verdict.*
 
-**Size**: `102` lines (`4459` bytes)
+**Size**: `102` lines
 
 **Classes:**
 - `class TestPermutationNull`
@@ -4511,7 +4511,7 @@
 ### [`tests/test_synergy_null_wiring.py`](tests/test_synergy_null_wiring.py)
 > *The synergy null must reach every place ``syn`` is reported.*
 
-**Size**: `80` lines (`3321` bytes)
+**Size**: `80` lines
 
 **Classes:**
 - `class TestSynergyNullWiring`
@@ -4527,7 +4527,7 @@
 ### [`tests/test_synergy_scope.py`](tests/test_synergy_scope.py)
 > *Synergy scope: the criterion must report which trace columns it reads.*
 
-**Size**: `98` lines (`4093` bytes)
+**Size**: `98` lines
 
 **Classes:**
 - `class TestSynergyScope`
@@ -4547,7 +4547,7 @@
 ### [`tests/test_synergy_scope_duplicate.py`](tests/test_synergy_scope_duplicate.py)
 > *A duplicated scope pair cannot decide, and the scope must say so.*
 
-**Size**: `76` lines (`3672` bytes)
+**Size**: `76` lines
 
 **Classes:**
 - `class TestDuplicateScopeColumns`
@@ -4564,7 +4564,7 @@
 ### [`tests/test_synergy_sign.py`](tests/test_synergy_sign.py)
 > *A negative synergy gap must be reported as such, not as a strong one.*
 
-**Size**: `69` lines (`2931` bytes)
+**Size**: `69` lines
 
 **Classes:**
 - `class TestSynergySign`
@@ -4580,7 +4580,7 @@
 ### [`tests/test_synergy_sign_wiring.py`](tests/test_synergy_sign_wiring.py)
 > *The synergy sign must reach every place ``syn`` is reported.*
 
-**Size**: `72` lines (`2770` bytes)
+**Size**: `72` lines
 
 **Classes:**
 - `class TestSynergySignWiring`
@@ -4596,7 +4596,7 @@
 ### [`tests/test_telemetry.py`](tests/test_telemetry.py)
 > *Telemetry roundtrip checks.*
 
-**Size**: `150` lines (`6580` bytes)
+**Size**: `150` lines
 
 **Classes:**
 - `class TestTelemetry`
@@ -4614,7 +4614,7 @@
 ### [`tests/test_telemetry_concurrency.py`](tests/test_telemetry_concurrency.py)
 > *Concurrent telemetry writers must preserve the hash chain.*
 
-**Size**: `95` lines (`3681` bytes)
+**Size**: `95` lines
 
 **Classes:**
 - `class TestTelemetryConcurrency`
@@ -4628,7 +4628,7 @@
 ### [`tests/test_telemetry_mac.py`](tests/test_telemetry_mac.py)
 > *Optional HMAC-signed telemetry: keyed records and tamper findings.*
 
-**Size**: `109` lines (`4472` bytes)
+**Size**: `109` lines
 
 **Classes:**
 - `class TestTelemetryMac`
@@ -4647,7 +4647,7 @@
 ### [`tests/test_three_blocker.py`](tests/test_three_blocker.py)
 > *Three-blocker snapshot matrix: pin the audited two-detour family.*
 
-**Size**: `83` lines (`3501` bytes)
+**Size**: `83` lines
 
 **Classes:**
 - `class _ForcedThreeWorld`
@@ -4667,7 +4667,7 @@
 ### [`tests/test_three_goldens.py`](tests/test_three_goldens.py)
 > *Three-blocker golden paths: exact action sequences for the family.*
 
-**Size**: `48` lines (`2142` bytes)
+**Size**: `48` lines
 
 **Classes:**
 - `class TestThreeGoldens`
@@ -4681,7 +4681,7 @@
 ### [`tests/test_tour_order.py`](tests/test_tour_order.py)
 > *Forage tour ordering: optimal 3-item tour beats nearest-greedy traps.*
 
-**Size**: `31` lines (`904` bytes)
+**Size**: `31` lines
 
 **Classes:**
 - `class TestTourOrder`
@@ -4696,7 +4696,7 @@
 ### [`tests/test_trace_slot_scope.py`](tests/test_trace_slot_scope.py)
 > *Every battery's trace slot must carry the synergy scope.*
 
-**Size**: `70` lines (`2842` bytes)
+**Size**: `70` lines
 
 **Classes:**
 - `class TestTraceSlotScope`
@@ -4711,7 +4711,7 @@
 ### [`tests/test_trap_escape.py`](tests/test_trap_escape.py)
 > *Obstacle-trap escape: planner avoids dead-end entries, pinned step totals.*
 
-**Size**: `67` lines (`2464` bytes)
+**Size**: `67` lines
 
 **Classes:**
 - `class BlindPlanner` - *Integration cut: same rules, memory input severed.*
@@ -4730,7 +4730,7 @@
 ### [`tests/test_vector_audit.py`](tests/test_vector_audit.py)
 > *Vector independence: the M/P/S/hub blocks are not independent readouts.*
 
-**Size**: `175` lines (`6829` bytes)
+**Size**: `175` lines
 
 **Classes:**
 - `class TestVectorAudit`
@@ -4754,7 +4754,7 @@
 ### [`tests/test_vector_audit_adapter.py`](tests/test_vector_audit_adapter.py)
 > *The vector-audit adapter must agree with the row-level audit.*
 
-**Size**: `103` lines (`4104` bytes)
+**Size**: `103` lines
 
 **Classes:**
 - `class TestAuditVectors`
@@ -4774,7 +4774,7 @@
 ### [`tests/test_verdict.py`](tests/test_verdict.py)
 > *Verdict facts: a step-cap run is truncated, not a success.*
 
-**Size**: `67` lines (`2554` bytes)
+**Size**: `67` lines
 
 **Classes:**
 - `class WaitingBackend`
@@ -4792,7 +4792,7 @@
 ### [`tests/test_verdict_claim.py`](tests/test_verdict_claim.py)
 > *Verdict claims must be checked against the replayed trajectory.*
 
-**Size**: `148` lines (`7047` bytes)
+**Size**: `148` lines
 
 **Classes:**
 - `class TestVerdictClaim`
@@ -4813,7 +4813,7 @@
 ### [`tests/test_verdict_word.py`](tests/test_verdict_word.py)
 > *The verdict word must agree with the trajectory and the budget.*
 
-**Size**: `123` lines (`5764` bytes)
+**Size**: `123` lines
 
 **Classes:**
 - `class TestVerdictWord`
@@ -4832,7 +4832,7 @@
 ### [`tests/test_verify_run.py`](tests/test_verify_run.py)
 > *One aggregate verifier must compose every shipped check.*
 
-**Size**: `142` lines (`6253` bytes)
+**Size**: `142` lines
 
 **Classes:**
 - `class TestVerifyRun`
@@ -4852,7 +4852,7 @@
 ### [`tests/test_verify_run_cli.py`](tests/test_verify_run_cli.py)
 > *The aggregate verifier needs a command line, not just a function.*
 
-**Size**: `93` lines (`3511` bytes)
+**Size**: `93` lines
 
 **Classes:**
 - `class TestVerifyRunCli`
@@ -4872,7 +4872,7 @@
 ### [`tests/test_wiring.py`](tests/test_wiring.py)
 > *Wiring check: real substrate roundtrip through JSONL log to recompute.*
 
-**Size**: `135` lines (`6682` bytes)
+**Size**: `135` lines
 
 **Classes:**
 - `class TestWiring`
@@ -4888,7 +4888,7 @@
 ### [`tests/test_wiring_independence.py`](tests/test_wiring_independence.py)
 > *Wiring the modules makes them independent, and then anti-synchronous.*
 
-**Size**: `134` lines (`5811` bytes)
+**Size**: `134` lines
 
 **Classes:**
 - `class TestWiringIndependence`
@@ -4909,7 +4909,7 @@
 ### [`tests/test_workspace.py`](tests/test_workspace.py)
 > *Workspace source hash and run-header binding (harness transfer).*
 
-**Size**: `107` lines (`4274` bytes)
+**Size**: `107` lines
 
 **Classes:**
 - `class TestWorkspaceHash`
@@ -4927,7 +4927,7 @@
 ### [`tests/test_worlds.py`](tests/test_worlds.py)
 > *World determinism and viability checks.*
 
-**Size**: `87` lines (`3041` bytes)
+**Size**: `87` lines
 
 **Classes:**
 - `class TestDeterminism`
@@ -4943,7 +4943,7 @@
 ### [`workspace.py`](workspace.py)
 > *Deterministic workspace source hash for run/evidence binding.*
 
-**Size**: `58` lines (`1990` bytes)
+**Size**: `58` lines
 
 **Functions:**
 - `def workspace_files(root)` - *Return ``{relative_path: sha256}`` for the workspace source tree.*
@@ -4954,14 +4954,14 @@
 ### [`worlds/__init__.py`](worlds/__init__.py)
 > *Brain grid worlds package: deterministic fixed-step 8x8 tasks.*
 
-**Size**: `9` lines (`499` bytes)
+**Size**: `9` lines
 
 ---
 
 ### [`worlds/deadline.py`](worlds/deadline.py)
 > *A grid task where the shortest tour is the wrong plan.*
 
-**Size**: `163` lines (`6271` bytes)
+**Size**: `163` lines
 
 **Classes:**
 - `class DeadlineWorld` - *Collect items before they expire; the planner schedules the order.*
@@ -4981,7 +4981,7 @@
 ### [`worlds/dual.py`](worlds/dual.py)
 > *A deterministic world whose reward is an interaction of two independent bits.*
 
-**Size**: `167` lines (`5597` bytes)
+**Size**: `167` lines
 
 **Classes:**
 - `class DualWorld` - *Two independent latents per phase; reward is their XOR.*
@@ -5008,7 +5008,7 @@
 ### [`worlds/grid.py`](worlds/grid.py)
 > *Deterministic 8x8 grid worlds with fixed-step updates.*
 
-**Size**: `228` lines (`7845` bytes)
+**Size**: `228` lines
 
 **Classes:**
 - `class GridWorld` - *Deterministic grid world for one task id and seed.*
