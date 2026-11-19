@@ -3,32 +3,17 @@
   "active_task": {
     "task_id": "brain-schedule-scaling",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795068439.8533762,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1795068891.4653132,
+    "completed_head": "0f1d2c7332d6f7afb56d7a85f7fc7b46c9074c67",
+    "completed_tree": "d30a61c07608294b5fefebb95f1478eb3c8a3a60"
   },
   "checkpoints": [
-    {
-      "task_id": "brain-deadline-schedule",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-deadline-schedule' completed successfully.",
-      "status": "completed",
-      "timestamp": 1795038261.9817119,
-      "timestamp_str": "2026-11-19 00:44:21",
-      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-      "head": "5f4a9cfbb8a3438ab559a58d77c3c360908a6f89",
-      "continued_from": "kilo:goal",
-      "delivery": {
-        "roots": [
-          "."
-        ],
-        "forced": false
-      }
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 71",
@@ -266,6 +251,23 @@
       "timestamp_str": "2026-11-19 09:07:19",
       "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
       "checklists": "passed"
+    },
+    {
+      "task_id": "brain-schedule-scaling",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-schedule-scaling' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795068891.843318,
+      "timestamp_str": "2026-11-19 09:14:51",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "head": "0f1d2c7332d6f7afb56d7a85f7fc7b46c9074c67",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
