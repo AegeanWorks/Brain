@@ -6383,3 +6383,26 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.schedule_scaling` -> shipped vs ablation on 8-12 items (background run).
   - `python aikit.py adr brain ...` -> ADR-196 appended.
 - **Pinned regression baselines for cycle 203**: unittest 1187 OK; standing 466/240/217; nine pins 16/8/13/6/9/7/14/6/10; deadline shipped 4/5/6 totals 533/310/336; DP = brute force at 2-7 items; schedule 8 and 12 items, cap 12; all earlier pins unchanged.
+
+
+## Cycle 203 - polynomial tour readout and the honest high-count boundary
+
+- **Correction (cycle 203)**: cycle 202's "the shipped planner collects 8-12 items" was a helper-level result overstated at the world level. `DeadlineWorld` gives patient items a fixed `+40` slack, which becomes infeasible as the item count grows: over seeds 0-2 the shipped planner collects 8.00/9.00/10.00 at 8/9/10 items, but 10.67 at 11 and 11.33 at 12. The exact schedule still wins at every count; a full sweep is not claimed above 10.
+- **Baseline** (HEAD 0f1d2c7, cycle 202): `_first_of_best_tour` and `_tour_audit` still enumerated every permutation of the remaining items. The 10-item scaling test measured 10.25 s against a 1.0 s bound; 12-item episodes stalled for minutes, so `evals.schedule_scaling` could not finish.
+- **Gap**: the factorial tour path was a latent assumption ("forage tasks present 3 items") that the new 12-item deadline cap exposed; the ablation and its readout needed the same exact DP treatment as the deadline schedule.
+- **Target delta**: exact subset DPs for the first-cell choice and the per-first-item audit lengths, identical verdicts at 2-4 items, sub-second operation at 10-12 items, and a scaling eval that reports the true shipped-vs-ablation numbers rather than an impossible full-sweep verdict.
+- **Falsifier**: any tour-audit field or standing forage pin moves, the helpers remain slow at 10-12 items, or the schedule stops beating the ablation at a measured count.
+- **Change** (`agent.py`: `_best_tours` and `_shortest_cover` subset DPs backing `_first_of_best_tour` and `_tour_audit`; `tests/test_tour_scaling.py` new with a brute-force oracle at 2-4 items and time bounds at 10-12; `evals/schedule_scaling.py` verdict corrected; README and ADR-197): no new deps.
+- **After**:
+  - failing-first: `test_ten_items_do_not_stall` failed at 10.25 s before the change; all 4 tour-scaling tests pass in 0.58 s after.
+  - equivalence: the first cell, `best_length`, `chosen_length`, `tied_firsts` and `tie_count` match brute force on seeded 2-4 item layouts; 10 and 12 items complete inside 1 s and 2 s.
+  - `python -m evals.schedule_scaling` -> exit 0; shipped vs ablation over seeds 0-2: 8 items 8.00/7.00 (124/600 steps), 9: 9.00/8.00 (131/600), 10: 10.00/9.00 (136/600), 11: 10.67/10.00 (292/600), 12: 11.33/11.00 (453/600).
+  - standing T1/T2/T3 forage pins and all tour-audit readout tests carried by the full suite.
+- **Ablation**: the retained `deadline_ordering=False` cut still loses one item at 8/9/10 and collects fewer at 11/12; the readout helpers are now fast on the same path, so the cut measures behaviour rather than runtime.
+- **Verdict**: performance and honesty fix on the tour path. No emergence claim; verdict UNKNOWN.
+- **Commands run**:
+  - `python -m unittest tests.test_tour_scaling.TestTourScaling.test_ten_items_do_not_stall` -> before: 10.25 s > 1.0 s, FAIL.
+  - `python -m unittest tests.test_tour_scaling` -> 4 OK (0.58 s).
+  - `python -m evals.schedule_scaling` -> before: did not finish (factorial); after: exit 0 with the five measured rows.
+  - `python -m unittest discover -s tests -t .` -> 1191 OK.
+- **Pinned regression baselines for cycle 204**: unittest 1191 OK; tour helpers exact at 2-4 items and bounded at 10-12; scaling eval exit 0 with 8/9/10/11/12 shipped means 8.00/9.00/10.00/10.67/11.33 and ablation 7.00/8.00/9.00/10.00/11.00; all earlier pins unchanged.

@@ -171,28 +171,110 @@ class Memory:
         return len(self._items)
 
 
+def _best_tours(pos, cells):
+    """Exact shortest Manhattan tours over the cells, via subset DP.
+
+    Returns ``(best_path, best_length, first_lengths)``. ``best_path`` is
+    the lexicographically first shortest order, matching the old exhaustive
+    permutation loop's "first strictly-shortest tour wins" rule;
+    ``first_lengths`` maps each possible first cell to the shortest total
+    tour length starting there. The state is ``(visited mask, last cell)``
+    and the objective ``(length, path)``, so the cost is ``O(n^2 2^n)``
+    instead of ``O(n!)``. Pure function; unusable input yields an empty
+    result.
+    """
+    try:
+        origin = (int(pos[0]), int(pos[1]))
+        uniq = sorted({(int(cell[0]), int(cell[1])) for cell in cells})
+    except (TypeError, ValueError, IndexError):
+        return None, None, {}
+    if not uniq:
+        return None, None, {}
+    points = [origin] + uniq
+    dist = {}
+    for start in points:
+        for goal in points:
+            dist[(start, goal)] = (abs(start[0] - goal[0])
+                                   + abs(start[1] - goal[1]))
+    count_items = len(uniq)
+    states = {}
+    for index, cell in enumerate(uniq):
+        states[(1 << index, index)] = (dist[(origin, cell)], (cell,))
+    for size in range(1, count_items):
+        frontier = [(key, value) for key, value in states.items()
+                    if key[0].bit_count() == size]
+        for (mask, last), (length, path) in frontier:
+            for index in range(count_items):
+                if mask & (1 << index):
+                    continue
+                key = (mask | (1 << index), index)
+                candidate = (length + dist[(uniq[last], uniq[index])],
+                             path + (uniq[index],))
+                held = states.get(key)
+                if held is None or candidate < held:
+                    states[key] = candidate
+    full = [(value, key) for key, value in states.items()
+            if key[0].bit_count() == count_items]
+    (_length, best_path), _key = min(full, key=lambda item: item[0])
+    first_lengths = {}
+    for (length, path), _state in full:
+        first = path[0]
+        if first not in first_lengths or length < first_lengths[first]:
+            first_lengths[first] = length
+    return list(best_path), _length, first_lengths
+
+
+def _shortest_cover(start, cells):
+    """Shortest Manhattan path from ``start`` visiting every cell once.
+
+    Exact subset DP, ``O(n^2 2^n)``. Used by the tour audit to score each
+    possible first item without enumerating permutations.
+    """
+    try:
+        origin = (int(start[0]), int(start[1]))
+        uniq = sorted({(int(cell[0]), int(cell[1])) for cell in cells})
+    except (TypeError, ValueError, IndexError):
+        return None
+    if not uniq:
+        return 0
+    count_items = len(uniq)
+    states = {}
+    for index, cell in enumerate(uniq):
+        states[(1 << index, index)] = (abs(cell[0] - origin[0])
+                                       + abs(cell[1] - origin[1]))
+    for size in range(1, count_items):
+        frontier = [(key, value) for key, value in states.items()
+                    if key[0].bit_count() == size]
+        for (mask, last), length in frontier:
+            for index in range(count_items):
+                if mask & (1 << index):
+                    continue
+                key = (mask | (1 << index), index)
+                candidate = (length
+                             + abs(uniq[index][0] - uniq[last][0])
+                             + abs(uniq[index][1] - uniq[last][1]))
+                held = states.get(key)
+                if held is None or candidate < held:
+                    states[key] = candidate
+    return min(length for (mask, _last), length in states.items()
+               if mask.bit_count() == count_items)
+
+
 def _first_of_best_tour(pos, cells):
     """First cell of the shortest Manhattan tour from pos through cells.
 
-    Exhaustive over permutations in deterministic order (cells sorted,
-    first strictly-shortest tour wins ties). Forage tasks present 3 items.
+    Exact and deterministic: cells are sorted and the lexicographically
+    first shortest tour wins ties, exactly as the old exhaustive
+    permutation loop did, but the subset DP scales past three items.
     """
-    uniq = sorted({(c[0], c[1]) for c in cells})
-    best = None
-    best_len = None
-    for perm in itertools.permutations(uniq):
-        total = abs(perm[0][0] - pos[0]) + abs(perm[0][1] - pos[1])
-        for a, b in zip(perm, perm[1:]):
-            total += abs(a[0] - b[0]) + abs(a[1] - b[1])
-        if best_len is None or total < best_len:
-            best_len = total
-            best = perm
-    first = best[0]
-    return [first[0], first[1]]
+    path, _length, _first = _best_tours(pos, cells)
+    if path is None:
+        return None
+    return [path[0][0], path[0][1]]
 
 
 def _tour_audit(pos, cells):
-    """Audit first-item ties in the exhaustive shortest item tour.
+    """Audit first-item ties in the exact shortest item tour.
 
     Returns the sorted items, the lexicographically first shortest-tour
     first item (the rule's choice), the best/chosen tour lengths, every
@@ -200,31 +282,26 @@ def _tour_audit(pos, cells):
     optimal. Readout only; returns None for unusable input.
     """
     try:
-        x, y = int(pos[0]), int(pos[1])
-        uniq = sorted({(int(c[0]), int(c[1])) for c in cells})
+        origin = (int(pos[0]), int(pos[1]))
+        uniq = sorted({(int(cell[0]), int(cell[1])) for cell in cells})
     except (TypeError, ValueError, IndexError):
         return None
     if not uniq:
         return None
     first_lengths = {}
-    best_len = None
-    best_first = None
-    for perm in itertools.permutations(uniq):
-        total = abs(perm[0][0] - x) + abs(perm[0][1] - y)
-        for a, b in zip(perm, perm[1:]):
-            total += abs(a[0] - b[0]) + abs(a[1] - b[1])
-        first = perm[0]
-        if first not in first_lengths or total < first_lengths[first]:
-            first_lengths[first] = total
-        if best_len is None or total < best_len:
-            best_len = total
-            best_first = first
-    chosen_length = first_lengths[best_first]
+    for first in uniq:
+        others = [cell for cell in uniq if cell != first]
+        first_lengths[first] = (abs(first[0] - origin[0])
+                                + abs(first[1] - origin[1])
+                                + _shortest_cover(first, others))
+    best_len = min(first_lengths.values())
     tied = sorted([list(first) for first, length in first_lengths.items()
                    if length == best_len])
+    chosen = tied[0]
+    chosen_length = first_lengths[tuple(chosen)]
     return {
-        "items": [list(cell) for cell in uniq],
-        "chosen": list(best_first),
+        "items": [list(cell) for cell in sorted({tuple(c) for c in cells})],
+        "chosen": chosen,
         "best_length": best_len,
         "chosen_length": chosen_length,
         "tied_firsts": tied,

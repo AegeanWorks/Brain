@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `246`
-- **Total Classes**: `306`
-- **Total Top-Level Functions**: `717`
-- **Total Class Methods**: `1565`
-- **Total Source Lines**: `35759`
+- **Total Python Modules**: `247`
+- **Total Classes**: `308`
+- **Total Top-Level Functions**: `723`
+- **Total Class Methods**: `1569`
+- **Total Source Lines**: `35940`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`246` module(s))
+- **Indexed**: python (`247` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `2014` lines
+**Size**: `2091` lines
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -87,8 +87,10 @@
 - `def policy_digest(policy)` - *SHA-256 over the canonical declared planner configuration.*
 - `def model_label(backend)` - *Stable model label for run headers: 'rule' with no backend.*
 - `def world_fingerprint(world)` - *Return a world's deterministic layout fingerprint, or None.*
+- `def _best_tours(pos, cells)` - *Exact shortest Manhattan tours over the cells, via subset DP.*
+- `def _shortest_cover(start, cells)` - *Shortest Manhattan path from ``start`` visiting every cell once.*
 - `def _first_of_best_tour(pos, cells)` - *First cell of the shortest Manhattan tour from pos through cells.*
-- `def _tour_audit(pos, cells)` - *Audit first-item ties in the exhaustive shortest item tour.*
+- `def _tour_audit(pos, cells)` - *Audit first-item ties in the exact shortest item tour.*
 - `def _enters_blocked_corridor(nxt, goal, obstacles)` - *True when stepping onto the goal's column/row while an obstacle*
 - `def _bfs_step(pos, goal, obstacles)` - *Return one deterministic BFS step toward ``goal`` and its distance.*
 - `def _bfs_distance(pos, goal, obstacles)` - *Shortest free-cell BFS distance, or None when unreachable.*
@@ -1009,7 +1011,7 @@
 ### [`evals/schedule_scaling.py`](evals/schedule_scaling.py)
 > *Measure where the exact deadline schedule still wins as items grow.*
 
-**Size**: `63` lines
+**Size**: `65` lines
 
 **Functions:**
 - `def _reward(trace)`
@@ -4723,6 +4725,27 @@
 
 **Functions:**
 - `def _steps(task, seed, max_steps)`
+
+---
+
+### [`tests/test_tour_scaling.py`](tests/test_tour_scaling.py)
+> *Failing-first harness for the factorial shortest-tour helpers.*
+
+**Size**: `102` lines
+
+**Classes:**
+- `class TestTourExactness`
+  - Method `.test_first_of_best_tour_matches_brute_force()`
+  - Method `.test_tour_audit_matches_brute_force()`
+- `class TestTourScaling`
+  - Method `.test_ten_items_do_not_stall()`
+  - Method `.test_twelve_items_do_not_stall()`
+
+**Functions:**
+- `def _tour_length(pos, perm)`
+- `def _brute_first(pos, cells)`
+- `def _brute_audit(pos, cells)`
+- `def _layout(seed, count)`
 
 ---
 

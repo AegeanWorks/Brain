@@ -154,7 +154,10 @@ arrival, slack, full schedule and skipped items; the model observation and
 prompt carry the same `deadlines` list. `deadline_ordering=False` restores
 the shortest-tour rule and removes the readout. `python -m evals.headroom`
 shows the 4-item win; `python -m evals.headroom_learning` shows the scalar
-boundary.
+boundary. `python -m evals.schedule_scaling` compares the shipped schedule
+with the tour ablation at 8-12 items: it wins at every count, while the
+world's fixed patient-item slack caps a full sweep at 10 items (means
+11: 10.67 vs 10.00, 12: 11.33 vs 11.00 over seeds 0-2).
 
 ## 🤝 Model-Seam Trust Contract
 

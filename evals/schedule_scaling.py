@@ -51,11 +51,13 @@ def measure(items, seeds=SEEDS):
 def main():
     rows = [measure(count) for count in COUNTS]
     print(json.dumps(rows, indent=2, sort_keys=True))
-    ok = all(row["shipped_collects_all"]
-             and row["ablation_mean"] < row["items"] for row in rows)
+    # The world's own deadlines cap the reachable count from 11 items on, so
+    # the claim is strictly more collected than the tour ablation, not a full
+    # sweep. The helper-level full sweep is pinned separately in the tests.
+    ok = all(row["shipped_mean"] > row["ablation_mean"] for row in rows)
     print("schedule_scaling: %s" % (
-        "the exact schedule carries all counts where the tour ablation loses items"
-        if ok else "the schedule or its ablation changed unexpectedly"))
+        "the exact schedule beats the tour ablation at every measured count"
+        if ok else "the schedule no longer beats the tour ablation"))
     return 0 if ok else 1
 
 

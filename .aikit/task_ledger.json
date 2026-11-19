@@ -1,43 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-schedule-scaling",
+    "task_id": "brain-tour-scaling",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795068439.8533762,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795071020.3131971,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": [],
-    "completed_at": 1795068891.4653132,
-    "completed_head": "0f1d2c7332d6f7afb56d7a85f7fc7b46c9074c67",
-    "completed_tree": "d30a61c07608294b5fefebb95f1478eb3c8a3a60"
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 71",
-      "phase_num": 3,
-      "description": "Reforge stage 71: stage 71 host review reviewed; run active; coverage 12/12",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043233.731834,
-      "timestamp_str": "2026-11-19 02:07:13",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 72",
-      "phase_num": 3,
-      "description": "Reforge stage 72: window 216, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043307.4560554,
-      "timestamp_str": "2026-11-19 02:08:27",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 72",
@@ -268,6 +241,35 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "brain-tour-scaling",
+      "phase": "in_progress",
+      "phase_num": 1,
+      "description": "[1/1] plan: replace the factorial permutation enumeration in _first_of_best_tour and _tour_audit with an exact O(n^2 2^n) subset DP preserving the lexicographic first-shortest-tour tie-break; pin equivalence on 2-4 items and bounded time at 10-12 items; make evals.schedule_scaling fast and honest about the 12-item world cap; record ADR-197.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795069442.0112073,
+      "timestamp_str": "2026-11-19 09:24:02",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "impact_assessment": {
+        "why": "Cycle 202 raised the deadline cap to 12 items but the shortest-tour ablation still enumerates every permutation of the remaining items, so 10-12 item episodes stall for minutes and the new scaling eval cannot finish.",
+        "benefits": "The ablation and its tour audit scale to 12 items with the exact same first-cell and tie verdicts; the scaling eval completes and reports the real shipped-vs-ablation numbers at 8-12 items.",
+        "risks": "contract: internal helpers only, no CLI or default change; dependency: stdlib only; concurrency: none; state: tour readout must stay byte-identical; regression: all standing forage pins and tour-audit tests must pass.",
+        "mitigation": "brute-force equivalence tests on 2-4 item layouts, a bounded-time test at 10-12 items, the full suite and aikit 5/5."
+      }
+    },
+    {
+      "task_id": "brain-tour-scaling",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checks: unittest 1191/1191 OK (329s); aikit check brain 5/5; tour helpers exact at 2-4 items and bounded at 10-12; scaling eval exit 0 with honest 8-12 numbers; standing pins unchanged; cycle 202 overclaim corrected.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795071020.3131971,
+      "timestamp_str": "2026-11-19 09:50:20",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "checklists": "passed"
     }
   ]
 }
