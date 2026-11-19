@@ -3,27 +3,18 @@
   "active_task": {
     "task_id": "brain-partial-deadlines",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795090601.9709878,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
     "lease_until": 1795097801.9709878,
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1795091506.2105236,
+    "completed_head": "8d4193d6ee3ccd440c5e2c7ea5f0bd019d3dbdd6",
+    "completed_tree": "f04bf5df2edfb7c6ef6612caedcf7ea5b5827697"
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 75",
-      "phase_num": 3,
-      "description": "Reforge stage 75: stage 75 host review reviewed; run active; coverage 4/4",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043579.5686896,
-      "timestamp_str": "2026-11-19 02:12:59",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 76",
@@ -291,6 +282,23 @@
       "timestamp_str": "2026-11-19 15:16:41",
       "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
       "checklists": "passed"
+    },
+    {
+      "task_id": "brain-partial-deadlines",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-partial-deadlines' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795091506.4077814,
+      "timestamp_str": "2026-11-19 15:31:46",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "head": "8d4193d6ee3ccd440c5e2c7ea5f0bd019d3dbdd6",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
