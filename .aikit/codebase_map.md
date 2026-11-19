@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `249`
-- **Total Classes**: `310`
-- **Total Top-Level Functions**: `727`
-- **Total Class Methods**: `1574`
-- **Total Source Lines**: `36075`
+- **Total Python Modules**: `251`
+- **Total Classes**: `312`
+- **Total Top-Level Functions**: `732`
+- **Total Class Methods**: `1579`
+- **Total Source Lines**: `36280`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`249` module(s))
+- **Indexed**: python (`251` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `2091` lines
+**Size**: `2138` lines
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -95,6 +95,7 @@
 - `def _bfs_step(pos, goal, obstacles)` - *Return one deterministic BFS step toward ``goal`` and its distance.*
 - `def _bfs_distance(pos, goal, obstacles)` - *Shortest free-cell BFS distance, or None when unreachable.*
 - `def _deadline_map(raw)` - *Normalize a world-provided deadline map to ``(x, y) -> deadline``.*
+- `def _deadlines_for_plan(deadline_map, cells, pos, obstacles)` - *Fill deadlines the world did not emit using the rule's own slack.*
 - `def _first_of_deadline_tour(pos, cells, deadlines, steps, obstacles)` - *First cell of the order that collects the most items by deadline.*
 - `def _rule_confidence(pos, goal, obstacles, action, visits)` - *Return BFS move-tie facts for one rule action and its goal.*
 - `def _step_toward(pos, goal, obstacles, visits, probe, dead_pool_filter)`
@@ -888,6 +889,18 @@
 - `def world_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return corrected interactions that include a ``hub`` column.*
 - `def module_anti_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return anti-interactions whose two blocks are different modules.*
 - `def world_anti_interactions(rows, target, trials, family_wise, seed, guard_target, dedupe)` - *Return anti-interactions that include a ``hub`` column.*
+
+---
+
+### [`evals/partial_deadlines.py`](evals/partial_deadlines.py)
+> *Measure graceful degradation when a world hides some item deadlines.*
+
+**Size**: `64` lines
+
+**Functions:**
+- `def _reward(trace)`
+- `def measure(visibility, seeds)` - *Shipped vs ablated collection for one deadline visibility.*
+- `def main()`
 
 ---
 
@@ -3725,6 +3738,25 @@
 
 ---
 
+### [`tests/test_partial_deadlines.py`](tests/test_partial_deadlines.py)
+> *Failing-first harness for partial deadline observability.*
+
+**Size**: `73` lines
+
+**Classes:**
+- `class TestPartialWorld`
+  - Method `.test_full_visibility_deadlines_are_unchanged()`
+  - Method `.test_visibility_controls_the_emitted_map()`
+  - Method `.test_visibility_is_validated()`
+- `class TestPartialScheduling`
+  - Method `.test_known_urgent_deadline_is_still_scheduled()`
+  - Method `.test_hidden_deadlines_are_named_as_assumed()`
+
+**Functions:**
+- `def _reward(trace)`
+
+---
+
 ### [`tests/test_persistent_hidden_forage.py`](tests/test_persistent_hidden_forage.py)
 > *Persistent-hidden forage: episode recall goes stale after collects.*
 
@@ -5048,11 +5080,11 @@
 ### [`worlds/deadline.py`](worlds/deadline.py)
 > *A grid task where the shortest tour is the wrong plan.*
 
-**Size**: `171` lines
+**Size**: `192` lines
 
 **Classes:**
 - `class DeadlineWorld` - *Collect items before they expire; the planner schedules the order.*
-  - Method `.__init__(seed, items, patience)`
+  - Method `.__init__(seed, items, patience, deadline_visibility)`
   - Method `._build()`
   - Method `.reset()`
   - Method `._remaining()`

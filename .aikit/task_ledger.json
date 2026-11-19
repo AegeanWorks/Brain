@@ -1,43 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-deadline-patience",
+    "task_id": "brain-partial-deadlines",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795086714.6275432,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795090601.9709878,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+    "lease_until": 1795097801.9709878,
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": [],
-    "completed_at": 1795088559.5104795,
-    "completed_head": "625fca9ba1b596a7baf09a044ce4e15f1fe63959",
-    "completed_tree": "7f83a4c83e06f2947af77e9bc278437996afc180"
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 74",
-      "phase_num": 3,
-      "description": "Reforge stage 74: stage 74 host review reviewed; run active; coverage 15/15",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043482.7772255,
-      "timestamp_str": "2026-11-19 02:11:22",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 75",
-      "phase_num": 3,
-      "description": "Reforge stage 75: window 225, 3 commit(s), 2 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043576.121652,
-      "timestamp_str": "2026-11-19 02:12:56",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 75",
@@ -288,6 +262,35 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "brain-partial-deadlines",
+      "phase": "in_progress",
+      "phase_num": 1,
+      "description": "[1/1] plan: add an additive deadline_visibility parameter to DeadlineWorld and a strict planner-side fill of unknown deadlines with a patient horizon (recorded as probe.deadline.assumed), so a partial deadline map still schedules the known urgent item; measure graceful degradation over visibility 1.0/0.75/0.5/0.25 and record ADR-199.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795088687.0172303,
+      "timestamp_str": "2026-11-19 14:44:47",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "impact_assessment": {
+        "why": "ADR-195/197 record that a partial deadline map makes the planner abandon scheduling entirely, losing the urgent item even when its deadline is known; ADR-192 named partial observability as a source of headroom that had never been tested.",
+        "benefits": "The shipped rule keeps using known deadlines under partial observability; the patient-assumption scope is explicit in the probe; a measured visibility sweep shows where the assumption stops helping.",
+        "risks": "contract: additive world parameter and additive probe field, no CLI or declared-policy change; dependency: stdlib only; concurrency: none; state: no persisted state changes; regression: full-visibility behavior and every standing pin must stay byte-identical.",
+        "mitigation": "failing-first tests at 0.5 visibility, explicit full-visibility pin checks, a visibility sweep, the full suite and aikit 5/5."
+      }
+    },
+    {
+      "task_id": "brain-partial-deadlines",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checks: unittest 1201/1201 OK (1001s); aikit check brain 5/5; partial visibility sweep exit 0 and never below ablation; full-visibility pins byte-identical; infinite-assumption alternative falsified and recorded.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795090601.9709878,
+      "timestamp_str": "2026-11-19 15:16:41",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "checklists": "passed"
     }
   ]
 }

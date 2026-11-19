@@ -161,7 +161,11 @@ world's fixed patient-item slack caps a full sweep at 10 items (means
 `DeadlineWorld(seed, items=..., patience=40)` makes that slack explicit:
 `python -m evals.deadline_patience` holds the planner fixed and shows that
 patience 80 restores the full 11/11 and 12/12 sweep (139-148 steps) while
-the tour ablation still loses the urgent item.
+the tour ablation still loses the urgent item. With
+`deadline_visibility < 1` the world hides the most patient deadlines; the
+planner infers their slack from the ones it can see and names them in
+`probe.deadline.assumed`. `python -m evals.partial_deadlines` shows a graceful
+11.33 -> 11.00 degradation at 12 items, never below the tour ablation.
 
 ## 🤝 Model-Seam Trust Contract
 

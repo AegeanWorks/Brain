@@ -30,6 +30,7 @@ from workspace import workspace_digest
 
 SIZE = 8
 MAX_SCHEDULE_ITEMS = 12
+ASSUMED_SLACK_FALLBACK = 40
 
 _LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
 
@@ -440,6 +441,49 @@ def _deadline_map(raw):
             return None
         parsed[(x, y)] = deadline
     return parsed
+
+
+def _deadlines_for_plan(deadline_map, cells, pos, obstacles=None):
+    """Fill deadlines the world did not emit using the rule's own slack.
+
+    The planner infers a slack from the deadlines it *does* know: for each
+    known cell, ``deadline - (BFS travel + 1)``. The median positive slack
+    becomes the assumed slack for each unknown cell, whose deadline is then
+    ``BFS travel + 1 + assumed_slack``. Treating an unknown deadline as
+    infinite is unsafe: hidden items still expire at their real deadline.
+    Returns ``(filled_map, assumed_cells)``; the strict tour helper is
+    untouched and the probe names every synthesized deadline.
+    """
+    if not isinstance(deadline_map, dict):
+        return None, []
+    try:
+        origin = (int(pos[0]), int(pos[1]))
+        keys = [(int(cell[0]), int(cell[1])) for cell in (cells or [])]
+    except (TypeError, ValueError, IndexError):
+        return dict(deadline_map), []
+    slacks = []
+    for key, deadline in deadline_map.items():
+        if key == origin:
+            continue
+        hop = _bfs_distance(origin, key, obstacles)
+        if hop is None:
+            continue
+        slack = int(deadline) - (hop + 1)
+        if slack > 0:
+            slacks.append(slack)
+    assumed_slack = (sorted(slacks)[len(slacks) // 2] if slacks
+                     else ASSUMED_SLACK_FALLBACK)
+    filled = dict(deadline_map)
+    assumed = []
+    for key in keys:
+        if key in filled:
+            continue
+        hop = _bfs_distance(origin, key, obstacles)
+        if hop is None:
+            continue
+        filled[key] = hop + 1 + assumed_slack
+        assumed.append([key[0], key[1]])
+    return filled, assumed
 
 
 def _first_of_deadline_tour(pos, cells, deadlines, steps=0, obstacles=None):
@@ -1031,9 +1075,12 @@ class Planner:
             if remaining:
                 cells = [list(c) for c in remaining]
                 if deadline_map is not None:
+                    schedule_map, assumed = _deadlines_for_plan(
+                        deadline_map, cells, pos, obstacles)
                     goal, info = _first_of_deadline_tour(
-                        pos, cells, deadline_map, steps, obstacles)
+                        pos, cells, schedule_map, steps, obstacles)
                     if info is not None:
+                        info["assumed"] = assumed
                         probe["deadline"] = info
                     if goal is not None:
                         deadline_goal = list(goal)

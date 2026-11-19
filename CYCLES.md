@@ -6429,3 +6429,24 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest discover -s tests -t .` -> 1196 OK.
 - **Robustness note (cycle 204)**: the 10/12-item time pins in `tests/test_tour_scaling.py` now use 20 s/30 s bounds. The original 1 s/2 s bounds measured 0.58 s for all four tests on an idle host but flaked at 4.84 s while other agents loaded the machine; a factorial tour still needs minutes, so the guard still separates polynomial from factorial and no assertion's meaning changed.
 - **Pinned regression baselines for cycle 205**: unittest 1196 OK; default patience 40 and all four seed-0 deadlines unchanged; 12-item seed 0 11.0; patience sweep 11-item shipped 10.67/11.00/11.00, 12-item 11.33/12.00/12.00, ablation 10.00/11.00; all earlier pins unchanged.
+
+
+## Cycle 205 - partial deadline observability with inferred slack
+
+- **Baseline** (HEAD 470d790, cycle 204): ADR-195 recorded that a partial deadline map makes `Planner` fall back to the shortest tour even when the urgent item's deadline is visible; ADR-192 named partial observability as untested headroom.
+- **Gap**: the planner used an all-or-nothing deadline contract: one missing key discarded every known deadline, so a world that emits only some deadlines lost the capability entirely.
+- **Target delta**: an additive `deadline_visibility` world parameter (default 1.0, hiding the most patient deadlines first), planner-side synthesis of missing deadlines from the rule's own inferred slack, explicit `probe.deadline.assumed` naming, and a visibility sweep that never falls below the tour ablation.
+- **Falsifier**: any full-visibility pin moves, the assumed cells are unnamed, or partial visibility makes the schedule worse than the ablation.
+- **Change** (`worlds/deadline.py`: `DEADLINE_VISIBILITY=1.0`, validated parameter, hidden-index set, filtered `deadlines` in state; `agent.py`: `_deadlines_for_plan` median-slack inference and `info["assumed"]`, strict `_first_of_deadline_tour` untouched; `tests/test_partial_deadlines.py` and `evals/partial_deadlines.py` new; README and ADR-199): no new deps.
+- **After** (12 items, seeds 0-2):
+  - failing-first: 4 tests errored on the missing `deadline_visibility` keyword; all 5 pass after (16.8s).
+  - full visibility is byte-identical: seed 0 deadlines `[([1,3],44), ([1,6],47), ([1,7],48), ([7,6],14)]`, 12-item mean 11.33.
+  - visibility 0.75/0.5/0.25: shipped 11.00, ablation 11.00 at each; `probe.deadline.assumed` names all four hidden cells at 0.5 visibility and the schedule still contains all eight items in the 8-item case.
+  - `python -m evals.partial_deadlines` exit 0 with the four measured rows.
+- **Falsified alternative**: treating an unknown deadline as infinite (`ASSUMED_DEADLINE=10**6`) collected 10.67 at 0.5 visibility, below the ablation's 11.00, because hidden items still expire at their true deadlines. It was replaced by median-slack inference; the negative result is kept as evidence, not shipped.
+- **Verdict**: graceful degradation under partial observability, with the assumption explicit and bounded. No emergence claim; verdict UNKNOWN.
+- **Commands run**:
+  - `python -m unittest tests.test_partial_deadlines` -> before: 4 errors; after: 5 OK (16.8s).
+  - `python -m evals.partial_deadlines` -> exit 0; 1.0/0.75/0.5/0.25 rows.
+  - `python -m unittest discover -s tests -t .` -> 1201 OK.
+- **Pinned regression baselines for cycle 206**: unittest 1201 OK; default visibility 1.0 and seed-0 full deadlines unchanged; 12-item visibility sweep shipped 11.33/11.00/11.00/11.00 and ablation 11.00 throughout; assumed cells named in the probe; all earlier pins unchanged.

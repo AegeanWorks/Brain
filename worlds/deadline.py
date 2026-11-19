@@ -26,6 +26,7 @@ MAX_STEPS = 200
 MAX_ENERGY = 200
 ITEMS = 4
 PATIENCE = 40
+DEADLINE_VISIBILITY = 1.0
 
 
 class DeadlineWorld:
@@ -34,7 +35,8 @@ class DeadlineWorld:
     task_id = "T6_deadline"
     ACTIONS = ("up", "down", "left", "right", "collect", "wait")
 
-    def __init__(self, seed, items=ITEMS, patience=PATIENCE):
+    def __init__(self, seed, items=ITEMS, patience=PATIENCE,
+                 deadline_visibility=DEADLINE_VISIBILITY):
         if not isinstance(seed, int):
             raise TypeError("seed must be int")
         if not isinstance(items, int) or items < 2:
@@ -47,9 +49,16 @@ class DeadlineWorld:
             raise ValueError(
                 "Why: patience must be an int >= 1 so deadlines stay after "
                 "arrival. Fix: pass patience=40.")
+        if not isinstance(deadline_visibility, (int, float)):
+            raise TypeError("deadline_visibility must be a number")
+        if not 0.0 <= deadline_visibility <= 1.0:
+            raise ValueError(
+                "Why: deadline_visibility must be between 0 and 1. "
+                "Fix: pass deadline_visibility=1.0.")
         self.seed = seed
         self.item_count = items
         self.patience = patience
+        self.deadline_visibility = float(deadline_visibility)
         self.reset()
 
     # -- layout ----------------------------------------------------------
@@ -75,6 +84,14 @@ class DeadlineWorld:
         self.items = [{"cell": cell, "deadline": deadlines[index],
                        "collected": False, "expired": False}
                       for index, cell in enumerate(picked)]
+        # Partial observability hides the most patient deadlines first, so
+        # the urgent item stays visible at every visibility above zero. The
+        # world still scores the hidden deadlines; only the observation is
+        # incomplete. Full visibility hides nothing and is the default.
+        hide_count = round(self.item_count * (1.0 - self.deadline_visibility))
+        patient_first = sorted(range(self.item_count),
+                               key=lambda index: (-deadlines[index], index))
+        self.hidden = set(patient_first[:hide_count])
 
     def reset(self):
         self._build()
@@ -103,8 +120,12 @@ class DeadlineWorld:
             "steps": self.steps,
             "task": self.task_id,
             "items_positions": [list(item["cell"]) for item in live],
-            "deadlines": {self._key(item["cell"]): item["deadline"]
-                          for item in live},
+            "deadlines": {self._key(self.items[index]["cell"]):
+                          self.items[index]["deadline"]
+                          for index in range(self.item_count)
+                          if index not in self.hidden
+                          and not self.items[index]["collected"]
+                          and not self.items[index]["expired"]},
         }
 
     @staticmethod
