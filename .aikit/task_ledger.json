@@ -3,26 +3,17 @@
   "active_task": {
     "task_id": "brain-tour-scaling",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795071020.3131971,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1795071396.1147466,
+    "completed_head": "5f489d7e9f9b947eec26916d5bd92bf7a3073056",
+    "completed_tree": "768507092c51d1141b3e02c1186eb710b2574129"
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 72",
-      "phase_num": 3,
-      "description": "Reforge stage 72: stage 72 host review reviewed; run active; coverage 15/15",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043311.7969985,
-      "timestamp_str": "2026-11-19 02:08:31",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 73",
@@ -270,6 +261,23 @@
       "timestamp_str": "2026-11-19 09:50:20",
       "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
       "checklists": "passed"
+    },
+    {
+      "task_id": "brain-tour-scaling",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-tour-scaling' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795071396.4866889,
+      "timestamp_str": "2026-11-19 09:56:36",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "head": "5f489d7e9f9b947eec26916d5bd92bf7a3073056",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
