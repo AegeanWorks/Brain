@@ -6427,4 +6427,5 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m unittest tests.test_deadline_patience` -> before: 3 errors; after: 5 OK (10.2s).
   - `python -m evals.deadline_patience` -> exit 0; six rows for items 11/12 x patience 40/80/120.
   - `python -m unittest discover -s tests -t .` -> 1196 OK.
+- **Robustness note (cycle 204)**: the 10/12-item time pins in `tests/test_tour_scaling.py` now use 20 s/30 s bounds. The original 1 s/2 s bounds measured 0.58 s for all four tests on an idle host but flaked at 4.84 s while other agents loaded the machine; a factorial tour still needs minutes, so the guard still separates polynomial from factorial and no assertion's meaning changed.
 - **Pinned regression baselines for cycle 205**: unittest 1196 OK; default patience 40 and all four seed-0 deadlines unchanged; 12-item seed 0 11.0; patience sweep 11-item shipped 10.67/11.00/11.00, 12-item 11.33/12.00/12.00, ablation 10.00/11.00; all earlier pins unchanged.
