@@ -3,26 +3,17 @@
   "active_task": {
     "task_id": "brain-deadline-patience",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795086714.6275432,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1795088559.5104795,
+    "completed_head": "625fca9ba1b596a7baf09a044ce4e15f1fe63959",
+    "completed_tree": "7f83a4c83e06f2947af77e9bc278437996afc180"
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 74",
-      "phase_num": 3,
-      "description": "Reforge stage 74: window 222, 3 commit(s), 9 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043476.6290438,
-      "timestamp_str": "2026-11-19 02:11:16",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 74",
@@ -280,6 +271,23 @@
       "timestamp_str": "2026-11-19 14:11:54",
       "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
       "checklists": "passed"
+    },
+    {
+      "task_id": "brain-deadline-patience",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-deadline-patience' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795088559.5738883,
+      "timestamp_str": "2026-11-19 14:42:39",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "head": "625fca9ba1b596a7baf09a044ce4e15f1fe63959",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
