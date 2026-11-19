@@ -66,9 +66,12 @@ def check_backend(provider, observation, calls=2):
     if not isinstance(identity, str) or not identity:
         findings.append("identity-missing")
     else:
-        module = type(instance).__module__.split(".")[-1]
-        if identity.startswith(module + ":") and \
-                identity.endswith(type(instance).__name__):
+        # A provider that embeds its class name in its declared identity is
+        # rename-fragile no matter which prefix it uses, not just when the
+        # prefix happens to be the instance's module basename. This mirrors
+        # ``agent.model_label``, which rejects any label ending in the class
+        # name so a class rename cannot silently invalidate a historical pin.
+        if identity.endswith(type(instance).__name__):
             findings.append("identity-from-class-name")
 
     proposals = []

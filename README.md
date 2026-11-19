@@ -486,7 +486,7 @@ intact/tampered/missing meta.
 ## 📐 Calibration Scoring
 
 `calibration.summary(forecasts, min_resolved=10)` scores forecast
-records with Brier, log loss, base rate and five bins.
+records with Brier, Brier skill, log loss, base rate and five bins.
 `outcome=None` is ignored.
 `SelfModel.calibration()` scores them.
 `record_prediction` forms the confidence *before* the action, so the

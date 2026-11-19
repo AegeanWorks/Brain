@@ -68,10 +68,12 @@ def normalise_policy(policy):
 def resume_decision(existing_sha, current_sha, policy="strict",
                     resume_any=False):
     """Return ``resume``, ``new`` or ``ask`` for one episode comparison."""
-    if resume_any or normalise_policy(policy) == "any":
-        return "resume"
+    # A legacy episode has no stored digest to verify, so it asks instead of
+    # resuming even when the caller asks to resume any configuration.
     if not existing_sha:
         return "ask"
+    if resume_any or normalise_policy(policy) == "any":
+        return "resume"
     if existing_sha == current_sha:
         return "resume"
     if normalise_policy(policy) == "ask":

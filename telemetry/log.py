@@ -768,7 +768,9 @@ def verify_chain(path, anchor_path=None, journal_path=None, hmac_key=None):
             mac = record.get("mac")
             if not isinstance(mac, str):
                 findings.append("missing-mac:%d" % index)
-            elif not hmac.compare_digest(mac, _mac_of(record, hmac_key)):
+            elif not hmac.compare_digest(
+                    mac.encode("utf-8"),
+                    _mac_of(record, hmac_key).encode("utf-8")):
                 findings.append("bad-mac:%d" % index)
         want = digests[-1] if digests else GENESIS
         if record["prev"] != want and not (

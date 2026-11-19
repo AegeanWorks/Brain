@@ -114,6 +114,21 @@ class TestHumanReport(unittest.TestCase):
         self.assertNotIn("proposals", output.getvalue(),
                          "the rule policy consults no model")
 
+    def test_an_openai_run_puts_the_influence_line_in_the_transcript(self):
+        # Drive the real CLI branch (not just _report_model_influence): with
+        # --backend openai a planner exists, so its counts must reach stdout.
+        with mock.patch("models.registry.build",
+                        return_value=_UpBackend()):
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = brain.main(["run", "T3_navigate", "--seed", "15",
+                                   "--backend", "openai"])
+        text = output.getvalue()
+        self.assertEqual(code, 0)
+        self.assertIn("policy openai", text)
+        self.assertIn("model: 12 proposals, 0 accepted, 12 rejected", text)
+        self.assertIn("the rule policy produced this run", text)
+
 
 class TestJsonReport(unittest.TestCase):
     def _run(self, extra=()):

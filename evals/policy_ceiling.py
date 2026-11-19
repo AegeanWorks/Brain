@@ -103,7 +103,7 @@ def headroom(seeds=DEFAULT_SEEDS):
             "optimal_mean": sum(row["optimal"] for row in rows) / len(rows),
             "max_gap": max(gaps),
             "suboptimal_seeds": [row["seed"] for row, gap in zip(rows, gaps)
-                                 if gap > 0],
+                                 if gap != 0],
         }
     report["optimal_everywhere"] = all(
         not task_row["suboptimal_seeds"]

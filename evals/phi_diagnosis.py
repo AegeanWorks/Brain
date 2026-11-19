@@ -43,7 +43,9 @@ def phi_diagnosis(rows):
         "n_columns": len(columns),
         "unique_per_column": unique,
         "all_constant": bool(unique) and all(count <= 1 for count in unique),
-        "predictable": any(count > 1 for count in unique),
+        # phi_ar returns 0.0 for fewer than three rows by construction, so a
+        # shorter trace cannot support a forecast however much it varies.
+        "predictable": len(rows) >= 3 and any(count > 1 for count in unique),
     }
 
 

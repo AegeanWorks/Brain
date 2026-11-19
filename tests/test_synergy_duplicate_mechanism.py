@@ -8,8 +8,8 @@ the joint is *not* a bijection of ``c0`` after discretisation.
 
 Measured on the pinned fixture (``T1_forage:7``, 15 steps, c0 == c1 = 1..15):
 
-    i1  (c0 raw)       = 0.21091354663595951
-    ij  (tj, bins=64)  = 0.6730116670092565
+    i1  (c0 raw)       = 0.22314355131420976
+    ij  (tj, bins=64)  = 0.5004024235381878
     syn                = +0.05411532090976823   (positive!)
 
 and on a 4-value column, ``ij == i1 == i2`` so ``syn == -MI``:

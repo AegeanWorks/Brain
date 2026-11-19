@@ -1,22 +1,27 @@
 """A ``syn`` value needs its null, or it is a number without a verdict.
 
 The pinned traces report ``syn`` from -0.4506 to +0.0373. Measured against
-a permutation null (keep the trace, shuffle the target, 600 draws):
+a permutation null (keep the trace, shuffle the target, 600 draws, seed 0):
 
   trace              observed    null median   frac null < 0   p(upper)
-  T1_forage:71       +0.037283   -0.006886     0.66            0.345
-  T2_delayed_match:3 -0.376770   -0.203483     1.00            <0.002
-  T3_navigate:15     -0.057913   -0.031775     1.00            <0.002
-  T3_navigate:65     -0.450561   -0.219512     1.00            <0.002
-  T3_navigate:74     -0.040767   -0.194799     1.00            0.013
-  T3_navigate:479    -0.047824   -0.100149     1.00            0.115
+  T1_forage:71       +0.037283   -0.006886     0.66            0.338
+  T2_delayed_match:3 -0.376770   -0.203483     1.00            0.955
+  T3_navigate:15     -0.057913   -0.031775     1.00            0.547
+  T3_navigate:65     -0.450561   -0.219512     1.00            1.000
+  T3_navigate:74     -0.040767   -0.194799     1.00            0.017
+  T3_navigate:479    -0.047824   -0.100149     1.00            0.118
 
 Two different readings hide behind those numbers:
 
-  * on four traces the observed value is the most negative of 600 shuffles,
-    so the pair is significantly ANTI-synergistic — not "absent integration";
-  * on ``T1_forage:71`` a third of the null lies above the observed value,
-    so the positive ``syn`` is not evidence of anything.
+  * only ``T3_navigate:65`` is the most negative of the 600 shuffles
+    (p_upper 1.000, p_lower 0.015), so that pair is significantly
+    ANTI-synergistic — not "absent integration";
+  * ``T3_navigate:74`` is significant in the opposite tail (p_upper 0.017):
+    it sits above its null while still negative, so the bare sign misleads;
+  * T2:3 (p_upper 0.955), T3:15 (0.547) and T3:479 (0.118) are not
+    distinguishable from the null, and on ``T1_forage:71`` a third of the
+    null lies above the observed value, so its positive ``syn`` is not
+    evidence of anything either.
 
 These tests pin both readings and the null's shape, so a bare ``syn`` is no
 longer presented as if its sign meant something on its own.

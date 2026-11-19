@@ -159,16 +159,16 @@ def verify_action_replay(log_path, records=None, max_steps=200,
     task, seed = header.get("task"), header.get("seed")
     if not isinstance(task, str) or not task:
         return {"ok": False, "findings": ["invalid-task"],
-                "steps": len(steps), "replayed": 0}
+                "steps": len(steps), "replayed": 0, "claimed": None}
     if isinstance(seed, bool) or not isinstance(seed, int):
         return {"ok": False, "findings": ["missing-seed"],
-                "steps": len(steps), "replayed": 0}
+                "steps": len(steps), "replayed": 0, "claimed": None}
     actions = [record["args"]["action"] for record in steps]
     try:
         replay = replay_actions(task, seed, actions, max_steps=max_steps)
     except (ValueError, TypeError) as exc:
         return {"ok": False, "findings": ["unreplayable-action: %s" % exc],
-                "steps": len(steps), "replayed": 0}
+                "steps": len(steps), "replayed": 0, "claimed": None}
     for index, (record, replayed) in enumerate(zip(steps, replay)):
         recorded_reward = float((record.get("args") or {}).get("reward", 0.0))
         if abs(recorded_reward - replayed["reward"]) > 1e-9:

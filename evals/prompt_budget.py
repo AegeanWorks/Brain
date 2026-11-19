@@ -106,45 +106,52 @@ def run_battery(modes=MODES):
             "cases": [measure_case(mode=mode) for mode in modes]}
 
 
-def checks(report):
+def checks(report, modes=None):
     """Return the claims this battery's own output contradicts.
 
     The battery's contract is that a prompt cap trims tokens without
     altering behavior. These findings enforce that, plus the parity the
     docstring states (identical steps and reward in every mode) and the
-    fact that the cap actually trimmed something.
+    fact that the cap actually trimmed something. ``modes`` is the subset
+    requested by ``--mode``; cross-mode parity only applies when both modes
+    are present, so a single-mode inspection is a valid pass.
     """
     findings = []
     by_mode = {case.get("mode"): case for case in report.get("cases", [])}
+    if modes is None:
+        modes = report.get("modes", MODES)
     for mode in MODES:
-        if mode not in by_mode:
+        if mode in modes and mode not in by_mode:
             findings.append("missing-mode:%s" % mode)
     if findings:
         return findings
-    for mode in MODES:
+    present = [mode for mode in MODES if mode in by_mode]
+    for mode in present:
         case = by_mode[mode]
         if not case.get("actions_match_rule"):
             findings.append("actions-differ-from-rule:%s" % mode)
         if case.get("reward", 0.0) <= 0.0:
             findings.append("reward:%s:%s" % (mode, case.get("reward")))
-    steps = {by_mode[m].get("steps") for m in MODES}
-    if len(steps) > 1:
-        findings.append("steps-varies:%s" % sorted(steps))
-    rewards = {by_mode[m].get("reward") for m in MODES}
-    if len(rewards) > 1:
-        findings.append("reward-varies:%s" % sorted(rewards))
-    uncapped, budgeted = by_mode["uncapped"], by_mode["budgeted"]
-    if budgeted.get("prompt_max_tokens", 0) >= uncapped.get(
-            "prompt_max_tokens", 0):
-        findings.append("cap-did-not-trim:%s>=%s"
-                        % (budgeted.get("prompt_max_tokens"),
-                           uncapped.get("prompt_max_tokens")))
-    if uncapped.get("prompt_omitted_total") != 0:
-        findings.append("uncapped-omitted:%s!=0"
-                        % uncapped.get("prompt_omitted_total"))
-    if budgeted.get("prompt_omitted_total", 0) <= 0:
-        findings.append("budgeted-omitted:%s"
-                        % budgeted.get("prompt_omitted_total"))
+    if len(present) > 1:
+        steps = {by_mode[m].get("steps") for m in present}
+        if len(steps) > 1:
+            findings.append("steps-varies:%s" % sorted(steps))
+        rewards = {by_mode[m].get("reward") for m in present}
+        if len(rewards) > 1:
+            findings.append("reward-varies:%s" % sorted(rewards))
+    if "uncapped" in by_mode and "budgeted" in by_mode:
+        uncapped, budgeted = by_mode["uncapped"], by_mode["budgeted"]
+        if budgeted.get("prompt_max_tokens", 0) >= uncapped.get(
+                "prompt_max_tokens", 0):
+            findings.append("cap-did-not-trim:%s>=%s"
+                            % (budgeted.get("prompt_max_tokens"),
+                               uncapped.get("prompt_max_tokens")))
+        if uncapped.get("prompt_omitted_total") != 0:
+            findings.append("uncapped-omitted:%s!=0"
+                            % uncapped.get("prompt_omitted_total"))
+        if budgeted.get("prompt_omitted_total", 0) <= 0:
+            findings.append("budgeted-omitted:%s"
+                            % budgeted.get("prompt_omitted_total"))
     return findings
 
 

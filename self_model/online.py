@@ -5,7 +5,7 @@ world's own reward condition, so it is 100% accurate and its error carries
 no information. A predictor that is *taught* the rule cannot show learning.
 
 ``OnlinePredictor`` is told nothing about reward. It sees a pre-action
-feature key â€” ``(task, action, distance bucket)`` â€” and a binary outcome,
+feature key — ``(task, action, distance bucket)`` — and a binary outcome,
 and keeps a Laplace-smoothed count per key. Scoring is **prequential**: the
 prediction for a step uses only steps before it, so no step sees its own
 outcome and the score is not circular.
@@ -114,14 +114,14 @@ class AdditivePredictor:
     ``OnlinePredictor`` learns one probability per complete key, so it needs
     one exposure per joint context. This class is the natural alternative an
     engineer reaches for: sum the evidence each *part* of the key carries.
-    ``predict`` takes the same key shape as ``context_feature_key`` â€” the
-    tuple ``(task, action, bucket, context)`` â€” decomposes the context into
+    ``predict`` takes the same key shape as ``context_feature_key`` — the
+    tuple ``(task, action, bucket, context)`` — decomposes the context into
     one component per value plus a ``(task, action, bucket)`` component, and
     returns ``sigmoid(sum of component log-odds)``.
 
     It cannot represent an XOR: each component is symmetric over the two
     outcomes, so the summed evidence is the same for both actions and the
-    model predicts 0.5. That is the point â€” the interaction has to be in the
+    model predicts 0.5. That is the point — the interaction has to be in the
     representation, not in the number of features.
     """
 

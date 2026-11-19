@@ -62,7 +62,9 @@ class TestSynergySign(unittest.TestCase):
         syn, syn_n = synergy(trace, target)
         self.assertIsInstance(syn, float)
         self.assertIsInstance(syn_n, float)
-        self.assertEqual(synergy_sign(syn, syn_n), synergy_sign(syn, syn_n))
+        # Pin the estimator's own values, not the classifier against itself.
+        self.assertAlmostEqual(syn, -0.6931471805599453, places=12)
+        self.assertAlmostEqual(syn_n, -1.0, places=12)
 
 
 if __name__ == "__main__":

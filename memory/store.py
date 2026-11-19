@@ -76,6 +76,19 @@ def recall_terms(query):
             if len(word) >= 2 and word.lower() not in keywords]
 
 
+def _escape_like(term):
+    """Quote a literal term for LIKE with ``ESCAPE '\\'``.
+
+    ``recall_terms`` keeps underscores because ``_`` is a word character,
+    but in a LIKE pattern both ``_`` and ``%`` are wildcards. Escaping them
+    (and the escape character itself) keeps the fallback a literal substring
+    search, so ``T3_navigate`` cannot match a key like ``T3Xnavigate``.
+    """
+    return (term.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_"))
+
+
 class MemoryStore:
     """Persisted key/content map with full-text lookup.
 
@@ -98,6 +111,10 @@ class MemoryStore:
         self._recovery_notes = []
         try:
             self._conn = self._connect_validated()
+        except (sqlite3.OperationalError, sqlite3.IntegrityError):
+            # Transient lock/I/O or constraint failures are not corruption:
+            # re-raise instead of moving a healthy store aside.
+            raise
         except sqlite3.DatabaseError as exc:
             self._quarantine_corrupt(str(exc))
             self._conn = self._connect_validated()
@@ -295,11 +312,12 @@ class MemoryStore:
             terms = recall_terms(q)
             if not terms:
                 return []
-            clauses = " OR ".join("key LIKE ? OR content LIKE ?"
-                                  for _ in terms)
+            clauses = " OR ".join(
+                "key LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\'"
+                for _ in terms)
             params = []
             for term in terms:
-                pattern = "%" + term + "%"
+                pattern = "%" + _escape_like(term) + "%"
                 params.extend((pattern, pattern))
             params.append(n)
             rows = self._conn.execute(

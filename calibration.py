@@ -34,12 +34,16 @@ def _validate(forecasts, min_resolved):
     pairs = []
     total = 0
     ignored = 0
+    seen = set()
     for forecast in forecasts:
         if not isinstance(forecast, dict):
             raise ValueError("a forecast must be a mapping")
         identifier = forecast.get("id")
         if not isinstance(identifier, str) or not identifier:
             raise ValueError("a forecast must have a non-empty string id")
+        if identifier in seen:
+            raise ValueError("duplicate forecast id %r" % identifier)
+        seen.add(identifier)
         if "probability" not in forecast or "outcome" not in forecast:
             raise ValueError("forecast %s needs probability and outcome"
                              % identifier)

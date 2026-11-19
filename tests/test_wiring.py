@@ -102,7 +102,7 @@ class TestWiring(unittest.TestCase):
                     self.assertEqual(dst["M"], src["M"])
                     self.assertEqual(dst["P"], src["P"])
                     self.assertEqual(dst["S"], src["S"])
-                self.assertTrue(all(v != 0 or True for v in steps[0]["hub"]))
+                self.assertTrue(any(v != 0 for v in steps[0]["hub"]))
                 ab_vec = [row for row in (_vec_row(r) for r in ablated) if row]
                 phi_hub = phi_ar(_pad(ab_vec)) if len(ab_vec) >= 3 else 0.0
                 self.assertLessEqual(phi_hub, 0.05)

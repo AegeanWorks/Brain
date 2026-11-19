@@ -225,7 +225,13 @@ def resolve(client_factory=None, probe=None, endpoint=None, model=None):
         if not text:
             continue
         candidate = factory(text, model)
-        if probe is None or probe(candidate):
+        # An explicit endpoint is a claim, not proof that a server answers.
+        # Probe it the same way discovery probes its candidates, even when
+        # no probe was injected (the production path), so a dead address is
+        # refused here with an actionable message instead of failing later
+        # inside chat() with a generic transport error.
+        alive = probe(candidate) if probe is not None else candidate.is_alive()
+        if alive:
             return candidate, source
         raise EndpointUnavailable(
             "Why: %s points at %s but nothing answered there. "

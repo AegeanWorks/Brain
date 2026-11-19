@@ -87,8 +87,10 @@ class TestWorkspaceHash(unittest.TestCase):
         self.assertEqual(first["workspace_sha256"], second["workspace_sha256"])
         self.assertNotEqual(first["workspace_sha256"],
                             third["workspace_sha256"])
-        # The digest above was computed after mutation; compare the first
-        # header to a freshly built identical tree instead.
+        # log3 ran against the mutated tree, so its header must carry `want`
+        # (the digest measured after a.py became "a = 9"). log1's header must
+        # still match a freshly built identical tree.
+        self.assertEqual(third["workspace_sha256"], want)
         with tempfile.TemporaryDirectory() as tmp2:
             _workspace(tmp2)
             self.assertEqual(first["workspace_sha256"],

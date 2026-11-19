@@ -52,7 +52,8 @@ def verify_episode_header(log_path, expected_policy_sha256=None,
         return {"ok": False, "headers": 0,
                 "findings": ["missing-header"], "results": [],
                 "expected_policy_sha256": expected_policy_sha256,
-                "expected_workspace_sha256": expected_workspace_sha256}
+                "expected_workspace_sha256": expected_workspace_sha256,
+                "expected_model": expected_model}
     findings = []
     results = []
     for header in headers:

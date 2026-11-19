@@ -6450,3 +6450,25 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.partial_deadlines` -> exit 0; 1.0/0.75/0.5/0.25 rows.
   - `python -m unittest discover -s tests -t .` -> 1201 OK.
 - **Pinned regression baselines for cycle 206**: unittest 1201 OK; default visibility 1.0 and seed-0 full deadlines unchanged; 12-item visibility sweep shipped 11.33/11.00/11.00/11.00 and ablation 11.00 throughout; assumed cells named in the probe; all earlier pins unchanged.
+
+
+## Cycle 206 - fix the findings the automated review missed
+
+- **Baseline** (HEAD 242afdd, cycle 205): a genuine per-hunk review of Reforge run-1's 2,570 hunks found **37 findings** (20 defects, 17 improvements; 12 medium, 25 low) where the scripted attestation had reported zero. The review and its consolidation live in local-only `reports/reforge/genuine/` (ALL.json: exact coverage 2,570/2,570).
+- **Gap**: the review itself was not the deliverable; its findings had to be triaged against HEAD (line numbers were historical) and the live ones repaired with failing-first tests, without churning issues later commits had already fixed.
+- **Target delta**: fix every still-live finding, skip the already-fixed ones with evidence, keep standing pins byte-identical, and record ADR-200.
+- **Falsifier**: any standing pin moves, a fix breaks a related test, or an already-fixed finding is re-changed.
+- **Change**: five file-disjoint fix batches with new failing-first test modules (`test_fix_agent.py`, `test_fix_runtime.py`, `test_fix_storage.py`, `test_fix_evals.py` plus in-place repairs to eight existing test modules); README Brier skill restored; ADR-200 and these notes. No new deps.
+- **After**:
+  - triage: **34 LIVE fixed, 3 SKIP** (S1 partial deadlines — fixed in cycle 205 by `_deadlines_for_plan`; S24 pre-action prediction — consumed by `_module_signals`; S60 stale-lock race — ownership token guard at `telemetry/log.py`).
+  - runtime: stability gate no longer silent at default trials; class-name identities detected; `claimed`/`expected_model` keys on all early returns; legacy episodes ask under `any`; per-pair pre-outcome flags; real em dashes; explicit endpoints probed.
+  - storage/signals: UTF-8 HMAC operands, escaped LIKE wildcards, transient `OperationalError`/`IntegrityError` re-raised instead of quarantined, duplicate forecast ids rejected, distinct `world_context`/`hub_collect` error keys, fingerprint read failure no longer overwrites a valid layout, trust gate fails closed.
+  - evals/tests: subset `--mode` no longer always fails, negative gaps flagged, frozen predictor returns a single count, short-trace `predictable=False`, pinned seeds asserted, tautological/dead assertions replaced, sleep removed from a unit test, generate-time manifest recorded.
+  - full suite: **1240 tests OK** (was 1201); `aikit check brain` 5/5; targeted fix modules 93 + 19 + 12 tests OK.
+- **Verdict**: quality repair from a genuine review. No emergence claim; verdict UNKNOWN.
+- **Commands run**:
+  - `python -m unittest discover -s tests -t .` -> 1240 OK (564s).
+  - `python aikit.py check brain --all-gates` -> 5/5.
+  - `python aikit.py adr brain ...` -> ADR-200 appended.
+  - per-batch evidence: `reports/reforge/genuine/fix-{agent,runtime,storage,evals,tests}.md`.
+- **Pinned regression baselines for cycle 207**: unittest 1240 OK; standing pins byte-identical; 34 findings fixed, 3 skipped as already repaired; 39 new regression tests; all earlier pins unchanged.

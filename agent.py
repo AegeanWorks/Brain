@@ -274,13 +274,17 @@ def _first_of_best_tour(pos, cells):
     return [path[0][0], path[0][1]]
 
 
-def _tour_audit(pos, cells):
+def _tour_audit(pos, cells, rule_goal=None):
     """Audit first-item ties in the exact shortest item tour.
 
-    Returns the sorted items, the lexicographically first shortest-tour
-    first item (the rule's choice), the best/chosen tour lengths, every
-    first item that achieves the best length, and whether the choice is
-    optimal. Readout only; returns None for unusable input.
+    Returns the sorted items, the shortest-tour first item, the best/chosen
+    tour lengths, every first item that achieves the best length, and whether
+    the choice is optimal. When ``rule_goal`` is supplied it is the planner's
+    actual first-item choice, so ``chosen``/``chosen_length``/``optimal``
+    describe that real decision instead of being re-derived from the same
+    scan (which was a tautology: the reported choice was always one of the
+    optimal firsts, so ``optimal`` could never be False). Readout only;
+    returns None for unusable input.
     """
     try:
         origin = (int(pos[0]), int(pos[1]))
@@ -298,8 +302,16 @@ def _tour_audit(pos, cells):
     best_len = min(first_lengths.values())
     tied = sorted([list(first) for first, length in first_lengths.items()
                    if length == best_len])
-    chosen = tied[0]
-    chosen_length = first_lengths[tuple(chosen)]
+    if rule_goal is not None:
+        try:
+            chosen = [int(rule_goal[0]), int(rule_goal[1])]
+        except (TypeError, ValueError, IndexError):
+            chosen = tied[0]
+    else:
+        chosen = tied[0]
+    # An unknown chosen goal cannot be optimal: fail closed rather than
+    # silently reporting a tautological True.
+    chosen_length = first_lengths.get(tuple(chosen), best_len + 1)
     return {
         "items": [list(cell) for cell in sorted({tuple(c) for c in cells})],
         "chosen": chosen,
@@ -1167,7 +1179,7 @@ class Planner:
                     rule_goal = list(pos)
                 else:
                     rule_goal = _first_of_best_tour(pos, cells)
-                    tour = _tour_audit(pos, cells)
+                    tour = _tour_audit(pos, cells, rule_goal)
                     if tour is not None:
                         probe["tour"] = tour
             elif recalled_target is not None:
@@ -1183,7 +1195,10 @@ class Planner:
                 try:
                     since = int(self.read_hub().get("steps_since_reward", 0))
                 except Exception:
-                    since = 0
+                    # A hub-read failure must not be read as a fresh reward:
+                    # that would restore trust in a stalled backend and silently
+                    # disable the safety gate. Fail closed at the window.
+                    since = self.trust_window
             if self.skip_after_distrust and self._backend_distrusted:
                 decision = {
                     "proposed": None,
@@ -1653,7 +1668,10 @@ class Agent:
                             stored_fp = fp_api(task, seed)
                         except Exception:
                             self._substrate_errors["memory_store"] += 1
-                            stored_fp = None
+                            # A read failure is not a legacy NULL fingerprint:
+                            # keep the stored layout rather than replacing a
+                            # valid row with this world's geometry.
+                            return
                         # A legacy complete row has no fingerprint; write the
                         # current (complete) state and fingerprint so the
                         # collision guard is active on upgraded stores.
@@ -1754,14 +1772,16 @@ class Agent:
         try:
             values = api(state)
         except Exception:
-            self._substrate_errors["bind"] += 1
+            self._substrate_errors["world_context"] = (
+                self._substrate_errors.get("world_context", 0) + 1)
             return {}
         if not isinstance(values, (list, tuple)) or not values:
             return {}
         try:
             return {"G": [float(value) for value in values]}
         except (TypeError, ValueError):
-            self._substrate_errors["bind"] += 1
+            self._substrate_errors["world_context"] = (
+                self._substrate_errors.get("world_context", 0) + 1)
             return {}
 
     def _step_vectors(self, idx, new_state, reward, memories):
@@ -1892,7 +1912,8 @@ class Agent:
             _seen = self._online.seen(_learn_key)
             new_state, reward, done = self.world.step(action)  # act
             self._online.observe(_learn_key, float(reward) > 0.0)
-            self.telemetry.log({"step": i, "action": action, "reward": reward, "done": done})
+            self.telemetry.log({"step": i, "action": action, "reward": reward,
+                                "done": done, "prediction_basis": prediction_basis})
             self.selfmodel.record(new_state, action, reward, done)
             if float(reward) > 0.0:
                 self._steps_since_reward = 0
@@ -1914,7 +1935,8 @@ class Agent:
                             uniq.append([int(key[0]), int(key[1])])
                     self.hub_write({"collected_positions": uniq})
                 except Exception:
-                    self._substrate_errors["bind"] += 1
+                    self._substrate_errors["hub_collect"] = (
+                        self._substrate_errors.get("hub_collect", 0) + 1)
             # -- persistent substrate update (stdlib only, deterministic) --
             if self.memory_store is not None:
                 try:

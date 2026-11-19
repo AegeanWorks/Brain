@@ -70,40 +70,50 @@ def measure_case(mode, directory):
 def run_battery(modes=MODES):
     with tempfile.TemporaryDirectory() as directory:
         return {"model": "rule", "lines": RECORDS + 1,
+                "modes": list(modes),
                 "cases": [measure_case(mode, directory) for mode in modes]}
 
 
-def checks(report):
+def checks(report, modes=None):
     """Return the claims this battery's own output contradicts.
 
     The battery exists to prove that reading only headers costs far less
     memory than retaining every record. These findings check that property
     rather than exact byte counts, so allocator noise cannot move them.
+    ``modes`` is the subset requested by ``--mode``; the comparison findings
+    only apply when both modes are present, so a single-mode inspection is a
+    valid pass.
     """
     findings = []
     by_mode = {case.get("mode"): case for case in report.get("cases", [])}
+    if modes is None:
+        modes = report.get("modes", MODES)
     for mode in MODES:
-        if mode not in by_mode:
+        if mode in modes and mode not in by_mode:
             findings.append("missing-mode:%s" % mode)
     if findings:
         return findings
-    everything, headers = by_mode["all"], by_mode["headers"]
-    # The header reader must return one record whatever the log length, and
-    # the full reader must return every line the run reports.
-    if headers.get("returned") != 1:
-        findings.append("headers-returned:%s!=1" % headers.get("returned"))
-    total = everything.get("returned")
-    if total is not None and total < 2:
-        findings.append("all-returned:%s<2" % total)
-    if headers.get("headers") != 1:
-        findings.append("headers-count:%s!=1" % headers.get("headers"))
-    if everything.get("headers") != headers.get("headers"):
-        findings.append("heads-disagree:%s!=%s"
-                        % (everything.get("headers"), headers.get("headers")))
-    ratio = everything.get("peak_bytes", 0) / max(
-        headers.get("peak_bytes", 1), 1)
-    if ratio < MIN_MEMORY_RATIO:
-        findings.append("memory-ratio:%.1f<%.1f" % (ratio, MIN_MEMORY_RATIO))
+    if "headers" in by_mode:
+        headers = by_mode["headers"]
+        # The header reader must return one record whatever the log length.
+        if headers.get("returned") != 1:
+            findings.append("headers-returned:%s!=1" % headers.get("returned"))
+        if headers.get("headers") != 1:
+            findings.append("headers-count:%s!=1" % headers.get("headers"))
+    if "all" in by_mode:
+        # The full reader must return every line the run reports.
+        total = by_mode["all"].get("returned")
+        if total is not None and total < 2:
+            findings.append("all-returned:%s<2" % total)
+    if "all" in by_mode and "headers" in by_mode:
+        everything, headers = by_mode["all"], by_mode["headers"]
+        if everything.get("headers") != headers.get("headers"):
+            findings.append("heads-disagree:%s!=%s"
+                            % (everything.get("headers"), headers.get("headers")))
+        ratio = everything.get("peak_bytes", 0) / max(
+            headers.get("peak_bytes", 1), 1)
+        if ratio < MIN_MEMORY_RATIO:
+            findings.append("memory-ratio:%.1f<%.1f" % (ratio, MIN_MEMORY_RATIO))
     return findings
 
 

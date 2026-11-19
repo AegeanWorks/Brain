@@ -17,6 +17,10 @@ class SelfModel:
         #: True once a confidence has been recorded before its outcome, which
         #: makes the pairs a real forecast rather than a restatement of them.
         self._pre_outcome = False
+        #: Per-pair counterpart of ``_pre_outcome``: a single model-wide flag
+        #: cannot describe a model that mixes pre-action forecasts with
+        #: post-hoc records, so each pair carries its own provenance.
+        self._pre_flags = []
 
     def record(self, cost, ok, conf):
         """Log one step: add cost, count ok/error, append confidence.
@@ -29,6 +33,7 @@ class SelfModel:
             self._errors += 1
         self._confs.append(float(conf))
         self._outcomes.append(1 if ok else 0)
+        self._pre_flags.append(False)
         return self.snapshot()
 
     def record_prediction(self, cost, ok, predicted):
@@ -45,6 +50,7 @@ class SelfModel:
         self._confs.append(float(predicted))
         self._outcomes.append(1 if ok else 0)
         self._pre_outcome = True
+        self._pre_flags.append(True)
         return self.snapshot()
 
     def snapshot(self):
@@ -68,6 +74,7 @@ class SelfModel:
         self._confs = []
         self._outcomes = []
         self._pre_outcome = False
+        self._pre_flags = []
 
     def calibration(self, min_resolved=10):
         """Score recorded confidence/outcome pairs with Brier/log loss.
@@ -79,6 +86,9 @@ class SelfModel:
         action, so the score is a real forecast measure and the warning is
         not applied — even though such a forecast legitimately separates
         the outcome classes, which is the case the diagnosis must not flag.
+        When a model mixes both kinds, the warning is decided from the
+        post-hoc pairs alone so a real forecast cannot mask later circular
+        records.
         """
         from calibration import confidence_is_outcome, summary
         forecasts = [
@@ -87,7 +97,13 @@ class SelfModel:
                 zip(self._confs, self._outcomes))
         ]
         result = summary(forecasts, min_resolved=min_resolved)
-        if not self._pre_outcome and confidence_is_outcome(forecasts):
+        # Only pairs whose confidence was formed after the outcome are
+        # circular. Scoring the mixed set as one would let an earlier
+        # forecast hide later post-hoc records, so judge the post-hoc pairs
+        # on their own.
+        post_hoc = [forecast for forecast, pre in zip(forecasts, self._pre_flags)
+                    if not pre]
+        if confidence_is_outcome(post_hoc):
             result["warnings"].append(
                 "confidence-is-outcome: recorded after the outcome, so Brier "
                 "restates the base rate and skill is not a forecast measure")

@@ -106,7 +106,10 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
 
     ``stability_trials`` re-runs the train family scan at a higher trial
     count; a candidate that clears ``alpha`` at ``trials`` but not there is
-    underpowered. The default is ``max(trials, 200)``. ``direction`` is
+    underpowered. The default is ``max(trials, 200)`` and, when not passed
+    explicitly, always runs the re-scan even when it equals ``trials``; a
+    caller that passes an explicit equal value opts out of the re-scan.
+    ``direction`` is
     ``positive``, ``negative`` or ``both``. Each candidate carries
     ``direction``, ``stable``, ``replicated`` and both pair reports;
     ``selected`` honours the requested gates, and ``rejected`` is the rest.
@@ -131,6 +134,7 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
         raise ValueError(
             "Why: trials must be a positive int. "
             "Fix: pass trials=200.")
+    stability_requested = stability_trials is not None
     if stability_trials is None:
         stability_trials = max(trials, 200)
     if (isinstance(stability_trials, bool)
@@ -142,7 +146,8 @@ def scan_with_holdout(train_rows, train_target, holdout_rows, holdout_target,
     reports = scan_pairs(train_rows, train_target, trials=trials,
                          family_wise=True, dedupe=dedupe)
     stable_map = None
-    if require_stability and stability_trials > trials:
+    if require_stability and (not stability_requested
+                              or stability_trials > trials):
         stable_reports = scan_pairs(train_rows, train_target,
                                     trials=stability_trials,
                                     family_wise=True, dedupe=dedupe)

@@ -121,7 +121,7 @@ class _FrozenPredictor:
         return self._inner.predict(key)
 
     def observe(self, key, outcome):
-        return self._inner.seen(key), self._inner.seen(key)
+        return self._inner.seen(key)
 
     def table(self):
         return self._inner.table()

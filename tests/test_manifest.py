@@ -7,12 +7,31 @@ the same sha256; any prompt-set change gives a different one, so
 before/after batteries prove they ran identical prompts.
 """
 
+import json
 import unittest
+from unittest import mock
 
 from agent import Planner
 from models.backend import ModelBackend
 from models.llamacpp import build_prompt
 from models.manifest import manifest_for, prompt_set_manifest
+
+
+class _CompletionResponse:
+    """Minimal urlopen response for a successful /v1/chat/completions call."""
+
+    def __init__(self, content):
+        self._body = json.dumps(
+            {"choices": [{"message": {"content": content}}]}).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self):
+        return self._body
 
 
 def _enriched_obs():
@@ -88,6 +107,19 @@ class TestManifest(unittest.TestCase):
         from models.llamacpp import LlamaCppBackend
         backend = LlamaCppBackend("server-exe", "model.gguf")
         self.assertIsNone(backend.last_manifest)
+
+    def test_generate_records_last_manifest(self):
+        # ADR-021 promises a manifest on every generate(), not just the
+        # constructor slot. Stub urlopen so a successful call must record one.
+        from models.llamacpp import LlamaCppBackend
+        backend = LlamaCppBackend("server-exe", "model.gguf")
+        with mock.patch("urllib.request.urlopen",
+                        return_value=_CompletionResponse("up")):
+            action = backend.generate(_enriched_obs())
+        self.assertEqual(action, "up")
+        manifest = backend.last_manifest
+        self.assertIsInstance(manifest, dict)
+        self.assertEqual(len(manifest["sha256"]), 64)
 
 
 if __name__ == "__main__":

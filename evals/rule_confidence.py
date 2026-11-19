@@ -137,6 +137,17 @@ def measure_seeds(mode, directory):
     for task, seed, _steps, _reward in PIN_SEEDS:
         on_trace, on_pairs = _run_seed(task, seed, True, directory,
                                        "%s-on" % mode)
+        on_reward = sum(record["reward"] for record in on_trace)
+        if len(on_trace) != _steps:
+            raise AssertionError(
+                "Why: %s:%d trace length %d drifted from pin %d. "
+                "Fix: update PIN_SEEDS or fix the planner." % (
+                    task, seed, len(on_trace), _steps))
+        if on_reward != _reward:
+            raise AssertionError(
+                "Why: %s:%d trace reward %s drifted from pin %s. "
+                "Fix: update PIN_SEEDS or fix the planner." % (
+                    task, seed, on_reward, _reward))
         off_trace, off_pairs = _run_seed(task, seed, False, directory,
                                          "%s-off" % mode)
         pairs = on_pairs if mode != "off" else off_pairs
@@ -144,7 +155,7 @@ def measure_seeds(mode, directory):
         tie_stats = _tie_stats(pairs)
         tour_stats = _tour_stats([tour for _action, _rule, tour in pairs])
         result["steps"] += len(on_trace)
-        result["reward"] += sum(record["reward"] for record in on_trace)
+        result["reward"] += on_reward
         result["actions_match"] = result["actions_match"] and (
             [record["action"] for record in on_trace]
             == [record["action"] for record in off_trace])

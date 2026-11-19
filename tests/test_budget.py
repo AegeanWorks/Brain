@@ -6,7 +6,6 @@ next action when a dimension is exhausted, while a generous budget keeps
 actions byte-identical and no budget remains a no-op.
 """
 
-import time
 import unittest
 
 from agent import Agent, Planner
@@ -130,7 +129,6 @@ class TestExecutionBudget(unittest.TestCase):
         budget = budget_from_limits({"max_seconds": 60})
         self.assertGreaterEqual(budget.elapsed(), 0.0)
         self.assertLessEqual(budget.remaining("seconds"), 60.0)
-        time.sleep(0.001)
 
 
 if __name__ == "__main__":

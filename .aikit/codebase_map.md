@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `251`
-- **Total Classes**: `312`
-- **Total Top-Level Functions**: `732`
-- **Total Class Methods**: `1579`
-- **Total Source Lines**: `36280`
+- **Total Python Modules**: `255`
+- **Total Classes**: `341`
+- **Total Top-Level Functions**: `733`
+- **Total Class Methods**: `1637`
+- **Total Source Lines**: `37050`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`251` module(s))
+- **Indexed**: python (`255` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `2138` lines
+**Size**: `2160` lines
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -90,7 +90,7 @@
 - `def _best_tours(pos, cells)` - *Exact shortest Manhattan tours over the cells, via subset DP.*
 - `def _shortest_cover(start, cells)` - *Shortest Manhattan path from ``start`` visiting every cell once.*
 - `def _first_of_best_tour(pos, cells)` - *First cell of the shortest Manhattan tour from pos through cells.*
-- `def _tour_audit(pos, cells)` - *Audit first-item ties in the exact shortest item tour.*
+- `def _tour_audit(pos, cells, rule_goal)` - *Audit first-item ties in the exact shortest item tour.*
 - `def _enters_blocked_corridor(nxt, goal, obstacles)` - *True when stepping onto the goal's column/row while an obstacle*
 - `def _bfs_step(pos, goal, obstacles)` - *Return one deterministic BFS step toward ``goal`` and its distance.*
 - `def _bfs_distance(pos, goal, obstacles)` - *Shortest free-cell BFS distance, or None when unreachable.*
@@ -147,7 +147,7 @@
 ### [`calibration.py`](calibration.py)
 > *Forecast calibration: Brier, log loss, skill and reliability bins.*
 
-**Size**: `173` lines
+**Size**: `177` lines
 
 **Functions:**
 - `def _clip(probability)`
@@ -317,7 +317,7 @@
 ### [`episode_verify.py`](episode_verify.py)
 > *Independent verification of a log header's episode digest.*
 
-**Size**: `122` lines
+**Size**: `123` lines
 
 **Functions:**
 - `def _valid_digest(value)`
@@ -713,13 +713,13 @@
 ### [`evals/header_reader.py`](evals/header_reader.py)
 > *Header-reader battery: streaming headers vs decoding every record.*
 
-**Size**: `125` lines
+**Size**: `135` lines
 
 **Functions:**
 - `def _write_log(path)`
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
-- `def checks(report)` - *Return the claims this battery's own output contradicts.*
+- `def checks(report, modes)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -907,7 +907,7 @@
 ### [`evals/phi_diagnosis.py`](evals/phi_diagnosis.py)
 > *A pinned 0.0 must say whether the estimator *could* have moved.*
 
-**Size**: `64` lines
+**Size**: `66` lines
 
 **Functions:**
 - `def _columns(rows)`
@@ -953,7 +953,7 @@
 ### [`evals/prompt_budget.py`](evals/prompt_budget.py)
 > *Prompt-budget battery: capped model prompts, unchanged rule actions.*
 
-**Size**: `166` lines
+**Size**: `173` lines
 
 **Classes:**
 - `class PromptBackend` - *Record the rendered prompt/manifest, then decline to the rule.*
@@ -964,7 +964,7 @@
 - `def _synthetic(mode)`
 - `def measure_case(mode)`
 - `def run_battery(modes)`
-- `def checks(report)` - *Return the claims this battery's own output contradicts.*
+- `def checks(report, modes)` - *Return the claims this battery's own output contradicts.*
 - `def main()`
 
 ---
@@ -988,7 +988,7 @@
 ### [`evals/replication.py`](evals/replication.py)
 > *A scan candidate must survive a held-out pool.*
 
-**Size**: `203` lines
+**Size**: `208` lines
 
 **Functions:**
 - `def _direction_of(report, alpha, requested)` - *Return the candidate direction, or None when it does not clear.*
@@ -1018,7 +1018,7 @@
 ### [`evals/rule_confidence.py`](evals/rule_confidence.py)
 > *Rule-confidence battery: BFS move ties with the action held fixed.*
 
-**Size**: `221` lines
+**Size**: `232` lines
 
 **Functions:**
 - `def _state(x, y, target, task, items)`
@@ -1167,7 +1167,7 @@
 ### [`identity.py`](identity.py)
 > *Episode identity and the resume guard (neurocore transfer).*
 
-**Size**: `116` lines
+**Size**: `118` lines
 
 **Functions:**
 - `def _clean(value)`
@@ -1198,7 +1198,7 @@
 ### [`memory/store.py`](memory/store.py)
 > *SQLite-backed store with FTS5 index and LIKE fallback.*
 
-**Size**: `343` lines
+**Size**: `361` lines
 
 **Classes:**
 - `class MemoryStore` - *Persisted key/content map with full-text lookup.*
@@ -1221,6 +1221,7 @@
 
 **Functions:**
 - `def recall_terms(query)` - *Return the ordinary search terms in ``query``, FTS operators removed.*
+- `def _escape_like(term)` - *Quote a literal term for LIKE with ``ESCAPE '\'``.*
 
 ---
 
@@ -1250,7 +1251,7 @@
 ### [`models/conformance.py`](models/conformance.py)
 > *Check a provider against the backend contract, without reading its code.*
 
-**Size**: `124` lines
+**Size**: `127` lines
 
 **Functions:**
 - `def check_backend(provider, observation, calls)` - *Exercise ``provider`` and return ``ok`` plus named findings.*
@@ -1319,7 +1320,7 @@
 ### [`models/openai_compat.py`](models/openai_compat.py)
 > *Talk to any OpenAI-compatible local model server, with no surprises.*
 
-**Size**: `240` lines
+**Size**: `246` lines
 
 **Classes:**
 - `class EndpointUnavailable` - *Raised when no model server answers; the message is user-facing.*
@@ -1423,7 +1424,7 @@
 ### [`self_model/model.py`](self_model/model.py)
 > *Running counters for cost, step outcomes, and reported confidence.*
 
-**Size**: `120` lines
+**Size**: `136` lines
 
 **Classes:**
 - `class SelfModel` - *Tally budget use, step counts, errors, and confidence values.*
@@ -1569,7 +1570,7 @@
 ### [`telemetry/log.py`](telemetry/log.py)
 > *Append-only JSONL record store, schema 2.*
 
-**Size**: `820` lines
+**Size**: `822` lines
 
 **Classes:**
 - `class Telemetry` - *JSONL append-only store at ``path``.*
@@ -1898,7 +1899,7 @@
 ### [`tests/test_budget.py`](tests/test_budget.py)
 > *Execution budgets: steps, LLM calls, tokens and wall time.*
 
-**Size**: `137` lines
+**Size**: `135` lines
 
 **Classes:**
 - `class WaitingBackend`
@@ -2788,6 +2789,122 @@
 
 ---
 
+### [`tests/test_fix_agent.py`](tests/test_fix_agent.py)
+> *Failing-first pins for genuine review findings on agent.py.*
+
+**Size**: `161` lines
+
+**Classes:**
+- `class _RaisingContextWorld`
+  - Method `.signal_context(state)`
+- `class _BadValuesWorld`
+  - Method `.signal_context(state)`
+- `class _WaitBackend` - *Legal but stalled proposal that differs from the rule move.*
+  - Method `.generate(observation)`
+- `class _BadGetHub`
+  - Method `.get(*args, **kwargs)`
+- `class _FailingCollectAgent` - *Fail only the collected_positions persistence write, nothing else.*
+  - Method `.hub_write(content)`
+- `class _FpErrorStore` - *Store with a complete stored layout but a failing fingerprint read.*
+  - Method `.__init__(row)`
+  - Method `.get_layout(task, seed, fingerprint)`
+  - Method `.layout_fingerprint(task, seed)`
+  - Method `.save_layout(task, seed, content, replace, fingerprint)`
+- `class _FpWorld`
+  - Method `.layout_fingerprint()`
+- `class TestFixAgent`
+  - Method `.test_context_hook_raise_not_counted_as_bind()`
+  - Method `.test_context_non_numeric_not_counted_as_bind()`
+  - Method `.test_prediction_basis_is_recorded()`
+  - Method `.test_fingerprint_read_error_does_not_overwrite_layout()`
+  - Method `.test_tour_optimal_uses_actual_chosen_goal()`
+  - Method `.test_tour_optimal_true_when_actual_goal_is_optimal()`
+  - Method `.test_hub_read_failure_fails_closed()`
+  - Method `.test_collect_persistence_error_not_counted_as_bind()`
+
+---
+
+### [`tests/test_fix_evals.py`](tests/test_fix_evals.py)
+> *Failing-first regressions for the seven reforge findings in evals/.*
+
+**Size**: `160` lines
+
+**Classes:**
+- `class TestStabilityGateSilentNoop` - *S20: default trials=200 must still fire the higher-trial re-scan.*
+  - Method `.test_default_trials_runs_the_stability_rescan()`
+- `class TestOnlyPositiveGapsFlagged` - *S4: a nonzero gap in either direction must be flagged.*
+  - Method `.test_a_negative_gap_is_flagged()`
+- `class TestFrozenObserveReturnType` - *S9: the frozen predictor's observe must return the count.*
+  - Method `.test_frozen_observe_returns_a_single_count()`
+- `class TestPredictableOnShortTrace` - *S27: a sub-three-row trace cannot support phi, so not predictable.*
+  - Method `.test_short_varying_trace_is_not_predictable()`
+- `class TestPromptBudgetSubset` - *S33: a --mode subset must not be reported as a missing mode.*
+  - Method `.test_single_mode_report_has_no_findings()`
+  - Method `.test_single_mode_cli_exits_zero()`
+- `class TestHeaderReaderSubset` - *S34: a --mode subset must not be reported as a missing mode.*
+  - Method `.test_single_mode_report_has_no_findings()`
+  - Method `.test_single_mode_cli_exits_zero()`
+- `class TestPinExpectationsAsserted` - *S51: every PIN_SEEDS step/reward pair must gate a drifted trace.*
+  - Method `.test_pin_values_match_the_current_traces()`
+  - Method `.test_measure_seeds_rejects_a_drifted_pin()`
+
+---
+
+### [`tests/test_fix_runtime.py`](tests/test_fix_runtime.py)
+> *Failing-first tests for genuine review findings in the runtime files.*
+
+**Size**: `150` lines
+
+**Classes:**
+- `class TestAnyPolicyResumesLegacy` - *A legacy episode (no stored digest) must ask, even under 'any'.*
+  - Method `.test_any_policy_asks_on_a_legacy_episode()`
+  - Method `.test_resume_any_flag_asks_on_a_legacy_episode()`
+- `class TestClaimedKeyOnEarlyReturns` - *``claimed`` must be reported on every early-return shape.*
+  - Method `._check(records)`
+  - Method `.test_invalid_task_reports_claimed()`
+  - Method `.test_missing_seed_reports_claimed()`
+  - Method `.test_unreplayable_action_reports_claimed()`
+- `class TestPinOnEmptyHeaderReturn` - *The expected_model pin is echoed even when there is no header.*
+  - Method `.test_missing_header_echoes_expected_model()`
+- `class TestClassNameIdentityDetected` - *A class-name-derived identity is flagged under any prefix.*
+  - Method `.test_stub_backend_identity_is_flagged()`
+  - Method `.test_a_non_module_prefix_still_flags_class_name()`
+- `class _DeadClient`
+  - Method `.__init__(url, model)`
+  - Method `.is_alive()`
+- `class _LiveClient`
+  - Method `.is_alive()`
+- `class TestExplicitEndpointProbed` - *An explicit endpoint is probed even when no probe is injected.*
+  - Method `.test_dead_explicit_endpoint_fails_without_a_probe()`
+  - Method `.test_live_explicit_endpoint_still_resolves()`
+- `class TestGlobalPreOutcomeFlag` - *Post-hoc pairs stay flagged after an earlier pre-outcome pair.*
+  - Method `.test_mixed_pairs_keep_the_circularity_warning()`
+- `class TestMojibakeEmDash` - *The online.py docstrings use a real em dash, not UTF-8 mojibake.*
+  - Method `.test_no_mojibake_in_online_docstrings()`
+
+---
+
+### [`tests/test_fix_storage.py`](tests/test_fix_storage.py)
+> *Regression tests for the storage-layer review findings (reforge genuine).*
+
+**Size**: `136` lines
+
+**Classes:**
+- `class TestNonAsciiMac`
+  - Method `._build_keyed_log(path)`
+  - Method `.test_non_ascii_mac_reports_bad_mac_not_typeerror()`
+  - Method `.test_ascii_mac_still_verifies()`
+- `class TestLikeWildcards`
+  - Method `.test_fallback_escapes_like_wildcards()`
+- `class TestQuarantineScope`
+  - Method `.test_transient_operational_error_is_not_quarantined()`
+  - Method `.test_genuine_corruption_still_quarantined()`
+- `class TestUniqueForecastIds`
+  - Method `.test_duplicate_forecast_ids_rejected()`
+  - Method `.test_unique_ids_still_scored()`
+
+---
+
 ### [`tests/test_golden_traces.py`](tests/test_golden_traces.py)
 > *Golden trace hashes: exact action sequences for the pin seeds.*
 
@@ -3056,9 +3173,14 @@
 ### [`tests/test_manifest.py`](tests/test_manifest.py)
 > *Generation manifest fingerprints: determinism + prompt-set versioning.*
 
-**Size**: `94` lines
+**Size**: `126` lines
 
 **Classes:**
+- `class _CompletionResponse` - *Minimal urlopen response for a successful /v1/chat/completions call.*
+  - Method `.__init__(content)`
+  - Method `.__enter__()`
+  - Method `.__exit__(*exc)`
+  - Method `.read()`
 - `class TestManifest`
   - Method `.test_same_inputs_same_sha256()`
   - Method `.test_prompt_change_changes_sha256()`
@@ -3066,6 +3188,7 @@
   - Method `.test_planner_obs_prompt_manifest_chain_stable()`
   - Method `.test_prompt_set_manifest_order_independent()`
   - Method `.test_backend_exposes_last_manifest_slot()`
+  - Method `.test_generate_records_last_manifest()`
 
 **Functions:**
 - `def _enriched_obs()`
@@ -3294,7 +3417,7 @@
 ### [`tests/test_model_influence.py`](tests/test_model_influence.py)
 > *Say plainly how much of a run the model actually decided.*
 
-**Size**: `157` lines
+**Size**: `172` lines
 
 **Classes:**
 - `class _UpClient` - *A client that always proposes one action, like a stuck model.*
@@ -3311,6 +3434,7 @@
   - Method `.test_never_consulted_is_stated_not_implied()`
   - Method `.test_every_rendered_line_is_console_safe()`
   - Method `.test_the_run_transcript_ends_with_the_influence_line()`
+  - Method `.test_an_openai_run_puts_the_influence_line_in_the_transcript()`
 - `class TestJsonReport`
   - Method `._run(extra)`
   - Method `.test_the_report_carries_the_counts()`
@@ -4589,7 +4713,7 @@
 ### [`tests/test_synergy_null.py`](tests/test_synergy_null.py)
 > *A ``syn`` value needs its null, or it is a number without a verdict.*
 
-**Size**: `102` lines
+**Size**: `107` lines
 
 **Classes:**
 - `class TestPermutationNull`
@@ -4662,7 +4786,7 @@
 ### [`tests/test_synergy_sign.py`](tests/test_synergy_sign.py)
 > *A negative synergy gap must be reported as such, not as a strong one.*
 
-**Size**: `69` lines
+**Size**: `71` lines
 
 **Classes:**
 - `class TestSynergySign`
@@ -5028,7 +5152,7 @@
 ### [`tests/test_workspace.py`](tests/test_workspace.py)
 > *Workspace source hash and run-header binding (harness transfer).*
 
-**Size**: `107` lines
+**Size**: `109` lines
 
 **Classes:**
 - `class TestWorkspaceHash`
