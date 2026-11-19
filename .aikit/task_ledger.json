@@ -3,30 +3,18 @@
   "active_task": {
     "task_id": "brain-review-findings",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1795109300.871596,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
     "lease_until": 1795116500.871596,
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1795109799.6266704,
+    "completed_head": "935312778c0cb0fab13c437498c5966f6059c1bf",
+    "completed_tree": "1dec5383ae46e3329c6d3b9886473ef54e6f3b95"
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 77",
-      "phase_num": 3,
-      "description": "Reforge stage 77: window 231, 3 commit(s), 9 file(s) reviewed (unreviewed), 8 finding(s), 0 repaired, empty \u2014 nothing to commit (regression=6, reliability=2)",
-      "files_affected": [
-        "agent.py",
-        "tests/test_wiring.py"
-      ],
-      "status": "in_progress",
-      "timestamp": 1795043822.2027898,
-      "timestamp_str": "2026-11-19 02:17:02",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 77",
@@ -301,6 +289,23 @@
       "timestamp_str": "2026-11-19 20:28:20",
       "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
       "checklists": "passed"
+    },
+    {
+      "task_id": "brain-review-findings",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'brain-review-findings' completed successfully.",
+      "status": "completed",
+      "timestamp": 1795109799.7597091,
+      "timestamp_str": "2026-11-19 20:36:39",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "head": "935312778c0cb0fab13c437498c5966f6059c1bf",
+      "delivery": {
+        "roots": [
+          "."
+        ],
+        "forced": false
+      }
     }
   ]
 }
