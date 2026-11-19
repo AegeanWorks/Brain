@@ -30,5 +30,11 @@
     "evals/coldstart.py"
   ],
   "ui_checked_at": "2026-11-08",
-  "ui_source": "detected"
+  "ui_source": "detected",
+  "archived": true,
+  "archived_at": "2026-11-19",
+  "archive_reason": "Retired as a completed AIKit testbed and research codex; no further development planned. Final state pushed and verified.",
+  "archive_repo": "AegeanWorks/Brain",
+  "archive_description": "[ARCHIVED] A deterministic agent with memory, a planner and a self-model: talk to it in a terminal, or run the ablation and telemetry batteries.",
+  "archive_origin": "projects/brain"
 }

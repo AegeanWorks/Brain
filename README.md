@@ -9,6 +9,8 @@
 A deterministic agent with memory, a planner and a self-model: talk to it in
 a terminal, or run the ablation and telemetry batteries.
 
+> **Archived**: Retired as a completed AIKit testbed and research codex; no further development planned. Final state pushed and verified. (archived 2026-11-19). This project is read-only; its GitHub repository is archived.
+
 ## 🚀 Start Here
 
 Four commands, no packages, no config:
