@@ -29,7 +29,7 @@ from self_model.prediction import predict_outcome
 from workspace import workspace_digest
 
 SIZE = 8
-MAX_DEADLINE_ITEMS = 7
+MAX_SCHEDULE_ITEMS = 12
 
 _LEGAL_ACTIONS = ("up", "down", "left", "right", "collect", "wait")
 
@@ -368,10 +368,14 @@ def _deadline_map(raw):
 def _first_of_deadline_tour(pos, cells, deadlines, steps=0, obstacles=None):
     """First cell of the order that collects the most items by deadline.
 
-    Enumerates visit orders (at most ``MAX_DEADLINE_ITEMS``) and scores
-    each by ``(-collected, finish_time, path, permutation)``: maximize
-    the number of items collected before their inclusive deadlines, then
-    finish earliest, then keep the lexicographic order deterministic.
+    Solves the same objective as the original exhaustive search with an
+    exact bitmask dynamic program over subsets of the remaining items:
+    maximize items collected before their inclusive deadlines, then finish
+    soonest, then keep the lexicographic path deterministic. The original
+    enumerated every permutation (``O(n!)``); the program is ``O(n^2 2^n)``
+    and is capped at ``MAX_SCHEDULE_ITEMS`` items so its worst case stays
+    bounded. Skipping an item is represented by simply not adding it to the
+    subset, exactly as the old search continued past an uncollectible cell.
     Travel uses BFS distance, so static obstacles are honored. Returns
     ``([x, y], info)`` for a collectible schedule, ``(None, info)`` when
     the planner must fall back to the shortest tour, or ``(None, None)``
@@ -387,39 +391,59 @@ def _first_of_deadline_tour(pos, cells, deadlines, steps=0, obstacles=None):
         return (None, None)
     if any(cell not in deadlines for cell in uniq):
         return (None, None)
-    if len(uniq) > MAX_DEADLINE_ITEMS:
+    if len(uniq) > MAX_SCHEDULE_ITEMS:
         return (None, {"order": "fallback-tour", "reason": "item-limit",
-                       "items": len(uniq), "limit": MAX_DEADLINE_ITEMS})
+                       "items": len(uniq), "limit": MAX_SCHEDULE_ITEMS})
     points = [origin] + uniq
     distances = {}
     for start in points:
         for goal in points:
             distances[(start, goal)] = (
                 0 if start == goal else _bfs_distance(start, goal, obstacles))
-    best = None
-    for order in itertools.permutations(uniq):
-        current = origin
-        time = clock
-        path = []
-        for cell in order:
-            hop = distances[(current, cell)]
-            if hop is None:
-                continue
-            arrival = time + hop + 1
-            if arrival <= deadlines[cell]:
-                time = arrival
-                path.append(cell)
-                current = cell
-        if not path:
+
+    count_items = len(uniq)
+    # state (visited mask, last cell index) -> (collected, finish time, path).
+    # For a fixed mask the collected count is fixed, so the earliest finish
+    # dominates every later arrival, and equal finishes break on the path.
+    best = {}
+    for index, cell in enumerate(uniq):
+        hop = distances[(origin, cell)]
+        if hop is None:
             continue
-        key = (-len(path), time, tuple(path), order)
-        if best is None or key < best[0]:
-            best = (key, path, time)
-    if best is None:
+        arrival = clock + hop + 1
+        if arrival <= deadlines[cell]:
+            state = (1 << index, index)
+            candidate = (1, arrival, (cell,))
+            held = best.get(state)
+            if held is None or candidate[:2] < held[:2] or (
+                    candidate[:2] == held[:2] and candidate[2] < held[2]):
+                best[state] = candidate
+    if not best:
         return (None, {"order": "fallback-tour",
                        "reason": "no-collectible-item",
-                       "items": len(uniq), "steps": clock})
-    _key, path, finish = best
+                       "items": count_items, "steps": clock})
+    for size in range(1, count_items):
+        frontier = [(state, value) for state, value in best.items()
+                    if state[0].bit_count() == size]
+        for (mask, last), (collected, time, path) in frontier:
+            for index in range(count_items):
+                if mask & (1 << index):
+                    continue
+                hop = distances[(uniq[last], uniq[index])]
+                if hop is None:
+                    continue
+                arrival = time + hop + 1
+                cell = uniq[index]
+                if arrival > deadlines[cell]:
+                    continue
+                state = (mask | (1 << index), index)
+                candidate = (collected + 1, arrival, path + (cell,))
+                held = best.get(state)
+                if held is None or candidate[:2] < held[:2] or (
+                        candidate[:2] == held[:2] and candidate[2] < held[2]):
+                    best[state] = candidate
+    _collected, finish, path = min(
+        best.values(), key=lambda value: (-value[0], value[1], value[2]))
     chosen = path[0]
     hop = distances[(origin, chosen)]
     arrival = clock + hop + 1

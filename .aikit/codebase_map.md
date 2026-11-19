@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `244`
-- **Total Classes**: `304`
-- **Total Top-Level Functions**: `712`
-- **Total Class Methods**: `1559`
-- **Total Source Lines**: `35552`
+- **Total Python Modules**: `246`
+- **Total Classes**: `306`
+- **Total Top-Level Functions**: `717`
+- **Total Class Methods**: `1565`
+- **Total Source Lines**: `35759`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`244` module(s))
+- **Indexed**: python (`246` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -23,7 +23,7 @@
 ### [`agent.py`](agent.py)
 > *Rule-based agent loop over GridWorld state dicts.*
 
-**Size**: `1990` lines
+**Size**: `2014` lines
 
 **Classes:**
 - `class Memory` - *Ordered store of observed state dicts.*
@@ -1002,6 +1002,18 @@
 - `def measure_seeds(mode, directory)`
 - `def measure_case(mode, directory)`
 - `def run_battery(modes)`
+- `def main()`
+
+---
+
+### [`evals/schedule_scaling.py`](evals/schedule_scaling.py)
+> *Measure where the exact deadline schedule still wins as items grow.*
+
+**Size**: `63` lines
+
+**Functions:**
+- `def _reward(trace)`
+- `def measure(items, seeds)` - *Shipped vs ablated collection over ``seeds`` for one item count.*
 - `def main()`
 
 ---
@@ -2427,7 +2439,7 @@
 ### [`tests/test_deadline_planning.py`](tests/test_deadline_planning.py)
 > *Failing-first harness: the planner should schedule items by deadline.*
 
-**Size**: `189` lines
+**Size**: `192` lines
 
 **Classes:**
 - `class CaptureBackend` - *Record the observation and always propose a legal no-op.*
@@ -4286,6 +4298,27 @@
 
 **Functions:**
 - `def _run(args)`
+
+---
+
+### [`tests/test_schedule_scaling.py`](tests/test_schedule_scaling.py)
+> *Failing-first harness for scaling the deadline schedule past seven items.*
+
+**Size**: `117` lines
+
+**Classes:**
+- `class TestExactness`
+  - Method `.test_dp_agrees_with_brute_force_up_to_seven_items()`
+- `class TestScaledSchedule`
+  - Method `.test_eight_items_are_scheduled_instead_of_abandoned()`
+  - Method `.test_twelve_items_are_scheduled()`
+  - Method `.test_the_cap_moves_to_twelve()`
+  - Method `.test_the_shipped_planner_collects_eight_items()`
+  - Method `.test_the_tour_ablation_still_loses_items_at_eight()`
+
+**Functions:**
+- `def _brute(pos, cells, deadlines, steps)` - *Independent reference: enumerate orders with the shipped objective.*
+- `def _layout(seed, count)`
 
 ---
 

@@ -143,13 +143,16 @@ shipped rule on 4 items but loses a full item at 6.
 ## ⏱️ Deadline-Aware Scheduling
 
 When a world's state carries `deadlines` (`{"x,y": step}`) and every
-remaining item has one, the planner enumerates visit orders (up to seven
-items), picks the order that collects the most items by its inclusive
-deadline and then finishes soonest, and routes to that first item.
-`probe.deadline` records the chosen cell, deadline, distance, arrival,
-slack, full schedule and skipped items; the model observation and prompt
-carry the same `deadlines` list. `deadline_ordering=False` restores the
-shortest-tour rule and removes the readout. `python -m evals.headroom`
+remaining item has one, the planner solves an exact bitmask dynamic program
+over item subsets (up to twelve items), picking the schedule that collects
+the most items by their inclusive deadlines and then finishes soonest, then
+routes to that first item. The program is ``O(n^2 2^n)``; brute-force
+enumeration was the original implementation and remains the test oracle on
+seeded layouts up to seven items, so the smaller-family behaviour is
+byte-identical. `probe.deadline` records the chosen cell, deadline, distance,
+arrival, slack, full schedule and skipped items; the model observation and
+prompt carry the same `deadlines` list. `deadline_ordering=False` restores
+the shortest-tour rule and removes the readout. `python -m evals.headroom`
 shows the 4-item win; `python -m evals.headroom_learning` shows the scalar
 boundary.
 

@@ -6359,3 +6359,27 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python aikit.py check brain` -> 5/5 PASS (first run failed guidelines on a stale map; refreshed with `python scripts/update_knowledge_base.py --workspace ...` then 5/5).
   - probes -> 4/5/6 shipped totals 533/310/336; ablations 3/4/5 at 200; scalar 6-item means 5.00 (weight 4) and 5.70 (weight 8).
 - **Pinned regression baselines for cycle 201**: unittest 1181 OK; aikit 5/5; standing 466/240/217; nine pins 16/8/13/6/9/7/14/6/10; T1 0-99 1581; holdout 500-599 1581/800/738; T3 ranges; exhaustive T3 3906/3906 total 27860; goldens 9/9 + multi 5/5 + three 5/5; deadline shipped 4.00/26.65 (533 total, 0-19), 5.00/30.05 (310, 0-9), 6.00/33.15 (336, 0-9); deadline ablation 3/4/5 at 200; scalar 6-item 5.00/5.70; fixed-rig syn 0.05411532 phi 0.0 n32; policy d00e947e...; all earlier pins unchanged.
+
+
+## Cycle 202 - exact bitmask scheduling past the seven-item wall
+
+- **Baseline** (HEAD 6e4605c, cycle 201 plus the recorded Reforge run-1; same harness and seeds):
+  - `worlds.deadline.DeadlineWorld` gives every item a deadline and the shipped planner already read it, but `_first_of_deadline_tour` enumerated every visit order and capped at `MAX_DEADLINE_ITEMS=7`. At 8+ items it returned `reason=item-limit` and the planner fell back to the shortest tour, which loses items by construction; the exact capability stopped exactly where the world could still be measured.
+  - canonical gate: 1181 tests OK; aikit check brain 5/5; standing pins 466/240/217 and the 4/5/6-item totals 533/310/336.
+- **Gap**: the limit was an implementation artifact of factorial enumeration, not a property of the objective. The same max-collected-then-earliest-finish problem admits an exact subset dynamic program, so the shipped rule need not lose items at 8-12.
+- **Target delta**: an exact `O(n^2 2^n)` bitmask program capped at `MAX_SCHEDULE_ITEMS=12`; identical results to brute force on seeded layouts up to seven items; shipped collection of 8 and 12 items where the tour ablation loses at least one; standing pins and 4/5/6-item totals byte-identical; ADR-196 and README record the new boundary.
+- **Falsifier**: any standing pin moves, the DP disagrees with brute force at 2-7 items, 8-12 items are still abandoned, or the ablation collects everything.
+- **Change** (`agent.py`: `MAX_SCHEDULE_ITEMS=12`, `_first_of_deadline_tour` rewritten as a subset DP with `(mask, last)` states and `(-collected, finish, path)` tie-break; `tests/test_schedule_scaling.py` new with an independent brute-force oracle; `tests/test_deadline_planning.py` fallback pin moved to 13 items; `evals/schedule_scaling.py` new; README and ADR-196): no new deps.
+- **After** (identical battery, same seeds):
+  - canonical gate: 1187 tests OK (481.2s); 66 targeted tests OK; ADR-196 added.
+  - exactness: the DP agrees with brute force on seeded layouts of 2-7 items on chosen cell, collected count, full schedule and finish time, so the smaller-family behaviour is unchanged.
+  - scale: the helper schedules 8 and 12 items with `order=max-collected-then-shortest`; the shipped planner collects 8/8 on seeds 0-4; at 13 items the `reason=item-limit` fallback still fires with `limit=12`; the tour ablation still loses items at 8.
+  - standing behaviour: 4/5/6-item totals and all T1/T2/T3 pins carried by the unchanged tests.
+- **Ablation** (`Planner(deadline_ordering=False)`, 8 items): the shortest-tour rule collects fewer than all items while the shipped schedule collects all eight; the cut still removes `probe.deadline`, the observation field and the prompt line, so readout and behaviour die together.
+- **Verdict**: capability extension with a preserved exactness oracle. No emergence claim; verdict UNKNOWN.
+- **Commands run**:
+  - `python -m unittest tests.test_schedule_scaling tests.test_deadline_planning tests.test_headroom tests.test_headroom_learning` -> before: 4 failures (8/12-item tests); after: 66 OK.
+  - `python -m unittest discover -s tests -t .` -> 1187 OK (481.2s).
+  - `python -m evals.schedule_scaling` -> shipped vs ablation on 8-12 items (background run).
+  - `python aikit.py adr brain ...` -> ADR-196 appended.
+- **Pinned regression baselines for cycle 203**: unittest 1187 OK; standing 466/240/217; nine pins 16/8/13/6/9/7/14/6/10; deadline shipped 4/5/6 totals 533/310/336; DP = brute force at 2-7 items; schedule 8 and 12 items, cap 12; all earlier pins unchanged.

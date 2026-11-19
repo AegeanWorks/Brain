@@ -1,84 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-deadline-schedule",
-    "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794746857.3505979,
-    "owner": "kilo:goal",
-    "started_by": "kilo:goal",
-    "continuations": [
-      {
-        "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-        "from": "kilo:goal",
-        "at": 1795038261.6945848
-      }
-    ],
-    "workspaces": [
-      {
-        "name": "brain",
-        "path": "projects/brain"
-      }
-    ],
-    "completed_at": 1795038261.6945875,
-    "completed_head": "5f4a9cfbb8a3438ab559a58d77c3c360908a6f89",
-    "completed_tree": "9a138c9a66ca047395df234cefb005d9038443c3"
+    "task_id": "brain-schedule-scaling",
+    "last_phase": "in_progress",
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795068439.8533762,
+    "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+    "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "brain-deadline-schedule",
-      "phase": "phase 1",
-      "phase_num": 1,
-      "description": "[1/1] plan: add Planner(deadline_ordering) with an exhaustive per-item schedule (max collected, then earliest finish), probe.deadline, deadline observations/prompts, and a tour ablation; re-baseline headroom tests.",
-      "files_affected": [
-        "agent.py",
-        "models/llamacpp.py",
-        "evals/headroom.py",
-        "evals/headroom_learning.py",
-        "tests/test_deadline_planning.py",
-        "tests/test_headroom.py",
-        "tests/test_headroom_learning.py",
-        "worlds/deadline.py",
-        "README.md",
-        ".aikit/decisions.md",
-        "CYCLES.md"
-      ],
-      "status": "in_progress",
-      "timestamp": 1794746833.0516038,
-      "timestamp_str": "2026-11-15 15:47:13",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "DeadlineWorld emits deadlines but the shipped planner ignored them; ADR-194's scalar did not carry past 4 items.",
-        "benefits": "Substrate uses deadline state: 4/4, 5/5 and 6/6 where the tour ablation loses one item at the cap.",
-        "risks": "contract: new planner knob and policy digest rotation; dependency: none; concurrency: none; state: probe/obs schema additive for T6 only; regression: standing pins must stay byte-identical.",
-        "mitigation": "T6-only gating, failing-first tests, deadline_ordering=False ablation, full test gate and aikit 5/5."
-      },
-      "workspaces": [
-        {
-          "name": "brain",
-          "path": "projects/brain"
-        }
-      ]
-    },
-    {
-      "task_id": "brain-deadline-schedule",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "checks: unittest 1181/1181 OK; aikit check brain 5/5; hygiene/guidelines/secrets/compat pass; deadline shipped 4.00/26.65 (533), 5.00/30.05 (310), 6.00/33.15 (336) vs ablation 3/4/5 at 200; standing 466/240/217; policy d00e947e.",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794746857.3505979,
-      "timestamp_str": "2026-11-15 15:47:37",
-      "agent": "kilo:goal",
-      "checklists": "passed",
-      "workspaces": [
-        {
-          "name": "brain",
-          "path": "projects/brain"
-        }
-      ]
-    },
     {
       "task_id": "brain-deadline-schedule",
       "phase": "completed",
@@ -305,6 +237,35 @@
       "timestamp_str": "2026-11-19 02:20:18",
       "agent": "opencode",
       "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "brain-schedule-scaling",
+      "phase": "in_progress",
+      "phase_num": 1,
+      "description": "[1/1] plan: replace the O(n!) permutation enumeration in _first_of_deadline_tour with an exact bitmask dynamic program (same max-collected/earliest-finish/tie-break objective), raise the item cap from 7 to 12, re-baseline the deadline tests, add 8-12 item measurements against the tour ablation, and record ADR-196 plus cycle notes.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795065793.2058935,
+      "timestamp_str": "2026-11-19 08:23:13",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "impact_assessment": {
+        "why": "ADR-195's schedule is exact but exponential: at 8+ items it falls back to the shortest tour and loses items, so the shipped capability stops exactly where DeadlineWorld can still be measured.",
+        "benefits": "Exact deadline scheduling scales to 12 items; 4/5/6-item behavior stays byte-identical; the ablation becomes a sharper negative control at larger counts.",
+        "risks": "contract: internal helper and cap constant only, no CLI or default change; dependency: stdlib only; concurrency: none; state: probe readout extends to larger item counts; regression: standing T1/T2/T3 pins must stay byte-identical.",
+        "mitigation": "failing-first equivalence tests against brute force on seeded layouts up to 7 items, explicit 8-12 item collection tests, the full suite and aikit 5/5."
+      }
+    },
+    {
+      "task_id": "brain-schedule-scaling",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checks: unittest 1187/1187 OK (481s); aikit check brain 5/5; hygiene/guidelines/secrets/compat pass; DP = brute force at 2-7 items; 8 and 12 items scheduled, cap 12; shipped collects 8/8 over seeds 0-4; standing pins unchanged.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795068439.8533762,
+      "timestamp_str": "2026-11-19 09:07:19",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "checklists": "passed"
     }
   ]
 }

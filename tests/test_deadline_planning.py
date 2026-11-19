@@ -178,11 +178,14 @@ class TestScheduleHelper(unittest.TestCase):
         self.assertEqual(info["collectible"], 2)
 
     def test_it_falls_back_when_there_are_too_many_items(self):
-        cells = [[x, 0] for x in range(8)]
-        deadlines = {(x, 0): 200 for x in range(8)}
+        # ADR-196 raised the exact-schedule cap from 7 to 12 items; the
+        # fallback now starts one item past that cap.
+        cells = [[x, 0] for x in range(13)]
+        deadlines = {(x, 0): 200 for x in range(13)}
         goal, info = _first_of_deadline_tour((0, 0), cells, deadlines)
         self.assertIsNone(goal)
         self.assertEqual(info["reason"], "item-limit")
+        self.assertEqual(info["limit"], 12)
 
 
 if __name__ == "__main__":
