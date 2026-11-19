@@ -27,228 +27,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "brain-console-safe",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1077/1077 OK; aikit 5/5; console ASCII tests added; committed 2c141a5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794552407.5415838,
-      "timestamp_str": "2026-11-13 09:46:47",
-      "agent": "kilo:brain194b",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "brain-console-safe",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-console-safe' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794552407.7112446,
-      "timestamp_str": "2026-11-13 09:46:47",
-      "agent": "kilo:brain194b"
-    },
-    {
-      "task_id": "brain-openai-backend",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement the openai action backend so the agent can drive an already-running model; registered, wired into run_agent and brain.py, 14 tests, live stub proof; checklists: passed (freshness/call-site/deps/platform checked, unittest 1091 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794589120.337141,
-      "timestamp_str": "2026-11-13 19:58:40",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "the agent could only reach a model Brain launched itself, so the model a person runs was unusable by the planner",
-        "benefits": "one local server serves both chat and the agent; the rule policy remains the default and a dead server is a counted fallback",
-        "risks": "contract: new provider name and CLI flags, no default change; dependency: stdlib only; concurrency: none; state: last_manifest/last_prompt_stats per backend",
-        "mitigation": "provider is opt-in by name; construction stays offline; a raising client is proven to leave the episode intact; conformance pin updated with the reason"
-      },
-      "plan_digest": "dd2f5ac94567f8811e75235c4c5b5ab0f3a5afb3114aa8b3eff34497935299f6"
-    },
-    {
-      "task_id": "brain-openai-backend",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1091/1091 OK; aikit check brain 5/5; live stub T3 13 steps reward 1.0; conformance 3 providers 0 findings; committed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794589572.3336902,
-      "timestamp_str": "2026-11-13 20:06:12",
-      "agent": "kilo:goal",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "brain-openai-backend",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-openai-backend' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794589573.004507,
-      "timestamp_str": "2026-11-13 20:06:13",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "brain-model-influence",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement honest model-influence reporting: Planner.accepted, run_agent JSON counts + warning, brain.py transcript line + --trust-model; guarded 0/12 accepted/rejected vs trusted 200/0; checklists: passed (freshness/call-site/deps/platform checked, unittest 1104 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794593286.7643013,
-      "timestamp_str": "2026-11-13 21:08:06",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "a model-driven transcript looked identical to the rule policy and read as model skill when 12 of 12 proposals had been rejected",
-        "benefits": "a person sees how much the model decided, and the counterfactual is one flag away instead of an undocumented constructor",
-        "risks": "contract: new response fields and CLI flag, no default behaviour change; dependency: stdlib only; concurrency: none; state: one integer counter",
-        "mitigation": "guards stay on by default; the trusted arm is labelled a measurement switch and its worse measured result is pinned; tests cover zero, partial and never-consulted cases"
-      },
-      "plan_digest": "dde378847ebd04b0abb7b50cf620f03889825e0cd3e27e09e8dbe77560404b6e"
-    },
-    {
-      "task_id": "brain-model-influence",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1104/1104 OK; aikit check brain 5/5; guarded 0 accepted/12 rejected vs trusted 200 accepted/0.0 reward; test module 0.09s; committed 07d809d",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794593915.205253,
-      "timestamp_str": "2026-11-13 21:18:35",
-      "agent": "kilo:goal",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "brain-model-influence",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-model-influence' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794593915.486011,
-      "timestamp_str": "2026-11-13 21:18:35",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "brain-policy-ceiling",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement the ceiling battery: evals/policy_ceiling.py (BFS optimum per task) proves the rule is optimal 20/20 seeds on all tasks; oracle model accepted 13/13, 13/13, 8/8; checklists: passed (freshness/call-site/deps/platform checked, unittest 1121 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794596227.595482,
-      "timestamp_str": "2026-11-13 21:57:07",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "the model seam looked like a capability; nobody had measured whether the rule leaves any steps to win",
-        "benefits": "the can-a-model-help question is closed with a number, and the battery exits 1 the moment a task gains headroom",
-        "risks": "contract: new eval module only, no product behaviour change; dependency: stdlib only; concurrency: none; state: none",
-        "mitigation": "the claim is pinned by a test and re-checked on every run; the boundary (task rules define the ceiling) is recorded in ADR-192"
-      },
-      "plan_digest": "7e44eb3450984dc098e7cf3c0749c1f91316c3cfa2e8c6a4ba69568f9d6422a9"
-    },
-    {
-      "task_id": "brain-policy-ceiling",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1121/1121 OK; aikit check brain 5/5; policy_ceiling exit 0, gap 0 on 20/20 seeds for all tasks; committed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794596897.572055,
-      "timestamp_str": "2026-11-13 22:08:17",
-      "agent": "kilo:goal",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "brain-policy-ceiling",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-policy-ceiling' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794596897.7500305,
-      "timestamp_str": "2026-11-13 22:08:17",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "brain-headroom-task",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement the first task with headroom: worlds/deadline.py (inclusive deadlines, far item urgent), evals/headroom.py brute-force optimum + deadline plan replayed through StubBackend; rule 3.00 vs policy 4.00 items, gap 20/20; checklists: passed (freshness/call-site/deps/platform checked, unittest 1146 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794600277.3073068,
-      "timestamp_str": "2026-11-13 23:04:37",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "ADR-192's no-headroom verdict was conditional on the shipped reward rules and had never been tested the other way",
-        "benefits": "first measured non-rule win on this substrate and a concrete demonstration of ADR-192's boundary",
-        "risks": "contract: new world not in TASKS plus a new eval module; dependency: stdlib only; concurrency: none; state: none",
-        "mitigation": "existing TASKS and pins untouched; the winning plan is labelled hand-built, not learned; both world and plan are pinned by 25 tests"
-      },
-      "plan_digest": "59648a56cdde37f20775541e4456b706271402f4c94851c93172ece61af5e920"
-    },
-    {
-      "task_id": "brain-headroom-task",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1146/1146 OK; aikit check brain 5/5; headroom exit 0 with 3.00 vs 4.00 items and 20/20 gaps; committed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794600743.5395038,
-      "timestamp_str": "2026-11-13 23:12:23",
-      "agent": "kilo:goal",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "brain-headroom-task",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-headroom-task' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794600743.8816879,
-      "timestamp_str": "2026-11-13 23:12:23",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "brain-headroom-learning",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Plan + implement the learned deadline policy: one-parameter family + UCB1 bandit over OnlinePredictor; chosen w=4 after 7 episodes, held-out 4.00 vs rule 3.00; guards accept the better plan 0 rejections; boundary: scalar does not transfer across item counts; checklists: passed (unittest 1163 OK, aikit 5/5, secrets/compat clean)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794604122.1158905,
-      "timestamp_str": "2026-11-14 00:08:42",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "ADR-193 showed headroom only with a hand-built plan and left the learnability and guard questions open",
-        "benefits": "first learned policy that wins, plus proof the default guards do not block a better proposal",
-        "risks": "contract: new eval module only, no product change; dependency: stdlib only; concurrency: none; state: none",
-        "mitigation": "the family and the bandit are labelled hand-designed; portability failure is pinned as a test rather than omitted"
-      },
-      "plan_digest": "4cdec849baac7b28a99dcf153b6b5efaba19633a998e6a8350dbcaf67df0973a"
-    },
-    {
-      "task_id": "brain-headroom-learning",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; unittest 1163/1163 OK; aikit check brain 5/5; chosen w=4, held-out 4.00 vs 3.00; guards 0 rejections; committed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794604575.1728427,
-      "timestamp_str": "2026-11-14 00:16:15",
-      "agent": "kilo:goal",
-      "checklists": "passed"
-    },
-    {
-      "task_id": "brain-headroom-learning",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brain-headroom-learning' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794604575.361633,
-      "timestamp_str": "2026-11-14 00:16:15",
-      "agent": "kilo:goal"
-    },
-    {
       "task_id": "brain-deadline-schedule",
       "phase": "phase 1",
       "phase_num": 1,
@@ -318,6 +96,215 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 71",
+      "phase_num": 3,
+      "description": "Reforge stage 71: stage 71 host review reviewed; run active; coverage 12/12",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043233.731834,
+      "timestamp_str": "2026-11-19 02:07:13",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 72",
+      "phase_num": 3,
+      "description": "Reforge stage 72: window 216, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043307.4560554,
+      "timestamp_str": "2026-11-19 02:08:27",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 72",
+      "phase_num": 3,
+      "description": "Reforge stage 72: stage 72 host review reviewed; run active; coverage 15/15",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043311.7969985,
+      "timestamp_str": "2026-11-19 02:08:31",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 73",
+      "phase_num": 3,
+      "description": "Reforge stage 73: window 219, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043389.5906727,
+      "timestamp_str": "2026-11-19 02:09:49",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 73",
+      "phase_num": 3,
+      "description": "Reforge stage 73: stage 73 host review reviewed; run active; coverage 12/12",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043393.8342557,
+      "timestamp_str": "2026-11-19 02:09:53",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 74",
+      "phase_num": 3,
+      "description": "Reforge stage 74: window 222, 3 commit(s), 9 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043476.6290438,
+      "timestamp_str": "2026-11-19 02:11:16",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 74",
+      "phase_num": 3,
+      "description": "Reforge stage 74: stage 74 host review reviewed; run active; coverage 15/15",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043482.7772255,
+      "timestamp_str": "2026-11-19 02:11:22",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 75",
+      "phase_num": 3,
+      "description": "Reforge stage 75: window 225, 3 commit(s), 2 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043576.121652,
+      "timestamp_str": "2026-11-19 02:12:56",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 75",
+      "phase_num": 3,
+      "description": "Reforge stage 75: stage 75 host review reviewed; run active; coverage 4/4",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043579.5686896,
+      "timestamp_str": "2026-11-19 02:12:59",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 76",
+      "phase_num": 3,
+      "description": "Reforge stage 76: window 228, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043666.464185,
+      "timestamp_str": "2026-11-19 02:14:26",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 76",
+      "phase_num": 3,
+      "description": "Reforge stage 76: stage 76 host review reviewed; run active; coverage 14/14",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043722.8831565,
+      "timestamp_str": "2026-11-19 02:15:22",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 77",
+      "phase_num": 3,
+      "description": "Reforge stage 77: window 231, 3 commit(s), 9 file(s) reviewed (unreviewed), 8 finding(s), 0 repaired, empty \u2014 nothing to commit (regression=6, reliability=2)",
+      "files_affected": [
+        "agent.py",
+        "tests/test_wiring.py"
+      ],
+      "status": "in_progress",
+      "timestamp": 1795043822.2027898,
+      "timestamp_str": "2026-11-19 02:17:02",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 77",
+      "phase_num": 3,
+      "description": "Reforge stage 77: stage 77 host review reviewed; run active; coverage 28/28",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043829.0429468,
+      "timestamp_str": "2026-11-19 02:17:09",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 78",
+      "phase_num": 3,
+      "description": "Reforge stage 78: window 234, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043919.5555565,
+      "timestamp_str": "2026-11-19 02:18:39",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 78",
+      "phase_num": 3,
+      "description": "Reforge stage 78: stage 78 host review reviewed; run active; coverage 7/7",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795043922.4657216,
+      "timestamp_str": "2026-11-19 02:18:42",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 79",
+      "phase_num": 3,
+      "description": "Reforge stage 79: window 236, 2 commit(s), 43 file(s) reviewed (unreviewed), 2 finding(s), 0 repaired, empty \u2014 nothing to commit (regression=2)",
+      "files_affected": [
+        "telemetry/log.py"
+      ],
+      "status": "in_progress",
+      "timestamp": 1795044004.31419,
+      "timestamp_str": "2026-11-19 02:20:04",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
+    },
+    {
+      "task_id": "reforge:run-1",
+      "phase": "reforge stage 79",
+      "phase_num": 3,
+      "description": "Reforge stage 79: stage 79 host review reviewed; run completed; coverage 46/46",
+      "files_affected": [],
+      "status": "completed",
+      "timestamp": 1795044018.9487686,
+      "timestamp_str": "2026-11-19 02:20:18",
+      "agent": "opencode",
+      "operator_task": "brain-deadline-schedule"
     }
   ]
 }
