@@ -6406,3 +6406,25 @@ only integration scores, cross-module dependencies, and ablation differentials.
   - `python -m evals.schedule_scaling` -> before: did not finish (factorial); after: exit 0 with the five measured rows.
   - `python -m unittest discover -s tests -t .` -> 1191 OK.
 - **Pinned regression baselines for cycle 204**: unittest 1191 OK; tour helpers exact at 2-4 items and bounded at 10-12; scaling eval exit 0 with 8/9/10/11/12 shipped means 8.00/9.00/10.00/10.67/11.33 and ablation 7.00/8.00/9.00/10.00/11.00; all earlier pins unchanged.
+
+
+## Cycle 204 - the high-count gap is a reward-rule parameter
+
+- **Baseline** (HEAD 09f2a57, cycle 203): ADR-197 recorded a narrowing shipped-vs-ablation gap at 11-12 items and blamed `DeadlineWorld`'s fixed `+40` patient slack, but the slack had never been varied, so a planner limit was not excluded. Default 12-item seed 0 collected 11.0 in 200 steps.
+- **Gap**: a boundary claim without a perturbation is only a hypothesis. The world needed an additive rule parameter so the planner could be held fixed while the slack changed.
+- **Target delta**: `DeadlineWorld(seed, items, patience=PATIENCE=40)` with validation, every default-patience pin byte-identical, a reproducible patience sweep, and ADR-198 recording the verdict.
+- **Falsifier**: any default pin moves, longer patience does not restore the full sweep, or the tour ablation starts collecting the urgent item.
+- **Change** (`worlds/deadline.py`: `PATIENCE=40`, validated `patience` constructor argument, `_build` uses `self.patience`; `tests/test_deadline_patience.py` new; `evals/deadline_patience.py` new; README and ADR-198): no new deps.
+- **After** (identical planner, seeds 0-2):
+  - failing-first: 3 tests errored on the missing `patience` keyword before the change; all 5 pass after (10.2s).
+  - 11 items: shipped 10.67 / 11.00 / 11.00 at patience 40 / 80 / 120 (steps 292 / 139 / 139), ablation 10.00 at every patience.
+  - 12 items: shipped 11.33 / 12.00 / 12.00 (steps 453 / 148 / 148), ablation 11.00 at every patience.
+  - default-patience pins unchanged: seed 0 four-item deadlines `[([1,3],44), ([1,6],47), ([1,7],48), ([7,6],14)]`; 12-item seed 0 still 11.0.
+  - `python -m evals.deadline_patience` exit 0 with the six measured rows.
+- **Ablation** (`Planner(deadline_ordering=False)`, patience 120, 12 items): the shortest-tour rule still loses the urgent item, so the restored full sweep is the schedule's win under a more patient rule, not a change in the ablation.
+- **Verdict**: the boundary is a property of the reward rule. No emergence claim; verdict UNKNOWN.
+- **Commands run**:
+  - `python -m unittest tests.test_deadline_patience` -> before: 3 errors; after: 5 OK (10.2s).
+  - `python -m evals.deadline_patience` -> exit 0; six rows for items 11/12 x patience 40/80/120.
+  - `python -m unittest discover -s tests -t .` -> 1196 OK.
+- **Pinned regression baselines for cycle 205**: unittest 1196 OK; default patience 40 and all four seed-0 deadlines unchanged; 12-item seed 0 11.0; patience sweep 11-item shipped 10.67/11.00/11.00, 12-item 11.33/12.00/12.00, ablation 10.00/11.00; all earlier pins unchanged.

@@ -6,14 +6,14 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `247`
-- **Total Classes**: `308`
-- **Total Top-Level Functions**: `723`
-- **Total Class Methods**: `1569`
-- **Total Source Lines**: `35940`
+- **Total Python Modules**: `249`
+- **Total Classes**: `310`
+- **Total Top-Level Functions**: `727`
+- **Total Class Methods**: `1574`
+- **Total Source Lines**: `36073`
 
 ## 🧭 Map Coverage
-- **Indexed**: python (`247` module(s))
+- **Indexed**: python (`249` module(s))
 - **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
@@ -609,6 +609,18 @@
 - `def measure_case(target, obstacles, want_steps, directory, mode, max_steps)`
 - `def run_battery(cases, mode, max_steps)` - *Measure every case under one mode in one temporary directory.*
 - `def _parse_case(text)`
+- `def main()`
+
+---
+
+### [`evals/deadline_patience.py`](evals/deadline_patience.py)
+> *Test ADR-197's boundary: is the high-count gap a rule limit or a planner limit?*
+
+**Size**: `69` lines
+
+**Functions:**
+- `def _reward(trace)`
+- `def measure(items, patience, seeds)` - *Shipped vs ablated collection for one item count and patience.*
 - `def main()`
 
 ---
@@ -2435,6 +2447,25 @@
   - Method `.test_guard_deterministic()`
   - Method `.test_policy_declares_dead_pool_filter()`
   - Method `.test_invalid_dead_pool_filter_rejected()`
+
+---
+
+### [`tests/test_deadline_patience.py`](tests/test_deadline_patience.py)
+> *Failing-first harness for the patience boundary recorded in ADR-197.*
+
+**Size**: `56` lines
+
+**Classes:**
+- `class TestPatienceContract`
+  - Method `.test_default_deadlines_are_unchanged()`
+  - Method `.test_default_patience_keeps_the_twelve_item_result()`
+  - Method `.test_patience_is_validated()`
+- `class TestPatienceBoundary`
+  - Method `.test_longer_patience_restores_the_full_twelve_item_sweep()`
+  - Method `.test_the_tour_ablation_still_loses_with_long_patience()`
+
+**Functions:**
+- `def _reward(trace)`
 
 ---
 
@@ -5017,11 +5048,11 @@
 ### [`worlds/deadline.py`](worlds/deadline.py)
 > *A grid task where the shortest tour is the wrong plan.*
 
-**Size**: `163` lines
+**Size**: `171` lines
 
 **Classes:**
 - `class DeadlineWorld` - *Collect items before they expire; the planner schedules the order.*
-  - Method `.__init__(seed, items)`
+  - Method `.__init__(seed, items, patience)`
   - Method `._build()`
   - Method `.reset()`
   - Method `._remaining()`

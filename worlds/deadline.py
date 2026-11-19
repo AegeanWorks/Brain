@@ -25,6 +25,7 @@ SIZE = 8
 MAX_STEPS = 200
 MAX_ENERGY = 200
 ITEMS = 4
+PATIENCE = 40
 
 
 class DeadlineWorld:
@@ -33,15 +34,22 @@ class DeadlineWorld:
     task_id = "T6_deadline"
     ACTIONS = ("up", "down", "left", "right", "collect", "wait")
 
-    def __init__(self, seed, items=ITEMS):
+    def __init__(self, seed, items=ITEMS, patience=PATIENCE):
         if not isinstance(seed, int):
             raise TypeError("seed must be int")
         if not isinstance(items, int) or items < 2:
             raise ValueError(
                 "Why: items must be an int >= 2 so ordering can matter. "
                 "Fix: pass items=4.")
+        if not isinstance(patience, int):
+            raise TypeError("patience must be int")
+        if patience < 1:
+            raise ValueError(
+                "Why: patience must be an int >= 1 so deadlines stay after "
+                "arrival. Fix: pass patience=40.")
         self.seed = seed
         self.item_count = items
+        self.patience = patience
         self.reset()
 
     # -- layout ----------------------------------------------------------
@@ -63,7 +71,7 @@ class DeadlineWorld:
         last = len(picked) - 1
         for index, cell in enumerate(picked):
             distance = abs(cell[0]) + abs(cell[1])
-            deadlines.append(distance + (1 if index == last else 40))
+            deadlines.append(distance + (1 if index == last else self.patience))
         self.items = [{"cell": cell, "deadline": deadlines[index],
                        "collected": False, "expired": False}
                       for index, cell in enumerate(picked)]

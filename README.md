@@ -158,6 +158,10 @@ boundary. `python -m evals.schedule_scaling` compares the shipped schedule
 with the tour ablation at 8-12 items: it wins at every count, while the
 world's fixed patient-item slack caps a full sweep at 10 items (means
 11: 10.67 vs 10.00, 12: 11.33 vs 11.00 over seeds 0-2).
+`DeadlineWorld(seed, items=..., patience=40)` makes that slack explicit:
+`python -m evals.deadline_patience` holds the planner fixed and shows that
+patience 80 restores the full 11/11 and 12/12 sweep (139-148 steps) while
+the tour ablation still loses the urgent item.
 
 ## 🤝 Model-Seam Trust Contract
 

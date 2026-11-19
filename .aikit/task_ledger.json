@@ -1,43 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "brain-tour-scaling",
+    "task_id": "brain-deadline-patience",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1795071020.3131971,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1795086714.6275432,
     "owner": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
     "started_by": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
-    "continuations": [],
-    "completed_at": 1795071396.1147466,
-    "completed_head": "5f489d7e9f9b947eec26916d5bd92bf7a3073056",
-    "completed_tree": "768507092c51d1141b3e02c1186eb710b2574129"
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 73",
-      "phase_num": 3,
-      "description": "Reforge stage 73: window 219, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043389.5906727,
-      "timestamp_str": "2026-11-19 02:09:49",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 73",
-      "phase_num": 3,
-      "description": "Reforge stage 73: stage 73 host review reviewed; run active; coverage 12/12",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1795043393.8342557,
-      "timestamp_str": "2026-11-19 02:09:53",
-      "agent": "opencode",
-      "operator_task": "brain-deadline-schedule"
-    },
     {
       "task_id": "reforge:run-1",
       "phase": "reforge stage 74",
@@ -278,6 +251,35 @@
         ],
         "forced": false
       }
+    },
+    {
+      "task_id": "brain-deadline-patience",
+      "phase": "in_progress",
+      "phase_num": 1,
+      "description": "[1/1] plan: add an additive patience parameter to DeadlineWorld (default 40, pins unchanged), measure the 11-12 item family across patience 40/80/120, and test ADR-197's claim that the shrinking gap is a property of the reward rule rather than the scheduler; record ADR-198.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795085586.556193,
+      "timestamp_str": "2026-11-19 13:53:06",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "impact_assessment": {
+        "why": "ADR-197 measured a narrowing shipped-vs-ablation gap at 11-12 items and attributed it to DeadlineWorld's fixed patient-item slack, but never varied that slack, so the boundary claim is untested.",
+        "benefits": "A measured patience sweep separates a world-rule limit from a planner limit, restores a full-item win where the rule allows it, and turns ADR-197's boundary into evidence.",
+        "risks": "contract: additive optional world parameter with a fixed default, no shipped-task change; dependency: stdlib only; concurrency: none; state: no persisted state changes; regression: every T6 pin at default patience must stay byte-identical.",
+        "mitigation": "failing-first tests at patience 80/12 items, explicit default-patience pin checks, the full suite and aikit 5/5."
+      }
+    },
+    {
+      "task_id": "brain-deadline-patience",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "checks: unittest 1196/1196 OK (391s); aikit check brain 5/5; patience sweep exit 0 with full sweep restored at 80/120 while ablation still loses; default pins byte-identical.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1795086714.6275432,
+      "timestamp_str": "2026-11-19 14:11:54",
+      "agent": "opencode:ses_e0f6a0ba6ffeXBSa2Z8C5e2Qzp",
+      "checklists": "passed"
     }
   ]
 }
