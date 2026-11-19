@@ -10,7 +10,7 @@
 - **Total Classes**: `310`
 - **Total Top-Level Functions**: `727`
 - **Total Class Methods**: `1574`
-- **Total Source Lines**: `36073`
+- **Total Source Lines**: `36075`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`249` module(s))
@@ -4762,7 +4762,7 @@
 ### [`tests/test_tour_scaling.py`](tests/test_tour_scaling.py)
 > *Failing-first harness for the factorial shortest-tour helpers.*
 
-**Size**: `102` lines
+**Size**: `104` lines
 
 **Classes:**
 - `class TestTourExactness`
